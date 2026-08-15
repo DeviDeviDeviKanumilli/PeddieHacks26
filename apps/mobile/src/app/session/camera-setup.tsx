@@ -4,12 +4,16 @@ import { Check, RotateCcw } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
 import { useAppIsActive } from '@/hooks/useAppIsActive';
+import { isPoseTrackingAvailable, SessionCamera } from '@/lib/poseCamera';
+import { getTrackingRecipe } from '@/lib/tracking/recipes';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function CameraSetupScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
   const appIsActive = useAppIsActive();
   const query = new URLSearchParams(params).toString();
+  const recipe = getTrackingRecipe(params.exercise ?? '');
+  const nativePose = isPoseTrackingAvailable();
   return (
     <Screen>
       <View style={styles.intro}>
@@ -21,7 +25,13 @@ export default function CameraSetupScreen() {
         </Body>
       </View>
       <View style={styles.preview}>
-        {appIsActive ? <CameraView facing="front" mirror style={StyleSheet.absoluteFill} /> : null}
+        {appIsActive ? (
+          nativePose ? (
+            <SessionCamera active recipe={recipe} />
+          ) : (
+            <CameraView facing="front" mirror style={StyleSheet.absoluteFill} />
+          )
+        ) : null}
         <View style={styles.guide}>
           <View style={styles.head} />
           <View style={styles.torso} />

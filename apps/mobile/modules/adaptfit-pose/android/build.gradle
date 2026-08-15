@@ -1,0 +1,46 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.adaptfitpose'
+version = '0.1.0'
+
+def assetsDir = file('src/main/assets')
+def modelFile = new File(assetsDir, 'pose_landmarker_lite.task')
+def modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task'
+
+tasks.register('downloadPoseModel') {
+  outputs.file(modelFile)
+  doLast {
+    if (!modelFile.exists()) {
+      assetsDir.mkdirs()
+      new URL(modelUrl).withInputStream { stream ->
+        modelFile.withOutputStream { output -> output << stream }
+      }
+    }
+  }
+}
+
+tasks.matching { it.name == 'preBuild' }.configureEach {
+  dependsOn('downloadPoseModel')
+}
+
+android {
+  namespace 'expo.modules.adaptfitpose'
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  implementation 'com.google.mediapipe:tasks-vision:0.10.26'
+  implementation 'androidx.camera:camera-core:1.4.2'
+  implementation 'androidx.camera:camera-camera2:1.4.2'
+  implementation 'androidx.camera:camera-lifecycle:1.4.2'
+  implementation 'androidx.camera:camera-view:1.4.2'
+}

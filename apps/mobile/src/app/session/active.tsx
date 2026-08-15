@@ -2,11 +2,13 @@ import { CameraView } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { CircleStop, Pause, Play, Plus, VideoOff } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AnatomyMap } from '@/components/AnatomyMap';
 import { Button, Card, Screen } from '@/components/ui';
 import { useAppIsActive } from '@/hooks/useAppIsActive';
+import { isPoseTrackingAvailable, type PoseAnglesEvent, SessionCamera } from '@/lib/poseCamera';
+import { createSetTracker, getCalibratedRecipe, getTrackingRecipe } from '@/lib/tracking/recipes';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -48,7 +50,32 @@ export default function ActiveSessionScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [paused, setPaused] = useState(false);
   const tracking = params.tracking === '1';
-  const demoTracking = tracking && mode === 'guest';
+  const recipe = getTrackingRecipe(exercise?.slug ?? '');
+  const calibratedRecipe = getCalibratedRecipe(exercise?.slug ?? '');
+  const nativePose = tracking && isPoseTrackingAvailable();
+  const nativeCounting = nativePose && calibratedRecipe !== undefined;
+  const demoTracking = tracking && mode === 'guest' && !nativeCounting;
+  const trackerRef = useRef(
+    calibratedRecipe ? createSetTracker(calibratedRecipe, targetReps) : null,
+  );
+  useEffect(() => {
+    trackerRef.current = calibratedRecipe ? createSetTracker(calibratedRecipe, targetReps) : null;
+  }, [calibratedRecipe, targetReps]);
+  const onAngles = useCallback(
+    (event: PoseAnglesEvent) => {
+      const tracker = trackerRef.current;
+      if (!nativeCounting || paused || tracker === null) return;
+      tracker.update(
+        {
+          left: event.nativeEvent.leftAngle,
+          right: event.nativeEvent.rightAngle,
+        },
+        Date.now() / 1000,
+      );
+      setReps(tracker.repsInSet);
+    },
+    [nativeCounting, paused],
+  );
   useEffect(() => {
     if (paused) return;
     const timer = setInterval(() => setElapsed((value) => value + 1), 1000);
@@ -108,7 +135,11 @@ export default function ActiveSessionScreen() {
       </View>
       <View style={styles.stage}>
         {tracking && appIsActive && !paused ? (
-          <CameraView facing="front" mirror style={StyleSheet.absoluteFill} />
+          nativePose ? (
+            <SessionCamera active onAngles={onAngles} recipe={recipe} />
+          ) : (
+            <CameraView facing="front" mirror style={StyleSheet.absoluteFill} />
+          )
         ) : (
           <View style={styles.noCamera}>
             <View style={styles.noCameraMap}>
@@ -131,7 +162,11 @@ export default function ActiveSessionScreen() {
             <Text style={styles.trackingBadgeText}>Tracking off</Text>
           </View>
         ) : null}
-        {demoTracking ? (
+        {nativeCounting ? (
+          <View style={styles.demoBadge}>
+            <Text style={styles.demoText}>On-device tracking</Text>
+          </View>
+        ) : demoTracking ? (
           <View style={styles.demoBadge}>
             <Text style={styles.demoText}>Simulated guest tracking</Text>
           </View>

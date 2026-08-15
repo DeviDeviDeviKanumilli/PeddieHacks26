@@ -12,3 +12,6 @@ supabase/.temp/
 .DS_Store
 __pycache__/
 *.py[cod]
+*.task
+apps/mobile/android/
+apps/mobile/ios/

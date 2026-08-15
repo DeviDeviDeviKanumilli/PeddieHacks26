@@ -8,8 +8,15 @@
     "ignoreDeprecations": "6.0",
     "types": ["jest"],
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "adaptfit-pose": ["modules/adaptfit-pose/index.ts"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "modules/adaptfit-pose/index.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }

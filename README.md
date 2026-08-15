@@ -29,6 +29,9 @@ uses reviewed demo data and SQLite-backed device persistence, while live mode us
 Supabase Auth and the bearer-aware Fastify API. Do not use the legacy `apps/web`
 prototype as the product runtime.
 
+On-device pose tracking requires a development build (`pnpm dev:mobile:android:device`),
+not Expo Go. The first calibrated exercise is seated biceps curl.
+
 The current mobile UI keeps Home focused on one plan, one tip, and two quick actions;
 Explore separates **For me** recommendations and collections from the full **All exercises**
 catalog; compact lists use reusable colored movement marks; exercise detail keeps a small

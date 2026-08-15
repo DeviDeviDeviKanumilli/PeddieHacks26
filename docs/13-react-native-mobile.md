@@ -55,51 +55,47 @@ than raw landmarks.
 
 ## On-device pose integration
 
-The shipped client shows an `expo-camera` preview and a no-camera path. Guest tracking
-still increments reps on a timer labeled **Simulated guest tracking**. Live mode uploads
-counted-rep records only through `buildCountedRepMetrics`. Neither path runs pose
-inference. The desktop Python lab under `model/` is already merged to `main`; it does
-not run inside the app.
+The Android development path now lives in `apps/mobile/modules/adaptfit-pose`. It runs
+MediaPipe Pose Landmarker on-device and emits left/right joint angles plus confidence.
+Landmarks, frames, and images stay in native code. `apps/mobile/src/lib/tracking` ports
+the Python analyzer; seated biceps curl is the first calibrated recipe. Guest mode still
+uses a labeled timer when the native module is missing (Expo Go). Live mode still uploads
+count-only `RepMetric`s and must not persist simulated form values.
 
-Expo Go cannot load MediaPipe or a bundled `.task` model. Production tracking requires
-`expo-dev-client` and an EAS **development** build. The module must own a single camera
-session for setup and the active workout, bundle `pose_landmarker_lite.task` in the app
-(do not download it at runtime), and stop inference on unmount, navigation away, or
-backgrounding.
+Expo Go cannot load MediaPipe or a bundled `.task` model. Use `expo-dev-client` and
+`pnpm dev:mobile:android:device` so the module owns one camera session for setup and the
+active workout. The `.task` model is downloaded at compile time into module assets, not
+at runtime. Inference stops on unmount, navigation away, or backgrounding.
 
 Keep this split:
 
 - Native: camera frames, MediaPipe Pose Landmarker, joint visibility, and joint angles.
 - TypeScript: the `exercise_analyzer.py` state machine (target then return angle,
-  bilateral reps, sets/rest, ROM). Port it with the existing Python tests as the oracle.
+  bilateral reps, sets/rest, ROM).
 - JavaScript/API: allowlisted `RepMetric` fields and known `feedbackCodes` only.
 
 Never emit landmark coordinates, frames, images, or audio to JavaScript for persistence
 or to the API. If the native module is absent, keep the labeled guest simulation; live
-mode must not persist simulated form, ROM, or fatigue values. Skip the pose module when
-the exercise has no tracking profile.
+mode must not persist simulated form, ROM, or fatigue values. Skip native counting when
+the exercise has no calibrated tracking recipe.
 
 Calibrate six client recipes rather than training a new pose model. Seed data currently
-reuses one ROM window (`30–140°`) and tempo (`2–6s`) for every tracked exercise, and the
-Python camera loop defaults to elbow landmarks. Each tracking key needs its own joints,
-target/return angles, and limb rule:
+reuses one ROM window (`30–140°`) and tempo (`2–6s`) for every tracked exercise. Each
+tracking key needs its own joints, target/return angles, and limb rule:
 
 | Tracking key | Starting joint recipe |
 | --- | --- |
-| `seated-biceps-curl-v1` | elbows `11-13-15` / `12-14-16` (already in `model/main.py`) |
-| `seated-resistance-band-row-v1` | elbows or shoulders |
-| `seated-march-v1` | hips `23-25-27` / `24-26-28` |
-| `seated-knee-extension-v1` | knees |
-| `sit-to-stand-v1` | hip and knee |
-| `wall-push-up-v1` | elbows or shoulders |
+| `seated-biceps-curl-v1` | elbows `11-13-15` / `12-14-16` (calibrated; matches `model/main.py`) |
+| `seated-resistance-band-row-v1` | elbows or shoulders (stub) |
+| `seated-march-v1` | hips `23-25-27` / `24-26-28` (stub) |
+| `seated-knee-extension-v1` | knees (stub) |
+| `sit-to-stand-v1` | hip and knee (stub) |
+| `wall-push-up-v1` | elbows or shoulders (stub) |
 
-The first physical test device is Android, so ship Android first: development build on
-that phone, then biceps-curl tracking, then calibrate detection. iOS remains required
-for release, but it is not the first hardware gate. Work that does not need the phone
-includes adding `expo-dev-client`, porting the analyzer and tests, writing the curl
-recipe, scaffolding the Android MediaPipe module, and compiling the APK on a machine
-that has the Android SDK. The phone is for install, camera permission, framing, and
-calibration. Physical devices must use a LAN IP or hosted API origin, not `localhost`.
+The first physical test device is Android. Install the development APK, confirm preview
+and no-camera still work, then calibrate curl on that camera. iOS remains required for
+release and still uses the `expo-camera` preview until the same native path ships.
+Physical devices must use a LAN IP or hosted API origin, not `localhost`.
 
 If lite detection is weak, try a larger off-the-shelf MediaPipe pose model. Do not train
 a custom pose network for this milestone.
@@ -159,6 +155,12 @@ The application now lives in `apps/mobile` and includes:
   completion, and metrics-first analysis.
 - Authenticated session lifecycle calls that submit only counted-rep derived records;
   simulated guest form values are never persisted to the backend.
+- An Android-first local Expo module under `apps/mobile/modules/adaptfit-pose` that runs
+  MediaPipe Pose Landmarker on-device and emits joint angles only. The TypeScript port of
+  `exercise_analyzer.py` counts biceps-curl reps from those angles. Expo Go cannot load
+  this module; use `pnpm dev:mobile:android:device` / `expo run:android` to install a
+  development build. iOS still uses the `expo-camera` preview until the same native path
+  ships there.
 - Account deletion, EAS development/preview/production profiles, Jest and React Native
   Testing Library coverage, and a committed Maestro guest acceptance flow.
 - Original flat geometric people illustrations for the welcome and reusable movement-family
@@ -176,9 +178,15 @@ Run the client and focused checks with:
 pnpm dev:mobile
 pnpm dev:mobile:ios
 pnpm dev:mobile:android
+pnpm dev:mobile:android:device
 pnpm test:mobile
 pnpm --filter @peddie/mobile build
 ```
+
+`pnpm dev:mobile:android` starts Metro for Expo Go, which cannot run pose inference.
+`pnpm dev:mobile:android:device` compiles a development client with MediaPipe and installs
+it on a connected Android phone or emulator. The pose model is downloaded into module
+assets at compile time, not at runtime.
 
 The iOS and Android export gate succeeds without private environment variables. Physical
 devices must use a reachable API URL rather than `localhost`. The production pose native

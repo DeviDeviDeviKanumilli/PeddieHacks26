@@ -7,6 +7,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { AccountRepository } from '../account-repository.js';
 import { requestAuth, requireUser } from '../auth.js';
+import type { RateLimitConfig } from '../config.js';
 import type { UserRepository } from '../user-repository.js';
 
 export const registerUserRoutes = async (
@@ -14,6 +15,7 @@ export const registerUserRoutes = async (
   dependencies: {
     readonly users: UserRepository;
     readonly accounts: AccountRepository;
+    readonly rateLimits: RateLimitConfig;
   },
 ): Promise<void> => {
   app.get(
@@ -49,6 +51,13 @@ export const registerUserRoutes = async (
   app.delete(
     '/v1/users/me',
     {
+      config: {
+        rateLimit: {
+          max: dependencies.rateLimits.deletion,
+          timeWindow: '1 hour',
+          groupId: 'account-deletion',
+        },
+      },
       preHandler: requireUser,
     },
     async (request, reply) => {

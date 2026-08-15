@@ -15,8 +15,9 @@ import {
   WorkoutSessionResponseSchema,
 } from '@peddie/contracts';
 import { type Static, Type } from '@sinclair/typebox';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { requestAuth, requireUser } from '../auth.js';
+import type { RateLimitConfig } from '../config.js';
 import { ApiError } from '../errors.js';
 import type { SessionRepository } from '../session-repository.js';
 import type { WorkoutRepository } from '../workout-repository.js';
@@ -100,6 +101,7 @@ export const registerSessionRoutes = async (
   dependencies: {
     readonly sessions: SessionRepository;
     readonly workouts: WorkoutRepository;
+    readonly rateLimits: RateLimitConfig;
   },
 ): Promise<void> => {
   app.post(
@@ -319,6 +321,17 @@ export const registerSessionRoutes = async (
   app.post<{ Params: ExerciseSessionIdParams }>(
     '/v1/exercise-sessions/:exerciseSessionId/metrics',
     {
+      config: {
+        rateLimit: {
+          max: dependencies.rateLimits.metrics,
+          timeWindow: '1 minute',
+          groupId: 'exercise-metrics',
+          keyGenerator: (request: FastifyRequest) => {
+            const params = request.params as Partial<ExerciseSessionIdParams>;
+            return `${request.userId ?? request.ip}:${params.exerciseSessionId ?? 'unknown'}`;
+          },
+        },
+      },
       preHandler: requireUser,
       schema: {
         params: ExerciseSessionIdParamsSchema,

@@ -96,11 +96,39 @@ Create migrations through the Supabase CLI. The expected order is:
 `supabase/seed.sql` contains only deterministic reference data, the 24 exercise catalog records, tracking rules, and local demo fixtures. It must not contain real user data, secrets, or production credentials.
 
 Implementation status: the nine CLI-created migrations and deterministic seed are in
-place. A disposable PostgreSQL 16 execution applies every migration and seed row, and
+place. A disposable PostgreSQL 17 execution applies every migration and seed row, and
 the catalog, RLS, profile-RPC, and session-lifecycle SQL tests pass. The session RPCs
 lock owner rows for transitions and completion, deduplicate metric batches and reps,
 reject unsupported metric fields, and rebuild affected daily progress rows after
 completion or deletion.
-The Docker-backed `supabase db reset` and Supabase advisors are still environment-gated
-because the current machine has no Docker daemon. `pnpm test:db` provides a repeatable
-SQL-test entrypoint whenever `SUPABASE_DB_URL` or `DATABASE_URL` is available.
+GitHub Actions now runs that disposable database path on every change, so migration,
+seed, SQL isolation, lifecycle, and Prisma smoke checks cannot silently skip. The
+Docker-backed `supabase db reset`, hosted migration application, and Supabase advisors
+remain environment-gated because they require a Supabase runtime or project access.
+
+Every Data API privilege is granted explicitly in the migrations. This is required for
+new Supabase projects where public-schema tables are no longer exposed automatically;
+RLS remains enabled and forced independently of those grants. See the [Supabase Data
+API exposure change](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically).
+
+## Prisma ORM boundary
+
+`prisma/schema.prisma` is introspected from the existing `public` tables plus the
+`auth.users` foreign-key target. `prisma.config.ts` uses `DIRECT_URL` for CLI
+operations and `DATABASE_URL` as a fallback for client generation. The generated
+client is written to `apps/api/src/generated/prisma` and is intentionally ignored
+from Git; `pnpm prisma:generate` recreates it on install/build.
+
+Prisma owns typed table queries in the catalog, profile, user/settings, workout, and
+session-history repositories. Each request transaction sets the Postgres role and
+`request.jwt.claim.sub` before executing queries, preserving the existing forced-RLS
+policies. The API must therefore use a connection role that can `SET LOCAL ROLE`
+to `anon` and `authenticated` (the Supabase Postgres roles provide this in hosted
+deployments).
+
+Supabase SQL remains canonical for RLS policies, grants, triggers, check constraints,
+catalog-validation functions, Auth hooks, and lifecycle RPCs. Do not run `prisma
+migrate dev`, `prisma db push`, or `prisma migrate reset` against the Supabase
+project: those commands cannot reproduce the security objects and can damage the
+Auth schema. Change tables in `supabase/migrations`, apply them with the Supabase
+CLI, then run `DIRECT_URL=... pnpm exec prisma db pull` and `pnpm prisma:generate`.

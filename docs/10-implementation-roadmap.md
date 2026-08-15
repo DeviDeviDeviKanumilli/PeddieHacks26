@@ -26,8 +26,9 @@ catalog, and GitHub CI workflow are committed and pushed.
 Exit criteria: `supabase db reset` succeeds from an empty local database and all RLS tests pass.
 
 Status: schema, seed, RLS policies, grants, indexes, activation validation, session
-deletion, account-deletion boundary, and disposable PostgreSQL checks are complete.
-Docker-backed reset, advisor output, and hosted smoke testing remain environment-gated.
+deletion, account-deletion boundary, and mandatory disposable PostgreSQL CI checks are
+complete. Docker-backed reset, advisor output, and hosted smoke execution remain
+environment-gated.
 
 ## Phase 3 - API foundation
 
@@ -41,7 +42,8 @@ Docker-backed reset, advisor output, and hosted smoke testing remain environment
 Exit criteria: authenticated and anonymous access boundaries work in integration tests.
 
 Status: public catalog/reference routes, bearer-token request context, typed errors,
-request IDs, OpenAPI output, rate limiting, readiness checks, compatibility lookup,
+request IDs, OpenAPI output, route-specific rate limiting, redacted structured logs,
+readiness checks, compatibility lookup,
 profile/settings routes, and all scoped authenticated resources are complete in the
 repository-injected API. Supabase private repositories now receive the request bearer
 token so hosted RLS is exercised with the real user identity.
@@ -97,9 +99,27 @@ routes are complete. Hosted verification and deletion smoke tests remain.
 
 Exit criteria: hosted demo is reproducible, private data is isolated, and deletion is verified.
 
-Status: retry-safe account deletion, dependency-aware readiness, environment guidance,
-and Railway config-as-code are implemented. Hosted migration, advisor, and smoke-test
-verification remain deployment-gated.
+Status: missing-identity-tolerant account deletion, dependency-aware readiness, environment guidance,
+Railway config-as-code, mandatory clean-database CI, and a guarded hosted smoke runner
+are implemented. Hosted migration, advisor, load, and smoke-test execution remain
+deployment-gated.
+
+## Phase 8 — Prisma ORM migration
+
+- Add Prisma 7 with the PostgreSQL driver adapter and generated client.
+- Introspect the existing public schema without replacing Supabase migrations.
+- Move catalog, profile/settings, workout, readiness, session-history, and progress
+  table access to typed Prisma repositories.
+- Establish Postgres `anon`/`authenticated` roles and JWT subject claims inside Prisma
+  transactions so forced RLS continues to enforce ownership.
+- Keep Supabase Auth, Auth Admin deletion, and lifecycle RPCs on `supabase-js`.
+- Add Prisma generation, smoke checks, build/CI gates, and deployment documentation.
+
+Exit criteria: clean checkout generation/build, RLS-scoped Prisma smoke check, existing
+SQL security suite, API tests, and OpenAPI checks all pass.
+
+Status: complete for the current backend scope. The deliberate Supabase RPC boundary
+remains documented in [the Prisma migration boundary](11-prisma-migration.md).
 
 ## Phase 8 - Reference-driven web client
 

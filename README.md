@@ -3,7 +3,7 @@
 AdaptFit is a mobile-first adaptive fitness experience for disabled adults and people
 with temporary or chronic movement limitations. The repository contains a React/Vite
 web client, a Fastify API, shared TypeBox contracts, pure domain rules, and a
-Supabase/Postgres data layer.
+Prisma/Supabase/Postgres data layer.
 
 ## Workspace
 
@@ -13,6 +13,8 @@ Supabase/Postgres data layer.
 - `packages/contracts`: public validation schemas and inferred TypeScript types.
 - `packages/domain`: deterministic compatibility, generation, and analytics rules.
 - `supabase`: migrations, RLS policies, database functions, and deterministic seed data.
+- `prisma`: typed application models generated from the canonical Supabase schema.
+- `model`: development-only local MediaPipe pose and arm-angle prototype.
 - `docs`: product scope, architecture, API, privacy, deployment, testing, and roadmap.
 
 ## Run locally
@@ -58,6 +60,7 @@ simulated. Pose inference is intentionally not a backend responsibility.
 ## Verification
 
 ```bash
+pnpm install --frozen-lockfile
 pnpm format
 pnpm typecheck
 pnpm test
@@ -67,6 +70,8 @@ pnpm build
 ```
 
 The recursive typecheck, test, and build commands cover both applications and the shared
-packages. Database checks are available through `pnpm test:db` when a disposable local
-database URL is configured. See [the documentation index](docs/README.md) for the full
-architecture and acceptance requirements.
+packages. GitHub Actions additionally creates a disposable PostgreSQL 17 database,
+applies all Supabase migrations and seed data, runs the SQL/RLS suite, and executes the
+RLS-scoped Prisma smoke test on every push to `main` and every pull request. See
+[the documentation index](docs/README.md) for the full architecture and acceptance
+requirements.

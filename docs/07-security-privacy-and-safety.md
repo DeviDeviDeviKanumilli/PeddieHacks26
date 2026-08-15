@@ -50,6 +50,12 @@ Rate limits:
 - Metrics: 30 batches/minute/session.
 - Deletion: 3 requests/hour/user.
 
+These limits are implemented through `RATE_LIMIT_CATALOG`, `RATE_LIMIT_GENERAL`,
+`RATE_LIMIT_GENERATION`, `RATE_LIMIT_METRICS`, and `RATE_LIMIT_DELETION`. General,
+generation, and deletion limits key authenticated requests by verified user ID;
+metrics key by user and exercise-session ID; public catalog limits key by client IP.
+The current in-memory limiter is appropriate for the single-replica demo only.
+
 ## Wellness guardrails
 
 - Position the product as general wellness.
@@ -64,7 +70,12 @@ Rate limits:
 - Retain derived metrics until the user deletes a session or account.
 - Session deletion removes metrics, summaries, events, and recomputes daily progress.
 - Account deletion removes all application rows, then the Supabase Auth identity.
-- Deletion is retry-safe and does not expose whether another user's records exist.
+- The server-side deletion adapter treats an already-missing Auth identity as success
+  and does not expose whether another user's records exist.
+- Supabase JWTs remain cryptographically valid until expiry after account deletion.
+  The API therefore validates every token through `auth.getUser()` instead of trusting
+  offline claims. The old token receives `401` after successful deletion, and clients
+  must also clear their local session.
 ## Database implementation status
 
 ### Implemented database controls
@@ -77,4 +88,6 @@ Rate limits:
 - Catalog activation is blocked unless content has instructions, safety cues, adaptations, body/capability demands, and an approved source.
 
 The SQL isolation test covers two authenticated identities plus anonymous catalog
-access. Run it after a local `supabase db reset` when Docker is available.
+access. CI runs the same isolation boundary against disposable PostgreSQL on every
+change. Hosted acceptance additionally verifies that the deleted account token is
+rejected and that a second user cannot read the demo user's rows.

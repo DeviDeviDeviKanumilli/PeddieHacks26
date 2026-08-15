@@ -91,6 +91,9 @@ The application now lives in `apps/mobile` and includes:
   simulated guest form values are never persisted to the backend.
 - Account deletion, EAS development/preview/production profiles, Jest and React Native
   Testing Library coverage, and a committed Maestro guest acceptance flow.
+- Original flat geometric people illustrations for the welcome and reusable movement-family
+  cards, plus a code-native front/back anatomy map whose regions are selectable and whose
+  highlights are driven by exercise muscle attributes rather than per-exercise body images.
 
 Run the client and focused checks with:
 

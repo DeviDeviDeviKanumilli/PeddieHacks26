@@ -1,5 +1,6 @@
 import type { ExerciseDetail, ExerciseSummary } from '@peddie/contracts';
-import type { Exercise } from '@/types';
+import { inferMuscleActivations, inferVisualKey, muscleIdsForLabel } from '@/lib/anatomy';
+import type { Exercise, MuscleActivation } from '@/types';
 
 const humanize = (value: string): string =>
   value
@@ -19,6 +20,14 @@ export const exerciseFromApi = (detail: ExerciseDetail, fallback?: Exercise): Ex
   reps: detail.defaultPrescription.reps ?? fallback?.reps ?? 1,
   restSeconds: detail.defaultPrescription.restSeconds,
   muscles: detail.muscles.map(({ muscleGroupId }) => humanize(muscleGroupId)),
+  muscleActivations: detail.muscles.flatMap(({ muscleGroupId, role, intensity }) =>
+    muscleIdsForLabel(muscleGroupId).map((id) => ({
+      id,
+      role,
+      intensity: Math.max(1, Math.min(5, intensity)) as MuscleActivation['intensity'],
+    })),
+  ),
+  visualKey: fallback?.visualKey ?? inferVisualKey(detail),
   equipment:
     detail.equipmentOptions.length > 0
       ? detail.equipmentOptions.map(({ equipmentId }) => humanize(equipmentId))
@@ -47,6 +56,8 @@ export const exerciseSummaryFromApi = (
   reps: summary.defaultPrescription.reps ?? fallback?.reps ?? 1,
   restSeconds: summary.defaultPrescription.restSeconds,
   muscles: fallback?.muscles ?? [],
+  muscleActivations: fallback?.muscleActivations ?? inferMuscleActivations([]),
+  visualKey: fallback?.visualKey ?? inferVisualKey(summary),
   equipment: fallback?.equipment ?? ['Open for reviewed options'],
   instructions: fallback?.instructions ?? ['Open this exercise to load its reviewed steps.'],
   safetyCues: fallback?.safetyCues ?? ['Review the full exercise before starting.'],

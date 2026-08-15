@@ -9,13 +9,21 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AnatomyMap } from '@/components/AnatomyMap';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
+import { activationsFromLoad, combineMuscleLoad } from '@/lib/anatomy';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function WorkoutReviewScreen() {
   const workout = useAppStore((state) => state.recommendedWorkout);
   const catalog = useAppStore((state) => state.catalog);
+  const plannedExercises = workout.items
+    .map((item) => catalog.find((candidate) => candidate.slug === item.exerciseSlug))
+    .filter((exercise) => exercise !== undefined);
+  const plannedMuscles = activationsFromLoad(
+    combineMuscleLoad(plannedExercises.map((exercise) => exercise.muscleActivations)),
+  );
   return (
     <Screen>
       <Pressable
@@ -42,6 +50,13 @@ export default function WorkoutReviewScreen() {
           Hard conflicts are excluded. You can still open any exercise to review its requirements.
         </Body>
       </Card>
+      {plannedMuscles.length > 0 ? (
+        <View style={styles.musclePreview}>
+          <Text style={styles.previewTitle}>Planned muscle emphasis</Text>
+          <Body muted>This map combines the attributes from every exercise in your session.</Body>
+          <AnatomyMap activations={plannedMuscles} compact />
+        </View>
+      ) : null}
       <View style={styles.timeline}>
         {workout.items.map((item, index) => {
           const exercise = catalog.find((candidate) => candidate.slug === item.exerciseSlug);
@@ -126,6 +141,8 @@ const styles = StyleSheet.create({
   intro: { gap: spacing.xs },
   fit: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   fitTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
+  musclePreview: { gap: spacing.sm },
+  previewTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 19 },
   timeline: { gap: 0 },
   timelineRow: { alignItems: 'stretch', flexDirection: 'row', gap: spacing.sm },
   track: { alignItems: 'center', width: 34 },

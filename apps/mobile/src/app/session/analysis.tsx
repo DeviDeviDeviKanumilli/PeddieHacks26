@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Activity, ArrowLeft, Gauge, Move, Repeat2, Timer, TrendingUp } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AnatomyMap } from '@/components/AnatomyMap';
 import {
   Body,
   Button,
@@ -64,6 +65,12 @@ export default function AnalysisScreen() {
           <Metric label="Sets" value={params.set ?? '1'} />
         </View>
       </Card>
+      {exercise ? (
+        <>
+          <SectionHeading title="Muscles worked" />
+          <AnatomyMap activations={exercise.muscleActivations} compact />
+        </>
+      ) : null}
       <SectionHeading title="Movement measurements" />
       <View style={styles.grid}>
         <AnalysisCard

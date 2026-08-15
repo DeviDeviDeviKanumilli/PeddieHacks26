@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { ArrowRight, CalendarDays, Clock3, Repeat2, Sparkles } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
 import {
   Body,
@@ -12,6 +12,7 @@ import {
   SectionHeading,
   Title,
 } from '@/components/ui';
+import { exerciseVisuals } from '@/lib/exerciseVisuals';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -70,6 +71,12 @@ export default function HomeScreen() {
       <SectionHeading title="A movement to try" />
       {first ? (
         <Card>
+          <Image
+            accessibilityLabel={`Cartoon movement-family illustration for ${first.name}`}
+            resizeMode="contain"
+            source={exerciseVisuals[first.visualKey]}
+            style={styles.tryArt}
+          />
           <View style={styles.tryRow}>
             <View style={styles.tryIcon}>
               <CalendarDays color={colors.success} size={22} />
@@ -128,6 +135,7 @@ const styles = StyleSheet.create({
   pillText: { color: colors.ink, fontFamily: typography.medium, fontSize: 12 },
   metrics: { flexDirection: 'row', gap: spacing.md },
   tryRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
+  tryArt: { borderRadius: radii.md, height: 180, width: '100%' },
   tryIcon: {
     alignItems: 'center',
     backgroundColor: colors.successSoft,

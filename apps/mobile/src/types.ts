@@ -1,6 +1,33 @@
 export type RegionState = 'neutral' | 'focus' | 'limited' | 'avoid';
 export type Compatibility = 'compatible' | 'caution' | 'incompatible';
 export type AppMode = 'guest' | 'live';
+export type MuscleRole = 'primary' | 'secondary' | 'stabilizer';
+export type MuscleRegionId =
+  | 'shoulders'
+  | 'chest'
+  | 'biceps'
+  | 'triceps'
+  | 'forearms'
+  | 'upper-back'
+  | 'lower-back'
+  | 'core'
+  | 'hip-flexors'
+  | 'glutes'
+  | 'quadriceps'
+  | 'hamstrings'
+  | 'calves'
+  | 'ankles-feet';
+export type ExerciseVisualKey =
+  | 'seated-strength'
+  | 'seated-pull'
+  | 'seated-mobility'
+  | 'wall-supported';
+
+export type MuscleActivation = {
+  id: MuscleRegionId;
+  role: MuscleRole;
+  intensity: 1 | 2 | 3 | 4 | 5;
+};
 
 export type MovementProfile = {
   goals: string[];
@@ -23,6 +50,8 @@ export type Exercise = {
   reps: number;
   restSeconds: number;
   muscles: string[];
+  muscleActivations: MuscleActivation[];
+  visualKey: ExerciseVisualKey;
   equipment: string[];
   instructions: string[];
   safetyCues: string[];
@@ -56,4 +85,5 @@ export type WorkoutHistory = {
   exercises: number;
   reps: number;
   averageScore: number | null;
+  muscleLoad?: Partial<Record<MuscleRegionId, number>>;
 };

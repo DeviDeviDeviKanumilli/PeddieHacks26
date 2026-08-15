@@ -1,7 +1,9 @@
 import { CalendarDays, ChevronRight, Clock3, Flame, Repeat2 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
+import { AnatomyMap } from '@/components/AnatomyMap';
 import { AppHeader } from '@/components/AppHeader';
 import { Body, Card, Metric, Screen, SectionHeading, Title } from '@/components/ui';
+import { activationsFromLoad } from '@/lib/anatomy';
 import { mobileApi } from '@/lib/api';
 import { hasApiConfig } from '@/lib/config';
 import { useAppStore } from '@/state/useAppStore';
@@ -47,6 +49,13 @@ export default function ProgressScreen() {
   const sessionCount = liveActivity.data
     ? liveActivity.data.reduce((sum, item) => sum + item.sessionCount, 0)
     : history.length;
+  const muscleLoad = history.reduce<Record<string, number>>((totals, item) => {
+    for (const [id, load] of Object.entries(item.muscleLoad ?? {})) {
+      totals[id] = (totals[id] ?? 0) + load;
+    }
+    return totals;
+  }, {});
+  const muscleActivations = activationsFromLoad(muscleLoad);
   return (
     <Screen>
       <AppHeader />
@@ -112,6 +121,18 @@ export default function ProgressScreen() {
           <Text style={styles.subtle}>reps</Text>
         </Card>
       </View>
+      <SectionHeading title="Muscle coverage" />
+      {muscleActivations.length > 0 ? (
+        <AnatomyMap activations={muscleActivations} compact />
+      ) : (
+        <Card>
+          <Text style={styles.emptyTitle}>Your muscle map is ready.</Text>
+          <Body muted>
+            Complete an exercise and AdaptFit will highlight the areas you worked—without needing a
+            different body image for every movement.
+          </Body>
+        </Card>
+      )}
       <SectionHeading title="Recent workouts" />
       {history.length === 0 ? (
         <Card>

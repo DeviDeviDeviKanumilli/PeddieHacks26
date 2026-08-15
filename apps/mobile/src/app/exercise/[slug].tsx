@@ -11,20 +11,29 @@ import {
   Repeat2,
   ShieldCheck,
 } from 'lucide-react-native';
-import { useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AnatomyMap } from '@/components/AnatomyMap';
 import { Body, Button, Card, Screen, SectionHeading, Title } from '@/components/ui';
 import { mobileApi } from '@/lib/api';
 import { hasApiConfig } from '@/lib/config';
 import { exerciseFromApi } from '@/lib/exercises';
+import { exerciseVisuals } from '@/lib/exerciseVisuals';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 type Tab = 'overview' | 'how-to' | 'muscles';
 
 export default function ExerciseDetailScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
-  const [tab, setTab] = useState<Tab>('overview');
+  const { slug, tab: routeTab } = useLocalSearchParams<{ slug: string; tab?: string }>();
+  const [tab, setTab] = useState<Tab>(
+    routeTab === 'muscles' || routeTab === 'how-to' ? routeTab : 'overview',
+  );
+  useEffect(() => {
+    if (routeTab === 'overview' || routeTab === 'how-to' || routeTab === 'muscles') {
+      setTab(routeTab);
+    }
+  }, [routeTab]);
   const catalog = useAppStore((state) => state.catalog);
   const fallback = catalog.find((item) => item.slug === slug);
   const mode = useAppStore((state) => state.mode);
@@ -53,14 +62,20 @@ export default function ExerciseDetailScreen() {
         <ArrowLeft color={colors.ink} size={22} />
       </Pressable>
       <View style={styles.art}>
-        <View style={styles.artOrb}>
-          <Text style={styles.artLetter}>{exercise.name.charAt(0)}</Text>
-        </View>
+        <Image
+          accessibilityLabel={`Cartoon movement-family illustration for ${exercise.name}`}
+          resizeMode="contain"
+          source={exerciseVisuals[exercise.visualKey]}
+          style={styles.artImage}
+        />
         <View style={styles.trackingBadge}>
           {exercise.trackingSupported ? <Camera color={colors.lavenderDark} size={14} /> : null}
           <Text style={styles.trackingText}>
             {exercise.trackingSupported ? 'Optional tracking available' : 'Manual tracking'}
           </Text>
+        </View>
+        <View style={styles.illustrationBadge}>
+          <Text style={styles.illustrationText}>Movement family</Text>
         </View>
       </View>
       <View style={styles.intro}>
@@ -186,19 +201,13 @@ export default function ExerciseDetailScreen() {
       ) : null}
       {tab === 'muscles' ? (
         <View style={styles.panel}>
-          <SectionHeading title="Muscles involved" />
-          <Card>
-            {exercise.muscles.map((muscle, index) => (
-              <View key={muscle} style={styles.muscle}>
-                <View style={[styles.muscleBar, { width: `${Math.max(35, 100 - index * 22)}%` }]} />
-                <View style={styles.muscleCopy}>
-                  <Text style={styles.muscleName}>{muscle}</Text>
-                  <Text style={styles.prescriptionLabel}>
-                    {index === 0 ? 'Primary' : 'Supporting'}
-                  </Text>
-                </View>
-              </View>
-            ))}
+          <SectionHeading title="Muscles worked" />
+          <AnatomyMap activations={exercise.muscleActivations} />
+          <Card tone="lavender">
+            <Body muted>
+              Color shows each muscle’s role; the 1–5 value represents this exercise’s relative
+              emphasis, not pain or medical status.
+            </Body>
           </Card>
         </View>
       ) : null}
@@ -233,16 +242,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     height: 220,
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  artOrb: {
-    alignItems: 'center',
-    backgroundColor: colors.lavenderDark,
-    borderRadius: 70,
-    height: 140,
-    justifyContent: 'center',
-    width: 140,
-  },
-  artLetter: { color: colors.surface, fontFamily: typography.displayItalic, fontSize: 72 },
+  artImage: { height: '100%', width: '100%' },
   trackingBadge: {
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -255,6 +257,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   trackingText: { color: colors.ink, fontFamily: typography.semibold, fontSize: 11 },
+  illustrationBadge: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: radii.pill,
+    left: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    position: 'absolute',
+    top: spacing.md,
+  },
+  illustrationText: { color: colors.muted, fontFamily: typography.semibold, fontSize: 10 },
   intro: { gap: spacing.xs },
   syncRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
   syncText: { color: colors.muted, fontFamily: typography.medium, fontSize: 12 },
@@ -298,13 +310,4 @@ const styles = StyleSheet.create({
     width: 38,
   },
   stepNumberText: { color: colors.lavenderDark, fontFamily: typography.bold },
-  muscle: {
-    backgroundColor: colors.lavenderSoft,
-    borderRadius: radii.md,
-    height: 62,
-    overflow: 'hidden',
-  },
-  muscleBar: { backgroundColor: '#CAC5EE', bottom: 0, left: 0, position: 'absolute', top: 0 },
-  muscleCopy: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.md },
-  muscleName: { color: colors.ink, fontFamily: typography.semibold, fontSize: 16 },
 });

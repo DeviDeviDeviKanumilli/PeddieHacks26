@@ -3,6 +3,7 @@ import { Check, ChevronRight, Repeat2, Sparkles } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Metric, Screen, Title } from '@/components/ui';
+import { combineMuscleLoad } from '@/lib/anatomy';
 import { completeLiveSession, type LiveSessionContext } from '@/lib/sessionSync';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
@@ -30,6 +31,7 @@ export default function CompleteScreen() {
       exercises: 1,
       reps: completedReps,
       averageScore: params.tracking === '1' ? 88 : null,
+      muscleLoad: combineMuscleLoad([exercise.muscleActivations]),
     });
   }, [completeWorkout, completedReps, elapsed, exercise, params.tracking]);
   useEffect(() => {

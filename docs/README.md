@@ -19,6 +19,7 @@ mobile deployment plan.
 11. [Prisma migration boundary](11-prisma-migration.md)
 12. [Market and evidence brief](12-market-and-evidence.md)
 13. [React Native mobile application](13-react-native-mobile.md)
+14. [Visual assets and anatomy system](14-visual-and-anatomy-system.md)
 
 ## Locked decisions
 
@@ -49,6 +50,9 @@ the primary application and must not define future platform decisions. The mobil
 provides local guest state plus optional Supabase Auth and Fastify API connectivity.
 Native onboarding, discovery, workout/session flows, camera-optional tracking, analysis,
 progress, profile management, and account deletion are implemented.
+The mobile client also includes original flat illustration assets plus a reusable,
+data-driven front/back anatomy component for movement selection, exercise muscle emphasis,
+planned-workout coverage, and completed-workout history.
 
 The backend workspace, Supabase schema, and Prisma data-access layer are also
 implemented. `apps/api` is a Fastify service with repository adapters, authenticated routes, OpenAPI output,

@@ -1,3 +1,4 @@
+import { inferMuscleActivations, inferVisualKey } from '@/lib/anatomy';
 import type { Exercise } from '@/types';
 
 const base = {
@@ -7,7 +8,9 @@ const base = {
   compatibilityReason: 'Matches your available movements and saved equipment.',
 };
 
-export const exercises: Exercise[] = [
+type CatalogExercise = Omit<Exercise, 'muscleActivations' | 'visualKey'>;
+
+const catalogExercises: CatalogExercise[] = [
   {
     ...base,
     id: '00000000-0000-4000-8000-000000000001',
@@ -210,6 +213,12 @@ export const exercises: Exercise[] = [
     trackingSupported: false,
   },
 ];
+
+export const exercises: Exercise[] = catalogExercises.map((exercise) => ({
+  ...exercise,
+  muscleActivations: inferMuscleActivations(exercise.muscles),
+  visualKey: inferVisualKey(exercise),
+}));
 
 export const bodyRegions = [
   { id: 'shoulders', label: 'Shoulders' },

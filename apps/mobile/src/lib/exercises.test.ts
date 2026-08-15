@@ -38,6 +38,8 @@ describe('exerciseFromApi', () => {
       reps: 8,
       restSeconds: 50,
       muscles: ['Upper Back'],
+      muscleActivations: [{ id: 'upper-back', role: 'primary', intensity: 3 }],
+      visualKey: 'seated-pull',
       equipment: ['Resistance Band'],
       trackingSupported: true,
     });

@@ -4,6 +4,7 @@ import * as Speech from 'expo-speech';
 import { CircleStop, Pause, Play, Plus, VideoOff } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AnatomyMap } from '@/components/AnatomyMap';
 import { Button, Card, Screen } from '@/components/ui';
 import { useAppIsActive } from '@/hooks/useAppIsActive';
 import { useAppStore } from '@/state/useAppStore';
@@ -110,6 +111,14 @@ export default function ActiveSessionScreen() {
           <CameraView facing="front" mirror style={StyleSheet.absoluteFill} />
         ) : (
           <View style={styles.noCamera}>
+            <View style={styles.noCameraMap}>
+              <AnatomyMap
+                activations={exercise.muscleActivations}
+                compact
+                showLegend={false}
+                showMuscleLabels={false}
+              />
+            </View>
             <VideoOff color={colors.lavender} size={46} />
             <Text style={styles.noCameraTitle}>Tracking is off</Text>
             <Text style={styles.noCameraBody}>
@@ -208,6 +217,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
   },
+  noCameraMap: { maxWidth: 310, opacity: 0.9, width: '88%' },
   noCameraTitle: { color: colors.surface, fontFamily: typography.display, fontSize: 30 },
   noCameraBody: {
     color: colors.neutral,

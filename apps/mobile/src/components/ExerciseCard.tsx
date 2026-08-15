@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { ArrowUpRight, CircleAlert, MapPin } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/ui';
+import { exerciseVisuals } from '@/lib/exerciseVisuals';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 import type { Exercise } from '@/types';
 
@@ -23,10 +24,12 @@ export const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
       {({ pressed }) => (
         <Card {...(pressed ? { style: styles.pressed } : {})}>
           <View style={styles.top}>
-            <View style={styles.art}>
-              <View style={styles.artHead} />
-              <View style={styles.artBody} />
-            </View>
+            <Image
+              accessibilityIgnoresInvertColors
+              resizeMode="cover"
+              source={exerciseVisuals[exercise.visualKey]}
+              style={styles.art}
+            />
             <View style={styles.copy}>
               <View style={[styles.status, { backgroundColor: status.background }]}>
                 {exercise.compatibility !== 'compatible' ? (
@@ -63,22 +66,11 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.76, transform: [{ scale: 0.99 }] },
   top: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
   art: {
-    alignItems: 'center',
     backgroundColor: colors.lavenderSoft,
     borderRadius: radii.md,
     height: 86,
-    justifyContent: 'center',
-    overflow: 'hidden',
     width: 76,
   },
-  artHead: {
-    backgroundColor: colors.lavender,
-    borderRadius: 99,
-    height: 18,
-    marginBottom: 3,
-    width: 18,
-  },
-  artBody: { backgroundColor: colors.lavenderDark, borderRadius: 18, height: 46, width: 32 },
   copy: { flex: 1, gap: 4 },
   status: {
     alignItems: 'center',

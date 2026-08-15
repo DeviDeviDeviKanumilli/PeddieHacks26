@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { ArrowRight, Camera, HeartHandshake, SlidersHorizontal } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Brand } from '@/components/Brand';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
+import { welcomeIllustration } from '@/lib/exerciseVisuals';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 const benefits = [
@@ -34,12 +35,13 @@ export default function WelcomeScreen() {
           AdaptFit builds flexible routines around your goals, equipment, and available movement.
         </Body>
       </View>
-      <View style={styles.orbit}>
-        <View style={styles.orbitInner}>
-          <Text style={styles.orbitMark}>A</Text>
-        </View>
-        <View style={[styles.satellite, styles.satelliteOne]} />
-        <View style={[styles.satellite, styles.satelliteTwo]} />
+      <View style={styles.illustrationFrame}>
+        <Image
+          accessibilityLabel="Three adults adapting movement with a dumbbell, resistance band, wheelchair, and prosthetic leg"
+          resizeMode="contain"
+          source={welcomeIllustration}
+          style={styles.illustration}
+        />
       </View>
       <View style={styles.benefits}>
         {benefits.map(({ icon: Icon, title, body }) => (
@@ -66,27 +68,15 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   hero: { gap: spacing.sm, marginTop: spacing.lg },
-  orbit: { alignItems: 'center', height: 170, justifyContent: 'center' },
-  orbitInner: {
-    alignItems: 'center',
-    backgroundColor: colors.lavenderDark,
-    borderRadius: 52,
-    height: 104,
-    justifyContent: 'center',
-    width: 104,
+  illustrationFrame: {
+    backgroundColor: '#FFF9F1',
+    borderColor: colors.line,
+    borderRadius: 28,
+    borderWidth: 1,
+    height: 260,
+    overflow: 'hidden',
   },
-  orbitMark: { color: colors.surface, fontFamily: typography.displayItalic, fontSize: 58 },
-  satellite: {
-    backgroundColor: colors.warningSoft,
-    borderColor: colors.surface,
-    borderRadius: 99,
-    borderWidth: 4,
-    height: 34,
-    position: 'absolute',
-    width: 34,
-  },
-  satelliteOne: { right: '23%', top: 16 },
-  satelliteTwo: { backgroundColor: colors.successSoft, bottom: 14, left: '22%', width: 46 },
+  illustration: { height: '100%', width: '100%' },
   benefits: { gap: spacing.sm },
   benefit: { alignItems: 'center', flexDirection: 'row', padding: spacing.md },
   iconWrap: {

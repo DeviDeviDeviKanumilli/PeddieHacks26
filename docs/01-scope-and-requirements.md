@@ -80,7 +80,10 @@ Seed 24 reviewed exercises. Calibrate camera-derived tracking rules for:
 
 These are backend tracking profiles for validating derived metrics and interpreting
 exercise results. They do not give the backend access to camera frames. Production pose
-inference runs on-device in the React Native application.
+inference runs on-device in the React Native application. Client recipes for the six
+keys live under `apps/mobile/src/lib/tracking`; seated biceps curl is marked calibrated
+from the desktop lab, and the other five remain stubs until a physical Android camera
+pass.
 
 Every exercise needs source metadata, requirements, equipment behavior, safety cues, and a stable slug before it can be seeded as active.
 

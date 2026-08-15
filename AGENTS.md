@@ -60,9 +60,13 @@ For database changes, also run local Supabase reset/migrations, seed validation,
 
 ## Current status
 
-- Planning documents and the backend workspace are present. The React Native mobile
-  client defined by the current product plans remains to be implemented under
-  `apps/mobile`.
+- The React Native product client lives under `apps/mobile`: guest mode, optional
+  Supabase Auth and Fastify live mode, onboarding, discovery, workouts, camera-optional
+  sessions, analysis, progress, profile, and account deletion.
+- Android on-device pose is in the repository (`apps/mobile/modules/adaptfit-pose` plus
+  session complete/analysis/live-upload wiring). Expo Go cannot run it. The next pose
+  step is `pnpm dev:mobile:android:device` on the physical Android phone, then biceps-curl
+  calibration. Do not train a new pose network. iOS still uses `expo-camera` preview.
 - `@peddie/web` is a legacy reference prototype containing earlier onboarding,
   discovery, compatibility, camera, session, history, progress, and analysis work. It
   must not be treated as the primary application architecture.

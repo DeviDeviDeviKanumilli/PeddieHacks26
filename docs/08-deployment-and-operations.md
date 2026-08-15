@@ -17,8 +17,9 @@
   Use the laptop LAN IP or a hosted API origin.
 - Pose inference needs an Expo development build with `expo-dev-client`. Expo Go cannot
   load MediaPipe. The first hardware pass is an Android development APK on a physical
-  phone; compile that APK on a machine that has the Android SDK, then install with
-  `adb`.
+  phone. Compile and install with `pnpm dev:mobile:android:device` on a machine that has
+  the Android SDK. That command is the next pose step; Mac-side module and session
+  wiring are already in the repository.
 
 ### Hosted demo
 

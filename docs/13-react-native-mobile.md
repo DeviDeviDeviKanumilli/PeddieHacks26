@@ -48,10 +48,11 @@ Pose inference runs on-device. Raw video, still images, audio, frames, landmarks
 coordinates never enter an API request and are never persisted. The client may upload
 only the allowlisted derived metrics defined in `packages/contracts`.
 
-The first mobile milestone may use a clearly labeled deterministic tracker in guest mode.
-Authenticated mode must not persist simulated form measurements. Production tracking is
-implemented behind a native module that emits rep metrics and known feedback codes rather
-than raw landmarks.
+The first mobile milestone may use a clearly labeled deterministic tracker in guest mode
+when the native module is absent (Expo Go). Authenticated mode must not persist simulated
+form measurements. Android development builds run MediaPipe on-device and emit allowlisted
+rep metrics and known feedback codes rather than raw landmarks. That path has not yet
+passed a physical-phone camera acceptance.
 
 ## On-device pose integration
 
@@ -101,6 +102,25 @@ Physical devices must use a LAN IP or hosted API origin, not `localhost`.
 
 If lite detection is weak, try a larger off-the-shelf MediaPipe pose model. Do not train
 a custom pose network for this milestone.
+
+## Next device pass
+
+The Mac-side module and session wiring are in the repository. They are not proven until
+a development build runs on the Android test phone:
+
+1. Enable USB debugging and run `pnpm dev:mobile:android:device`. First install compiles
+   MediaPipe and downloads `pose_landmarker_lite.task` into module assets.
+2. Complete a workout with tracking off. Manual count, pause, rest, and complete must
+   still work.
+3. Allow the camera on seated biceps curl. The badge should read **On-device tracking**,
+   not **Simulated guest tracking**. Reps should increment from the curl cycle, not a
+   timer. Complete and analysis should show on-device range when samples were confident.
+4. Inspect traffic: no frames, landmarks, or coordinates. Live upload may include
+   counted, duration, range, confidence, `targetPositionReached`, and known
+   `feedbackCodes` only.
+5. If counts miss or fire early, adjust the curl target/return angles. Only then
+   calibrate the other five recipes. iOS still uses `expo-camera` preview until the
+   same native path ships.
 
 ## Accessibility
 
@@ -160,10 +180,11 @@ The application now lives in `apps/mobile` and includes:
   form values are never persisted to the backend.
 - An Android-first local Expo module under `apps/mobile/modules/adaptfit-pose` that runs
   MediaPipe Pose Landmarker on-device and emits joint angles only. The TypeScript port of
-  `exercise_analyzer.py` counts biceps-curl reps from those angles. Expo Go cannot load
-  this module; use `pnpm dev:mobile:android:device` / `expo run:android` to install a
-  development build. iOS still uses the `expo-camera` preview until the same native path
-  ships there.
+  `exercise_analyzer.py` counts biceps-curl reps from those angles. Session complete and
+  analysis show on-device range when samples exist; they do not invent control or
+  stability scores. Expo Go cannot load this module; use
+  `pnpm dev:mobile:android:device` / `expo run:android` to install a development build.
+  iOS still uses the `expo-camera` preview until the same native path ships there.
 - Account deletion, EAS development/preview/production profiles, Jest and React Native
   Testing Library coverage, and a committed Maestro guest acceptance flow.
 - Original flat geometric people illustrations for the welcome and reusable movement-family
@@ -192,8 +213,8 @@ it on a connected Android phone or emulator. The pose model is downloaded into m
 assets at compile time, not at runtime.
 
 The iOS and Android export gate succeeds without private environment variables. Physical
-devices must use a reachable API URL rather than `localhost`. The production pose native
-module, signed app-store artifacts, hosted live-mode acceptance, Android device camera
-pass, and traffic inspection remain release gates because they require a development
-build, a physical Android device, hosted credentials, or platform tooling not
+devices must use a reachable API URL rather than `localhost`. The Android pose module is
+in the repository; a physical-device camera pass, signed app-store artifacts, hosted
+live-mode acceptance, and traffic inspection remain release gates because they require a
+development build, a physical Android device, hosted credentials, or platform tooling not
 fully exercised in Expo Go.

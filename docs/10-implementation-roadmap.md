@@ -154,10 +154,11 @@ Status: the executable mobile milestone is complete. `apps/mobile` now contains 
 native onboarding and five-tab experience, searchable body-map equivalent, adaptive
 discovery, reviewed exercise detail, generated workout review, camera permission and
 no-camera paths, active/rest/completion/analysis flows, local guest persistence,
-Supabase email authentication, movement/settings synchronization, derived count-only
-session uploads, live progress reads, and account deletion. Jest/React Native Testing
-Library coverage, a Maestro guest flow, EAS profiles, CI configuration checks, iOS and
-Android exports, and an iOS simulator lifecycle pass are present.
+Supabase email authentication, movement/settings synchronization, derived session
+uploads (counts, and on-device range/confidence when the native module produced them),
+live progress reads, and account deletion. Jest/React Native Testing Library coverage,
+a Maestro guest flow, EAS profiles, CI configuration checks, iOS and Android exports,
+and an iOS simulator lifecycle pass are present.
 
 The post-milestone mobile polish is also complete: Home owns the shared header; Explore
 has separate **For me** and **All exercises** hierarchies with collection routes; compact
@@ -166,25 +167,26 @@ tones; exercise detail uses a small family thumbnail beside the name; Progress h
 range dropdown and activity-first layout; and manual sessions show a compact **Tracking off**
 badge with count guidance.
 
-The production pose-estimation native module, signed preview/store builds, Android
-emulator acceptance, hosted credentials, hosted migration/advisor execution, and final
-network inspection remain environment- or model-delivery-gated. See
-[the React Native mobile plan](13-react-native-mobile.md).
+The Android pose module and session-metric wiring are in the repository. Signed
+preview/store builds, a physical Android camera pass, hosted credentials, hosted
+migration/advisor execution, and final network inspection remain environment-gated.
+See [the React Native mobile plan](13-react-native-mobile.md).
 
-Remaining on-device pose work, in the order imposed by the current Android test phone:
+On-device pose status, in the order imposed by the current Android test phone:
 
-1. Mac-side prep is in the repository: `expo-dev-client`, a TypeScript port of
-   `exercise_analyzer.py` with tests, a calibrated biceps-curl recipe, an Android
-   MediaPipe native module that emits angles (never landmarks), compile-time bundling of
-   `pose_landmarker_lite.task`, `pnpm dev:mobile:android:device` to build the APK, and
-   session complete/analysis/live upload wired to on-device range and confidence.
-2. Install that development build on the Android phone. Confirm the existing camera
-   preview and no-camera session still work. Use a LAN IP or hosted API URL, not
+1. Complete in the repository: `expo-dev-client`, a TypeScript port of
+   `exercise_analyzer.py` with tests, a biceps-curl recipe marked calibrated from the
+   desktop lab, an Android MediaPipe native module that emits angles (never landmarks),
+   compile-time bundling of `pose_landmarker_lite.task`, `pnpm dev:mobile:android:device`,
+   and complete/analysis/live upload wired to on-device range and confidence. Control and
+   stability scores are not invented locally. Expo Go still uses a labeled guest timer.
+2. Next: install that development build on the Android phone. Confirm the existing
+   camera preview and no-camera session still work. Use a LAN IP or hosted API URL, not
    `localhost`. Expo Go is not a valid runtime for this step.
-3. Turn on biceps-curl tracking on that phone, then calibrate detection with
-   per-exercise recipes. If lite is too weak, try a larger off-the-shelf MediaPipe
-   model. Do not train a custom pose network. Repeat for the other five tracking
-   keys, then prove iOS parity before release.
+3. Then: turn on seated-biceps-curl tracking on that phone and calibrate target/return
+   angles against the live camera. If lite detection is too weak, try a larger
+   off-the-shelf MediaPipe model. Do not train a custom pose network. Repeat for the
+   other five tracking keys, then prove iOS parity before release.
 
 ## Deferred
 

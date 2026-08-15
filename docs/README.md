@@ -93,13 +93,15 @@ The database currently has nine CLI-created migrations, deterministic catalog se
 data, explicit grants, forced RLS, owner-scoped policies, and transactional lifecycle
 RPCs. Prisma table transactions establish the matching Postgres RLS role and JWT
 subject; the request-scoped Supabase client remains for lifecycle RPCs and the
-service-role client is isolated to account deletion. The development-only Python
-prototype under `model/` performs local MediaPipe pose and arm-angle experiments;
-production on-device integration belongs in the React Native application, and the
-backend never receives raw camera media or landmarks. See
-[session metrics](06-session-metrics-and-analytics.md) for the prototype inventory and
-[the React Native mobile plan](13-react-native-mobile.md) for the Android-first native
-module path.
+service-role client is isolated to account deletion. The development-only Python tree
+under `model/` remains a desktop calibration lab. The Android MediaPipe module,
+TypeScript analyzer, seated-biceps-curl recipe, and session complete/analysis/live-upload
+wiring now live in `apps/mobile`. Guest Expo Go still uses a labeled timer. The next
+pose step is a physical Android development build: install with
+`pnpm dev:mobile:android:device`, confirm no-camera still works, then calibrate curl on
+that camera. The backend never receives raw camera media or landmarks. See
+[session metrics](06-session-metrics-and-analytics.md) and
+[the React Native mobile plan](13-react-native-mobile.md).
 
 Repeatable checks are available through `pnpm format`, `pnpm typecheck`, `pnpm test`,
 `pnpm build`, `pnpm openapi:check`, `pnpm test:integration`, and `pnpm test:db`.

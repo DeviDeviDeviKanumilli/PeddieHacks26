@@ -145,8 +145,8 @@ are unavailable. The hosted live-mode scenario and database tests are environmen
 - Recursive React Native client typecheck and mobile build/config validation through the
   root commands
 - Native Jest/React Native Testing Library coverage for the body-map text controls,
-  compatibility adaptation, contract mapping, profile synchronization, and count-only
-  metric construction
+  compatibility adaptation, contract mapping, profile synchronization, count-only
+  fallback metric construction, and allowlisted pose session summaries
 - A committed Maestro guest onboarding and no-camera workout flow under
   `apps/mobile/.maestro`
 - `pnpm test:prisma` (RLS-scoped Prisma catalog smoke check when a database URL is set)
@@ -157,7 +157,8 @@ are unavailable. The hosted live-mode scenario and database tests are environmen
 - `supabase/tests/workout_item_rpc.sql` optimistic atomic item replacement check
 - Domain tests for session transition matrices, metric limits, confidence filtering, analysis formulas, and progress baselines
 - Focused mobile tests for anatomy mappings, movement-mark rendering, collection predicates,
-  progress-range bounds, exercise-card accessibility, and count-only metric construction
+  progress-range bounds, exercise-card accessibility, count-only fallback metric
+  construction, and on-device pose summary mapping that omits landmarks
 
 GitHub Actions creates a clean PostgreSQL service and runs `pnpm db:test:prepare`
 before the database and Prisma suites. The bootstrap script refuses to operate unless
@@ -175,9 +176,10 @@ automates public and authenticated deployment checks and can run the mutating lo
 cross-user isolation, cleanup, and disposable-account deletion when the corresponding
 tokens and safety flags are provided. Native route, interaction, and camera-privacy
 coverage now belongs to `apps/mobile`; an iOS simulator launch and terminate/relaunch
-lifecycle pass has been completed. On-device pose acceptance requires an Android
-development build, not Expo Go: permission deny still completes a workout, granted
-camera tracking stays on-device, backgrounding stops the camera, and inspected traffic
-contains no frames, landmarks, or coordinates. Full iOS/Android live-mode acceptance,
+lifecycle pass has been completed. The Android pose module and session wiring are in
+the repository. On-device pose acceptance still requires a physical Android development
+build, not Expo Go: permission deny still completes a workout, granted camera tracking
+stays on-device, backgrounding stops the camera, complete/analysis show derived range
+when samples exist, and inspected traffic contains no frames, landmarks, or coordinates. Full iOS/Android live-mode acceptance,
 Docker-backed Supabase reset, hosted execution, advisor output, and load targets remain
 deployment-gated.

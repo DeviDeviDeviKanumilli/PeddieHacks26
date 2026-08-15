@@ -152,10 +152,10 @@ The camera is optional and is started only after a user action. The camera sessi
 released when the flow ends, the app backgrounds, or the component unmounts. Raw video,
 still images, audio, frame data, and pose
 landmarks never enter an API request and are never persisted. The backend validates and
-stores derived metrics only. It intentionally has no pose-estimation implementation. The
-automatic rep and score movement in guest demo mode is simulated client behavior, not
-model output. The Python prototype under `model/` is a desktop calibration lab; the
-mobile runtime must use a native module in a development build. See
+stores derived metrics only. It intentionally has no pose-estimation implementation. Guest
+Expo Go still uses a labeled simulated timer; Android development builds count from
+on-device angles. The Python prototype under `model/` is a desktop calibration lab; the
+mobile runtime is the native module in `apps/mobile/modules/adaptfit-pose`. See
 [the on-device pose plan](13-react-native-mobile.md#on-device-pose-integration).
 
 ## Dependencies

@@ -43,8 +43,9 @@ Exit criteria: authenticated and anonymous access boundaries work in integration
 
 Status: public catalog/reference routes, bearer-token request context, typed errors,
 request IDs, OpenAPI output, rate limiting, and compatibility lookup are complete in
-the repository-injected API. Profile persistence, readiness dependency checks, and
-the remaining authenticated resources are pending.
+the repository-injected API. Profile and settings routes now use memory or Supabase
+repositories; readiness dependency checks and the remaining authenticated resources
+are pending.
 
 ## Phase 4 — Personalization and compatibility
 
@@ -55,9 +56,9 @@ the remaining authenticated resources are pending.
 
 Exit criteria: full compatibility matrix and equipment behavior are covered by tests.
 
-Status: domain rules, persistence-backed profile routes, compatibility responses,
-and API integration tests are in place. Alternatives and broader profile/settings
-resources remain.
+Status: domain rules, persistence-backed movement/profile/settings routes,
+compatibility responses, and API integration tests are in place. Exercise alternatives
+and broader profile workflows remain.
 
 ## Phase 5 — Workouts
 

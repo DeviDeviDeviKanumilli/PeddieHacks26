@@ -22,7 +22,13 @@ import { registerErrorHandling } from './errors.js';
 import { SupabaseMovementProfileRepository } from './profile-repository.js';
 import { registerCatalogRoutes } from './routes/catalog.js';
 import { registerProfileRoutes } from './routes/profile.js';
+import { registerUserRoutes } from './routes/users.js';
 import { registerWorkoutRoutes } from './routes/workouts.js';
+import {
+  MemoryUserRepository,
+  SupabaseUserRepository,
+  type UserRepository,
+} from './user-repository.js';
 import {
   MemoryWorkoutRepository,
   SupabaseWorkoutRepository,
@@ -35,6 +41,7 @@ export type AppOptions = {
   catalog?: CatalogRepository;
   profiles?: MovementProfileRepository;
   workouts?: WorkoutRepository;
+  users?: UserRepository;
   authVerifier?: AuthVerifier;
 };
 
@@ -56,6 +63,9 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     (supabase === undefined
       ? new MemoryWorkoutRepository()
       : new SupabaseWorkoutRepository(supabase));
+  const users =
+    options.users ??
+    (supabase === undefined ? new MemoryUserRepository() : new SupabaseUserRepository(supabase));
   const authVerifier =
     options.authVerifier ??
     (supabase === undefined ? new RejectingAuthVerifier() : new SupabaseAuthVerifier(supabase));
@@ -83,6 +93,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
       tags: [
         { name: 'system', description: 'Health and readiness checks.' },
         { name: 'catalog', description: 'Public references and reviewed exercises.' },
+        { name: 'users', description: 'Authenticated profile and settings.' },
       ],
     },
   });
@@ -109,6 +120,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
 
   await registerCatalogRoutes(app, { catalog, profiles });
   await registerProfileRoutes(app, { profiles });
+  await registerUserRoutes(app, { users });
   await registerWorkoutRoutes(app, { catalog, profiles, workouts });
 
   app.get('/openapi.json', async () => app.swagger());

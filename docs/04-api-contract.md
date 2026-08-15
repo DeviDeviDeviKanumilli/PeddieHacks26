@@ -63,6 +63,12 @@ replaying the same content returns the original workout, while reusing the ID wi
 different content returns `409 idempotency_conflict`. Manual caution items require
 acknowledgement of every returned warning code.
 
+Profile and settings reads/patches are now backed by the same repository boundary. The
+memory adapter is used by local API tests; the Supabase adapter reads and updates only
+the authenticated user's `profiles` and `user_settings` rows. Settings patches merge
+the supported nested preference objects, while unknown fields fail the TypeBox request
+contract.
+
 ## Profile routes
 
 ```http

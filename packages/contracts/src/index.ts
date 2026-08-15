@@ -108,6 +108,7 @@ export const UserProfilePatchSchema = Type.Object({
   experienceLevel: Type.Optional(ExperienceLevelSchema),
   intensityPreference: Type.Optional(IntensityPreferenceSchema),
 });
+export type UserProfilePatch = Static<typeof UserProfilePatchSchema>;
 
 export const AccessibilityPreferencesSchema = Type.Object({
   reducedMotion: Type.Optional(Type.Boolean()),
@@ -136,6 +137,7 @@ export const SettingsResponseSchema = Type.Object({ data: SettingsSchema });
 export type Settings = Static<typeof SettingsSchema>;
 
 export const SettingsPatchSchema = Type.Partial(SettingsSchema);
+export type SettingsPatch = Static<typeof SettingsPatchSchema>;
 
 export const CompatibilityStatusSchema = Type.Union([
   Type.Literal('compatible'),

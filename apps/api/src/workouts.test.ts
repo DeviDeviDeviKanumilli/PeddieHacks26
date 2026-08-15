@@ -155,4 +155,52 @@ describe('profile and workout routes', () => {
     expect(response.statusCode).toBe(422);
     expect(response.json().code).toBe('caution_acknowledgement_required');
   });
+
+  it('returns ranked alternatives and atomically replaces a workout item', async () => {
+    app = await buildApp({ logger: false, authVerifier });
+    const headers = { authorization: 'Bearer demo-token' };
+    await app.inject({ method: 'PUT', url: '/v1/movement-profile', headers, payload: profile });
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/workouts',
+      headers,
+      payload: {
+        clientRequestId: '30000000-0000-4000-8000-000000000003',
+        title: 'Replacement plan',
+        items: [
+          {
+            exerciseId: '00000000-0000-4000-8000-000000000001',
+            sets: 1,
+            reps: 8,
+            restSeconds: 30,
+          },
+        ],
+      },
+    });
+    const workout = created.json().data;
+    const itemId = workout.items[0].id as string;
+    const alternatives = await app.inject({
+      method: 'GET',
+      url: `/v1/workouts/${workout.id}/items/${itemId}/alternatives`,
+      headers,
+    });
+    const patched = await app.inject({
+      method: 'PATCH',
+      url: `/v1/workouts/${workout.id}/items/${itemId}`,
+      headers,
+      payload: {
+        expectedWorkoutVersion: 1,
+        reps: null,
+        holdSeconds: 30,
+      },
+    });
+
+    expect(alternatives.statusCode).toBe(200);
+    expect(alternatives.json().data.length).toBeGreaterThan(0);
+    expect(alternatives.json().data[0].compatibility).toBeDefined();
+    expect(patched.statusCode).toBe(200);
+    expect(patched.json().data.version).toBe(2);
+    expect(patched.json().data.items[0]).toMatchObject({ holdSeconds: 30 });
+    expect(patched.json().data.items[0].reps).toBeUndefined();
+  });
 });

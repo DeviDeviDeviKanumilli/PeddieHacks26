@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type {
   CreateManualWorkoutRequest,
+  PatchWorkoutItemRequest,
   PatchWorkoutRequest,
   Workout,
   WorkoutItem,
@@ -48,6 +49,13 @@ export interface WorkoutRepository {
   get(userId: string, workoutId: string): Promise<Workout | null>;
   patch(userId: string, workoutId: string, request: PatchWorkoutRequest): Promise<Workout>;
   archive(userId: string, workoutId: string): Promise<Workout>;
+  patchItem(
+    userId: string,
+    workoutId: string,
+    itemId: string,
+    request: PatchWorkoutItemRequest,
+    item: WorkoutItem,
+  ): Promise<Workout>;
 }
 
 export const hashRequest = (value: unknown): string =>
@@ -317,6 +325,43 @@ export class MemoryWorkoutRepository implements WorkoutRepository {
     const workout: Workout = {
       ...row.workout,
       status: 'archived',
+      version: row.workout.version + 1,
+      updatedAt: now(),
+    };
+    this.workouts.set(workoutId, { ...row, workout });
+    return workout;
+  }
+
+  async patchItem(
+    userId: string,
+    workoutId: string,
+    itemId: string,
+    request: PatchWorkoutItemRequest,
+    item: WorkoutItem,
+  ): Promise<Workout> {
+    const row = this.workouts.get(workoutId);
+    if (row === undefined || row.userId !== userId || row.workout.status === 'archived') {
+      throw new ApiError({
+        statusCode: 404,
+        code: 'workout_not_found',
+        title: 'Workout not found',
+        detail: 'The requested workout is not available.',
+      });
+    }
+    if (row.workout.version !== request.expectedWorkoutVersion) {
+      throw conflict('The workout changed since it was loaded.');
+    }
+    if (!row.workout.items.some((current) => current.id === itemId)) {
+      throw new ApiError({
+        statusCode: 404,
+        code: 'workout_item_not_found',
+        title: 'Workout item not found',
+        detail: 'The requested workout item is not available.',
+      });
+    }
+    const workout: Workout = {
+      ...row.workout,
+      items: row.workout.items.map((current) => (current.id === itemId ? item : current)),
       version: row.workout.version + 1,
       updatedAt: now(),
     };
@@ -616,6 +661,42 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       });
     const loaded = await this.get(userId, workoutId);
     if (loaded === null) throw dependencyError('The archived workout could not be loaded.');
+    return loaded;
+  }
+
+  async patchItem(
+    userId: string,
+    workoutId: string,
+    itemId: string,
+    request: PatchWorkoutItemRequest,
+    item: WorkoutItem,
+  ): Promise<Workout> {
+    const result = await this.client.rpc('patch_workout_item', {
+      p_user_id: userId,
+      p_workout_id: workoutId,
+      p_item_id: itemId,
+      p_expected_workout_version: request.expectedWorkoutVersion,
+      p_exercise_id: item.exerciseId,
+      p_sets: item.sets,
+      p_reps: item.reps ?? null,
+      p_hold_seconds: item.holdSeconds ?? null,
+      p_rest_seconds: item.restSeconds,
+      p_compatibility_snapshot: item.compatibility,
+    });
+    if (result.error) {
+      if (result.error.code === '40001') throw conflict('The workout changed since it was loaded.');
+      if (result.error.code === 'P0002') {
+        throw new ApiError({
+          statusCode: 404,
+          code: 'workout_item_not_found',
+          title: 'Workout item not found',
+          detail: 'The requested workout item is not available.',
+        });
+      }
+      throw dependencyError('The workout item could not be updated.');
+    }
+    const loaded = await this.get(userId, workoutId);
+    if (loaded === null) throw dependencyError('The updated workout could not be loaded.');
     return loaded;
   }
 }

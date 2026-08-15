@@ -329,6 +329,32 @@ export type WorkoutItem = Static<typeof WorkoutItemSchema>;
 export type CreateManualWorkoutRequest = Static<typeof CreateManualWorkoutRequestSchema>;
 export type PatchWorkoutRequest = Static<typeof PatchWorkoutRequestSchema>;
 
+export const PatchWorkoutItemRequestSchema = Type.Object(
+  {
+    expectedWorkoutVersion: Type.Integer({ minimum: 1 }),
+    exerciseId: Type.Optional(UuidSchema),
+    sets: Type.Optional(Type.Integer({ minimum: 1, maximum: 5 })),
+    reps: Type.Optional(Type.Union([Type.Integer({ minimum: 1, maximum: 50 }), Type.Null()])),
+    holdSeconds: Type.Optional(
+      Type.Union([Type.Integer({ minimum: 1, maximum: 600 }), Type.Null()]),
+    ),
+    restSeconds: Type.Optional(Type.Integer({ minimum: 0, maximum: 300 })),
+    cautionAcknowledgements: Type.Optional(Type.Array(NonEmptyStringSchema, { maxItems: 50 })),
+  },
+  { additionalProperties: false },
+);
+export type PatchWorkoutItemRequest = Static<typeof PatchWorkoutItemRequestSchema>;
+
+export const ExerciseAlternativeSchema = Type.Object({
+  exercise: ExerciseSummarySchema,
+  compatibility: CompatibilityResultSchema,
+  rankScore: Type.Integer({ minimum: 0, maximum: 100 }),
+});
+
+export const ExerciseAlternativesResponseSchema = Type.Object({
+  data: Type.Array(ExerciseAlternativeSchema, { maxItems: 10 }),
+});
+
 export const WorkoutSessionStateSchema = Type.Union([
   Type.Literal('active'),
   Type.Literal('paused'),

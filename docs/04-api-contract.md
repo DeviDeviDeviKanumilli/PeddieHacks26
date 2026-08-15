@@ -111,6 +111,10 @@ PATCH /v1/workouts/:workoutId/items/:itemId
 `CompatibilityResult` contains status, score, engine/profile versions, stable reason/conflict codes, related IDs, explanations, and alternatives.
 
 Deleting a workout archives it. Manual workouts may contain one exercise for standalone exercise sessions.
+Workout-item alternatives are ranked by the deterministic generation engine against
+the current movement profile. Item replacement requires the current workout version,
+re-evaluates compatibility, and requires exact caution acknowledgements for a newly
+selected caution exercise.
 
 ## Session routes
 

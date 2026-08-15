@@ -1,11 +1,15 @@
 import {
   type CreateManualWorkoutRequest,
   CreateManualWorkoutRequestSchema,
+  ExerciseAlternativesResponseSchema,
   type GenerateWorkoutRequest,
   GenerateWorkoutRequestSchema,
   GenerateWorkoutResponseSchema,
+  type PatchWorkoutItemRequest,
+  PatchWorkoutItemRequestSchema,
   type PatchWorkoutRequest,
   PatchWorkoutRequestSchema,
+  type WorkoutItem,
   WorkoutListResponseSchema,
   WorkoutResponseSchema,
 } from '@peddie/contracts';
@@ -15,6 +19,7 @@ import {
   type GenerationRequest,
   generateWorkout,
   InsufficientCompatibleExercisesError,
+  rankExercises,
 } from '@peddie/domain';
 import { type Static, Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -30,11 +35,16 @@ import {
 const WorkoutIdParamsSchema = Type.Object({
   workoutId: Type.String({ minLength: 1, maxLength: 120 }),
 });
+const WorkoutItemParamsSchema = Type.Object({
+  workoutId: Type.String({ minLength: 1, maxLength: 120 }),
+  itemId: Type.String({ minLength: 1, maxLength: 120 }),
+});
 const WorkoutListQuerySchema = Type.Object({
   limit: Type.Optional(Type.String({ pattern: '^[0-9]{1,3}$' })),
   cursor: Type.Optional(Type.String({ maxLength: 512 })),
 });
 type WorkoutIdParams = Static<typeof WorkoutIdParamsSchema>;
+type WorkoutItemParams = Static<typeof WorkoutItemParamsSchema>;
 type WorkoutListQuery = Static<typeof WorkoutListQuerySchema>;
 
 const requestUserId = (request: FastifyRequest): string => {
@@ -156,6 +166,144 @@ const manualDraftFor = async (
   return drafts;
 };
 
+const contractCompatibility = (
+  compatibility: Awaited<ReturnType<typeof evaluateCompatibility>>,
+): WorkoutItem['compatibility'] => ({
+  exerciseId: compatibility.exerciseId,
+  exerciseSlug: compatibility.exerciseSlug,
+  status: compatibility.status,
+  score: compatibility.score,
+  engineVersion: compatibility.engineVersion,
+  reasons: compatibility.reasons.map((reason) =>
+    reason.relatedId === undefined
+      ? { code: reason.code, severity: reason.severity, message: reason.message }
+      : {
+          code: reason.code,
+          severity: reason.severity,
+          message: reason.message,
+          relatedId: reason.relatedId,
+        },
+  ),
+});
+
+const patchPrescription = (
+  current: WorkoutItem,
+  request: PatchWorkoutItemRequest,
+): { readonly reps?: number; readonly holdSeconds?: number } => {
+  const repsProvided = request.reps !== undefined;
+  const holdProvided = request.holdSeconds !== undefined;
+  if (!repsProvided && !holdProvided) {
+    if (current.reps !== undefined) return { reps: current.reps };
+    if (current.holdSeconds !== undefined) return { holdSeconds: current.holdSeconds };
+    throw new ApiError({
+      statusCode: 503,
+      code: 'workout_storage_inconsistent',
+      title: 'Workout storage error',
+      detail: 'The workout item has no valid prescription.',
+    });
+  }
+  const reps = typeof request.reps === 'number' ? request.reps : undefined;
+  const holdSeconds = typeof request.holdSeconds === 'number' ? request.holdSeconds : undefined;
+  if ((reps === undefined) === (holdSeconds === undefined)) {
+    throw new ApiError({
+      statusCode: 422,
+      code: 'invalid_prescription',
+      title: 'Invalid prescription',
+      detail: 'A workout item must specify reps or holdSeconds, but not both.',
+    });
+  }
+  if (reps !== undefined) return { reps };
+  if (holdSeconds !== undefined) return { holdSeconds };
+  throw new ApiError({
+    statusCode: 422,
+    code: 'invalid_prescription',
+    title: 'Invalid prescription',
+    detail: 'A workout item must specify reps or holdSeconds, but not both.',
+  });
+};
+
+const patchedItemFor = async (
+  userId: string,
+  workout: Awaited<ReturnType<WorkoutRepository['get']>>,
+  itemId: string,
+  request: PatchWorkoutItemRequest,
+  dependencies: {
+    readonly catalog: CatalogRepository;
+    readonly profiles: MovementProfileRepository;
+  },
+): Promise<WorkoutItem> => {
+  if (workout === null) {
+    throw new ApiError({
+      statusCode: 404,
+      code: 'workout_not_found',
+      title: 'Workout not found',
+      detail: 'The requested workout is not available.',
+    });
+  }
+  const current = workout.items.find((item) => item.id === itemId);
+  if (current === undefined) {
+    throw new ApiError({
+      statusCode: 404,
+      code: 'workout_item_not_found',
+      title: 'Workout item not found',
+      detail: 'The requested workout item is not available.',
+    });
+  }
+  const candidate = await dependencies.catalog.getExerciseCandidate(
+    request.exerciseId ?? current.exerciseId,
+  );
+  if (candidate === null) {
+    throw new ApiError({
+      statusCode: 422,
+      code: 'unknown_exercise',
+      title: 'Unknown exercise',
+      detail: 'The workout item must reference an active exercise.',
+    });
+  }
+  const compatibility = evaluateCompatibility(
+    candidate,
+    await dependencies.profiles.getMovementProfile(userId),
+  );
+  if (compatibility.status === 'incompatible') {
+    throw new ApiError({
+      statusCode: 422,
+      code: 'incompatible_exercise',
+      title: 'Incompatible exercise',
+      detail: 'The replacement exercise is not compatible with the movement profile.',
+    });
+  }
+  if (request.exerciseId !== undefined && request.exerciseId !== current.exerciseId) {
+    const acknowledgements = new Set(request.cautionAcknowledgements ?? []);
+    const missingAcknowledgements = compatibility.reasons
+      .filter((reason) => reason.severity === 'warning')
+      .map((reason) => reason.code)
+      .filter((code) => !acknowledgements.has(code));
+    if (missingAcknowledgements.length > 0) {
+      throw new ApiError({
+        statusCode: 422,
+        code: 'caution_acknowledgement_required',
+        title: 'Caution acknowledgement required',
+        detail: 'A replacement exercise requires acknowledgement of each warning code.',
+        errors: missingAcknowledgements.map((code) => ({
+          code,
+          message: 'Acknowledge this caution before continuing.',
+        })),
+      });
+    }
+  }
+  const prescription = patchPrescription(current, request);
+  return {
+    id: current.id,
+    position: current.position,
+    exerciseId: candidate.id,
+    exerciseSlug: candidate.slug,
+    sets: request.sets ?? current.sets,
+    ...prescription,
+    restSeconds: request.restSeconds ?? current.restSeconds,
+    compatibility: contractCompatibility(compatibility),
+  };
+};
+
 export const registerWorkoutRoutes = async (
   app: FastifyInstance,
   dependencies: {
@@ -252,6 +400,101 @@ export const registerWorkoutRoutes = async (
         items,
       });
       return reply.status(201).send({ data: workout });
+    },
+  );
+
+  app.get<{ Params: WorkoutItemParams }>(
+    '/v1/workouts/:workoutId/items/:itemId/alternatives',
+    {
+      preHandler: requireUser,
+      schema: {
+        params: WorkoutItemParamsSchema,
+        response: { 200: ExerciseAlternativesResponseSchema },
+      },
+    },
+    async (request) => {
+      const userId = requestUserId(request);
+      const workout = await dependencies.workouts.get(userId, request.params.workoutId);
+      if (workout === null) {
+        throw new ApiError({
+          statusCode: 404,
+          code: 'workout_not_found',
+          title: 'Workout not found',
+          detail: 'The requested workout is not available.',
+        });
+      }
+      const item = workout.items.find((candidate) => candidate.id === request.params.itemId);
+      if (item === undefined) {
+        throw new ApiError({
+          statusCode: 404,
+          code: 'workout_item_not_found',
+          title: 'Workout item not found',
+          detail: 'The requested workout item is not available.',
+        });
+      }
+      const currentCandidate = await dependencies.catalog.getExerciseCandidate(item.exerciseId);
+      if (currentCandidate === null) {
+        throw new ApiError({
+          statusCode: 503,
+          code: 'workout_catalog_inconsistent',
+          title: 'Workout catalog error',
+          detail: 'The workout item references an unavailable exercise.',
+        });
+      }
+      const profile = await dependencies.profiles.getMovementProfile(userId);
+      const ranked = rankExercises({
+        profile,
+        candidates: (await dependencies.catalog.listExerciseCandidates()).filter(
+          (candidate) => candidate.id !== currentCandidate.id,
+        ),
+        primaryRegionIds: currentCandidate.primaryRegionIds,
+        previousExerciseFamilyKeys: [currentCandidate.familyKey],
+        previousPrimaryRegionIds: currentCandidate.primaryRegionIds,
+      }).filter((candidate) => candidate.compatibility.status !== 'incompatible');
+      const alternatives = [];
+      for (const candidate of ranked.slice(0, 5)) {
+        const exercise = await dependencies.catalog.getExercise(candidate.exercise.id);
+        if (exercise !== null) {
+          alternatives.push({
+            exercise,
+            compatibility: contractCompatibility(candidate.compatibility),
+            rankScore: candidate.rankScore,
+          });
+        }
+      }
+      return { data: alternatives };
+    },
+  );
+
+  app.patch<{ Params: WorkoutItemParams; Body: PatchWorkoutItemRequest }>(
+    '/v1/workouts/:workoutId/items/:itemId',
+    {
+      preHandler: requireUser,
+      schema: {
+        params: WorkoutItemParamsSchema,
+        body: PatchWorkoutItemRequestSchema,
+        response: { 200: WorkoutResponseSchema },
+      },
+    },
+    async (request) => {
+      const userId = requestUserId(request);
+      const workout = await dependencies.workouts.get(userId, request.params.workoutId);
+      const item = await patchedItemFor(
+        userId,
+        workout,
+        request.params.itemId,
+        request.body,
+        dependencies,
+      );
+      return {
+        data: await dependencies.workouts.patchItem(
+          userId,
+          request.params.workoutId,
+          request.params.itemId,
+          request.body,
+          item,
+        ),
+      };
     },
   );
 

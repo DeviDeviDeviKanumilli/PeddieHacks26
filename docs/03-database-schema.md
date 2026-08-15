@@ -91,10 +91,11 @@ Create migrations through the Supabase CLI. The expected order is:
 6. Validation constraints and catalog-source checks.
 7. Workout idempotency fields and atomic movement-profile replacement.
 8. Session lifecycle RPCs, metric-batch ingestion, completion summaries, daily-progress rebuilds, and deletion.
+9. Atomic workout-item replacement.
 
 `supabase/seed.sql` contains only deterministic reference data, the 24 exercise catalog records, tracking rules, and local demo fixtures. It must not contain real user data, secrets, or production credentials.
 
-Implementation status: the eight CLI-created migrations and deterministic seed are in
+Implementation status: the nine CLI-created migrations and deterministic seed are in
 place. A disposable PostgreSQL 16 execution applies every migration and seed row, and
 the catalog, RLS, profile-RPC, and session-lifecycle SQL tests pass. The session RPCs
 lock owner rows for transitions and completion, deduplicate metric batches and reps,

@@ -84,6 +84,7 @@ pnpm openapi:check
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
 - `supabase/tests/profile_rpc.sql` atomic profile replacement and version checks
 - `supabase/tests/session_lifecycle.sql` transactional session, metric, summary, and daily-progress checks
+- `supabase/tests/workout_item_rpc.sql` optimistic atomic item replacement check
 - Domain tests for session transition matrices, metric limits, confidence filtering, analysis formulas, and progress baselines
 
 The migration/seed checks currently run against a disposable local PostgreSQL

@@ -58,8 +58,8 @@ are pending.
 Exit criteria: full compatibility matrix and equipment behavior are covered by tests.
 
 Status: domain rules, persistence-backed movement/profile/settings routes,
-compatibility responses, and API integration tests are in place. Exercise alternatives
-and broader profile workflows remain.
+compatibility responses, deterministic alternatives, atomic item replacement, and API
+integration tests are in place. Broader profile workflows remain.
 
 ## Phase 5 — Workouts
 

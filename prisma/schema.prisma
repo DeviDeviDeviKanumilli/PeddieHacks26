@@ -1,0 +1,609 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../apps/api/src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["auth", "public"]
+}
+
+model users {
+  id                         String                       @id @db.Uuid
+  daily_progress             daily_progress[]
+  exercise_session_summaries exercise_session_summaries[]
+  exercise_sessions          exercise_sessions[]
+  metric_batches             metric_batches[]
+  movement_profiles          movement_profiles?
+  profiles                   profiles?
+  rep_metrics                rep_metrics[]
+  session_events             session_events[]
+  user_body_regions          user_body_regions[]
+  user_capabilities          user_capabilities[]
+  user_equipment             user_equipment[]
+  user_goals                 user_goals[]
+  user_settings              user_settings?
+  workout_items              workout_items[]
+  workout_sessions           workout_sessions[]
+  workouts                   workouts[]
+
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model body_regions {
+  id                    String                  @id
+  label                 String
+  side                  String
+  parent_id             String?
+  sort_order            Int
+  active                Boolean                 @default(true)
+  created_at            DateTime                @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  body_regions          body_regions?           @relation("body_regionsTobody_regions", fields: [parent_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  other_body_regions    body_regions[]          @relation("body_regionsTobody_regions")
+  exercise_body_demands exercise_body_demands[]
+  user_body_regions     user_body_regions[]
+
+  @@index([parent_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model capabilities {
+  id                          String                        @id
+  label                       String
+  sort_order                  Int
+  active                      Boolean                       @default(true)
+  created_at                  DateTime                      @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_capability_demands exercise_capability_demands[]
+  user_capabilities           user_capabilities[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model daily_progress {
+  user_id        String   @db.Uuid
+  activity_date  DateTime @db.Date
+  session_count  Int      @default(0)
+  exercise_count Int      @default(0)
+  set_count      Int      @default(0)
+  rep_count      Int      @default(0)
+  active_seconds Int      @default(0)
+  average_score  Decimal? @db.Decimal(5, 2)
+  updated_at     DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  users          users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, activity_date])
+  @@index([user_id, activity_date(sort: Desc)], map: "daily_progress_user_date_idx")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model equipment {
+  id                         String                       @id
+  label                      String
+  category                   String
+  sort_order                 Int                          @default(0)
+  active                     Boolean                      @default(true)
+  created_at                 DateTime                     @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_equipment_options exercise_equipment_options[]
+  user_equipment             user_equipment[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_body_demands {
+  exercise_id    String       @db.Uuid
+  body_region_id String
+  involvement    String
+  demand         String
+  body_regions   body_regions @relation(fields: [body_region_id], references: [id], onUpdate: NoAction)
+  exercises      exercises    @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([exercise_id, body_region_id])
+  @@index([body_region_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_capability_demands {
+  exercise_id   String       @db.Uuid
+  capability_id String
+  demand        String
+  required      Boolean      @default(true)
+  capabilities  capabilities @relation(fields: [capability_id], references: [id], onUpdate: NoAction)
+  exercises     exercises    @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([exercise_id, capability_id])
+  @@index([capability_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_equipment_options {
+  exercise_id  String    @db.Uuid
+  equipment_id String
+  mode         String
+  or_group     String?
+  equipment    equipment @relation(fields: [equipment_id], references: [id], onUpdate: NoAction)
+  exercises    exercises @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([exercise_id, equipment_id])
+  @@index([equipment_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_form_rules {
+  id                         String                     @id @default(dbgenerated("extensions.gen_random_uuid()")) @db.Uuid
+  tracking_profile_id        String                     @db.Uuid
+  feedback_code              String
+  metric_name                String
+  comparison                 String
+  threshold                  Decimal                    @db.Decimal
+  severity                   String
+  message_key                String
+  exercise_tracking_profiles exercise_tracking_profiles @relation(fields: [tracking_profile_id], references: [exercise_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tracking_profile_id, feedback_code])
+  @@index([tracking_profile_id])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_goals {
+  exercise_id String    @db.Uuid
+  goal_id     String
+  exercises   exercises @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  goals       goals     @relation(fields: [goal_id], references: [id], onUpdate: NoAction)
+
+  @@id([exercise_id, goal_id])
+  @@index([goal_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_muscles {
+  exercise_id     String        @db.Uuid
+  muscle_group_id String
+  role            String
+  intensity       Int
+  exercises       exercises     @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  muscle_groups   muscle_groups @relation(fields: [muscle_group_id], references: [id], onUpdate: NoAction)
+
+  @@id([exercise_id, muscle_group_id])
+  @@index([muscle_group_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_session_summaries {
+  exercise_session_id String            @id @db.Uuid
+  user_id             String            @db.Uuid
+  target_reps         Int
+  counted_reps        Int
+  overall_score       Decimal?          @db.Decimal(5, 2)
+  analysis            Json
+  created_at          DateTime          @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_sessions   exercise_sessions @relation(fields: [exercise_session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "summaries_user_id_idx")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_sessions {
+  id                         String                      @id @default(dbgenerated("extensions.gen_random_uuid()")) @db.Uuid
+  user_id                    String                      @db.Uuid
+  workout_session_id         String                      @unique(map: "one_active_exercise_session_per_workout_session_idx", where: raw("(state = ANY (ARRAY['active'::text, 'paused'::text, 'resting'::text]))")) @db.Uuid
+  workout_item_id            String?                     @db.Uuid
+  exercise_id                String                      @db.Uuid
+  state                      String                      @default("pending")
+  target_snapshot            Json
+  completed_reps             Int                         @default(0)
+  completed_sets             Int                         @default(0)
+  tracking_profile_version   Int?
+  started_at                 DateTime?                   @db.Timestamptz(6)
+  ended_at                   DateTime?                   @db.Timestamptz(6)
+  version                    BigInt                      @default(1)
+  created_at                 DateTime                    @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at                 DateTime                    @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_session_summaries exercise_session_summaries?
+  exercises                  exercises                   @relation(fields: [exercise_id], references: [id], onUpdate: NoAction)
+  users                      users                       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workout_items              workout_items?              @relation(fields: [workout_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workout_sessions           workout_sessions            @relation(fields: [workout_session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  metric_batches             metric_batches[]
+  rep_metrics                rep_metrics[]
+  session_events             session_events[]
+
+  @@unique([workout_session_id, workout_item_id])
+  @@index([exercise_id])
+  @@index([user_id, created_at(sort: Desc), id(sort: Desc)], map: "exercise_sessions_user_history_idx")
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_source_links {
+  exercise_id      String           @db.Uuid
+  source_id        String           @db.Uuid
+  exercises        exercises        @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  exercise_sources exercise_sources @relation(fields: [source_id], references: [id], onUpdate: NoAction)
+
+  @@id([exercise_id, source_id])
+  @@index([source_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_sources {
+  id                    String                  @id @default(dbgenerated("extensions.gen_random_uuid()")) @db.Uuid
+  title                 String
+  publisher             String
+  url                   String                  @unique
+  publication_year      Int?
+  access_date           DateTime                @db.Date
+  license_note          String?
+  review_status         String                  @default("draft")
+  reviewer_role         String?
+  created_at            DateTime                @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at            DateTime                @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_source_links exercise_source_links[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercise_tracking_profiles {
+  exercise_id            String                @id @db.Uuid
+  tracking_key           String                @unique
+  version                Int                   @default(1)
+  confidence_floor       Decimal               @default(0.600) @db.Decimal(4, 3)
+  range_of_motion_target Json?
+  tempo_target           Json?
+  supported_metrics      Json                  @default("{}")
+  created_at             DateTime              @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at             DateTime              @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_form_rules    exercise_form_rules[]
+  exercises              exercises             @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exercises {
+  id                          String                        @id @default(dbgenerated("extensions.gen_random_uuid()")) @db.Uuid
+  slug                        String                        @unique
+  family_key                  String
+  name                        String
+  summary                     String
+  category                    String
+  position                    String
+  difficulty                  Int
+  default_prescription        Json
+  instructions                Json                          @default("[]")
+  safety_cues                 Json                          @default("[]")
+  adaptations                 Json                          @default("[]")
+  active                      Boolean                       @default(false)
+  content_version             Int                           @default(1)
+  created_at                  DateTime                      @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at                  DateTime                      @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_body_demands       exercise_body_demands[]
+  exercise_capability_demands exercise_capability_demands[]
+  exercise_equipment_options  exercise_equipment_options[]
+  exercise_goals              exercise_goals[]
+  exercise_muscles            exercise_muscles[]
+  exercise_sessions           exercise_sessions[]
+  exercise_source_links       exercise_source_links[]
+  exercise_tracking_profiles  exercise_tracking_profiles?
+  workout_items               workout_items[]
+
+  @@index([slug], map: "exercises_active_slug_idx", where: raw("active"))
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model goals {
+  id             String           @id
+  label          String
+  sort_order     Int              @default(0)
+  active         Boolean          @default(true)
+  created_at     DateTime         @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_goals exercise_goals[]
+  user_goals     user_goals[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model metric_batches {
+  id                  BigInt            @id @default(autoincrement())
+  user_id             String            @db.Uuid
+  exercise_session_id String            @db.Uuid
+  batch_id            String            @db.Uuid
+  request_hash        String
+  rep_count           Int
+  received_at         DateTime          @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_sessions   exercise_sessions @relation(fields: [exercise_session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rep_metrics         rep_metrics[]
+
+  @@unique([exercise_session_id, batch_id])
+  @@index([exercise_session_id])
+  @@index([user_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model movement_profiles {
+  user_id    String   @id @db.Uuid
+  version    BigInt   @default(1)
+  updated_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model muscle_groups {
+  id               String             @id
+  label            String
+  sort_order       Int                @default(0)
+  active           Boolean            @default(true)
+  created_at       DateTime           @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_muscles exercise_muscles[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model profiles {
+  user_id                 String    @id @db.Uuid
+  display_name            String?
+  timezone                String    @default("UTC")
+  experience_level        String    @default("beginner")
+  intensity_preference    String    @default("standard")
+  onboarding_completed_at DateTime? @db.Timestamptz(6)
+  created_at              DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at              DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  users                   users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model rep_metrics {
+  id                      BigInt            @id @default(autoincrement())
+  user_id                 String            @db.Uuid
+  exercise_session_id     String            @db.Uuid
+  metric_batch_id         BigInt
+  set_number              Int
+  rep_number              Int
+  counted                 Boolean           @default(true)
+  duration_ms             Int?
+  range_of_motion_deg     Decimal?          @db.Decimal(7, 2)
+  target_position_reached Boolean?
+  accuracy_score          Decimal?          @db.Decimal(5, 2)
+  control_score           Decimal?          @db.Decimal(5, 2)
+  stability_score         Decimal?          @db.Decimal(5, 2)
+  form_score              Decimal?          @db.Decimal(5, 2)
+  tracking_confidence     Decimal?          @db.Decimal(4, 3)
+  feedback_codes          String[]          @default([])
+  recorded_offset_ms      Int?
+  created_at              DateTime          @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_sessions       exercise_sessions @relation(fields: [exercise_session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  metric_batches          metric_batches    @relation(fields: [metric_batch_id], references: [id], onUpdate: NoAction)
+  users                   users             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([exercise_session_id, set_number, rep_number])
+  @@index([exercise_session_id, set_number, rep_number], map: "rep_metrics_exercise_session_idx")
+  @@index([user_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model session_events {
+  id                  BigInt             @id @default(autoincrement())
+  user_id             String             @db.Uuid
+  workout_session_id  String             @db.Uuid
+  exercise_session_id String?            @db.Uuid
+  event_type          String
+  from_state          String?
+  to_state            String?
+  metadata            Json               @default("{}")
+  occurred_at         DateTime           @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_sessions   exercise_sessions? @relation(fields: [exercise_session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workout_sessions    workout_sessions   @relation(fields: [workout_session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([exercise_session_id], map: "session_events_exercise_session_idx")
+  @@index([workout_session_id, occurred_at, id], map: "session_events_workout_session_idx")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_body_regions {
+  user_id        String       @db.Uuid
+  body_region_id String
+  state          String
+  updated_at     DateTime     @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  body_regions   body_regions @relation(fields: [body_region_id], references: [id], onUpdate: NoAction)
+  users          users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, body_region_id])
+  @@index([body_region_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_capabilities {
+  user_id       String       @db.Uuid
+  capability_id String
+  state         String
+  updated_at    DateTime     @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  capabilities  capabilities @relation(fields: [capability_id], references: [id], onUpdate: NoAction)
+  users         users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, capability_id])
+  @@index([capability_id])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_equipment {
+  user_id      String    @db.Uuid
+  equipment_id String
+  updated_at   DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  equipment    equipment @relation(fields: [equipment_id], references: [id], onUpdate: NoAction)
+  users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, equipment_id])
+  @@index([equipment_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_goals {
+  user_id    String   @db.Uuid
+  goal_id    String
+  priority   Int      @default(1)
+  updated_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  goals      goals    @relation(fields: [goal_id], references: [id], onUpdate: NoAction)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, goal_id])
+  @@index([goal_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_settings {
+  user_id                       String   @id @db.Uuid
+  accessibility_preferences     Json     @default("{}")
+  feedback_preferences          Json     @default("{}")
+  pose_overlay_enabled          Boolean  @default(true)
+  default_rest_duration_seconds Int      @default(60)
+  created_at                    DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at                    DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  users                         users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model workout_items {
+  id                     String              @id @default(dbgenerated("extensions.gen_random_uuid()")) @db.Uuid
+  user_id                String              @db.Uuid
+  workout_id             String              @db.Uuid
+  position               Int
+  exercise_id            String              @db.Uuid
+  sets                   Int
+  reps                   Int?
+  hold_seconds           Int?
+  rest_seconds           Int
+  compatibility_snapshot Json
+  version                BigInt              @default(1)
+  created_at             DateTime            @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at             DateTime            @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_sessions      exercise_sessions[]
+  exercises              exercises           @relation(fields: [exercise_id], references: [id], onUpdate: NoAction)
+  users                  users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workouts               workouts            @relation(fields: [workout_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workout_id, position])
+  @@index([exercise_id])
+  @@index([user_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model workout_sessions {
+  id                String             @id @default(dbgenerated("extensions.gen_random_uuid()")) @db.Uuid
+  user_id           String             @db.Uuid
+  workout_id        String             @db.Uuid
+  client_request_id String             @db.Uuid
+  state             String             @default("active")
+  started_at        DateTime           @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  ended_at          DateTime?          @db.Timestamptz(6)
+  pause_data        Json               @default("{}")
+  rest_data         Json               @default("{}")
+  end_reason        String?
+  duration_seconds  Int?
+  version           BigInt             @default(1)
+  created_at        DateTime           @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at        DateTime           @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  exercise_sessions exercise_sessions?
+  session_events    session_events[]
+  users             users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workouts          workouts           @relation(fields: [workout_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, client_request_id])
+  @@index([user_id, started_at(sort: Desc), id(sort: Desc)], map: "workout_sessions_user_history_idx")
+  @@index([workout_id])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model workouts {
+  id                          String             @id @default(dbgenerated("extensions.gen_random_uuid()")) @db.Uuid
+  user_id                     String             @db.Uuid
+  source                      String
+  title                       String
+  status                      String             @default("draft")
+  requested_duration_minutes  Int?
+  engine_version              String?
+  profile_version             BigInt?
+  generation_request_snapshot Json?
+  version                     BigInt             @default(1)
+  created_at                  DateTime           @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at                  DateTime           @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  client_request_id           String?            @db.Uuid
+  request_hash                String?
+  workout_items               workout_items[]
+  workout_sessions            workout_sessions[]
+  users                       users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, client_request_id], map: "workouts_user_client_request_id_idx", where: raw("(client_request_id IS NOT NULL)"))
+  @@index([user_id, created_at(sort: Desc), id(sort: Desc)], map: "workouts_user_history_idx")
+  @@schema("public")
+}

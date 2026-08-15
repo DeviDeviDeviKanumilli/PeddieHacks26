@@ -9,17 +9,19 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm --filter @peddie/api dev",
-    "format": "biome check --vcs-use-ignore-file=true biome.json package.json pnpm-workspace.yaml tsconfig.base.json AGENTS.md apps/api/package.json apps/api/tsconfig.json apps/api/src packages/contracts/package.json packages/contracts/tsconfig.json packages/contracts/src packages/domain/package.json packages/domain/tsconfig.json packages/domain/src scripts/openapi-check.ts docs",
-    "format:write": "biome check --vcs-use-ignore-file=true --write biome.json package.json pnpm-workspace.yaml tsconfig.base.json AGENTS.md apps/api/package.json apps/api/tsconfig.json apps/api/src packages/contracts/package.json packages/contracts/tsconfig.json packages/contracts/src packages/domain/package.json packages/domain/tsconfig.json packages/domain/src scripts/openapi-check.ts docs",
+    "format": "biome check --vcs-use-ignore-file=true biome.json package.json prisma.config.ts pnpm-workspace.yaml tsconfig.base.json AGENTS.md apps/api/package.json apps/api/tsconfig.json apps/api/src/*.ts apps/api/src/routes packages/contracts/package.json packages/contracts/tsconfig.json packages/contracts/src packages/domain/package.json packages/domain/tsconfig.json packages/domain/src scripts/openapi-check.ts docs",
+    "format:write": "biome check --vcs-use-ignore-file=true --write biome.json package.json prisma.config.ts pnpm-workspace.yaml tsconfig.base.json AGENTS.md apps/api/package.json apps/api/tsconfig.json apps/api/src/*.ts apps/api/src/routes packages/contracts/package.json packages/contracts/tsconfig.json packages/contracts/src packages/domain/package.json packages/domain/tsconfig.json packages/domain/src scripts/openapi-check.ts docs",
     "openapi:check": "pnpm --filter @peddie/contracts build && pnpm --filter @peddie/domain build && pnpm --filter @peddie/api build && tsx scripts/openapi-check.ts",
-    "test": "pnpm -r test",
+    "prisma:generate": "prisma generate",
+    "test": "pnpm prisma:generate && pnpm -r test",
     "test:db": "bash scripts/test-db.sh",
     "test:integration": "pnpm --filter @peddie/api test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm prisma:generate && pnpm -r typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
     "@types/node": "26.2.0",
+    "prisma": "7.9.1",
     "tsx": "4.23.12",
     "typescript": "7.0.2",
     "vitest": "4.1.10"

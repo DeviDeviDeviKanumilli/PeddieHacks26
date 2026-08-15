@@ -17,8 +17,14 @@
     "@fastify/swagger-ui": "6.1.1",
     "@peddie/contracts": "workspace:*",
     "@peddie/domain": "workspace:*",
+    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/client": "7.9.1",
     "@sinclair/typebox": "0.34.52",
     "@supabase/supabase-js": "2.112.3",
-    "fastify": "5.12.0"
+    "fastify": "5.12.0",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.15.6"
   }
 }

@@ -80,8 +80,9 @@ The application now lives in `apps/mobile` and includes:
 
 - Expo Router stacks plus native Home, Explore, Workout, Progress, and Profile tabs.
 - A deliberately focused Home tab: one current workout, one daily tip, and two quick actions.
-  Exercise discovery remains in Explore, while history and totals remain in Progress so the
-  landing experience does not duplicate those destinations.
+  The global brand and notification header lives on Home; Explore begins directly with discovery,
+  while history and totals remain in Progress so the landing experience does not duplicate those
+  destinations.
 - A two-mode Explore tab that preserves **For me** and **All exercises**. For me contains a short
   personalized recommendation list and attribute-driven collections; All exercises contains the
   full searchable, filterable catalog. Exercise and collection thumbnails use reusable abstract

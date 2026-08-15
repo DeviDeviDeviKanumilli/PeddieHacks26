@@ -3,7 +3,6 @@ import { type Href, router } from 'expo-router';
 import { ChevronRight, Search } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppHeader } from '@/components/AppHeader';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { Chip, Field, Screen, SectionHeading, Title } from '@/components/ui';
 import { mobileApi } from '@/lib/api';
@@ -105,7 +104,6 @@ export default function ExploreScreen() {
 
   return (
     <Screen style={styles.screen}>
-      <AppHeader />
       <Title compact>Explore</Title>
 
       <View style={styles.searchWrap}>

@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import type { LucideIcon } from 'lucide-react-native';
-import { Bell, Clock3, Dumbbell, Lightbulb, Search } from 'lucide-react-native';
+import { Clock3, Dumbbell, Lightbulb, Search } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppHeader } from '@/components/AppHeader';
 import { Button, Card, Screen, SectionHeading } from '@/components/ui';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
@@ -43,6 +44,7 @@ export default function HomeScreen() {
 
   return (
     <Screen style={styles.screen}>
+      <AppHeader />
       <View style={styles.welcomeRow}>
         <View style={styles.welcomeCopy}>
           <Text style={styles.greeting}>{timeOfDayGreeting()},</Text>
@@ -50,13 +52,6 @@ export default function HomeScreen() {
             Ready to move?
           </Text>
         </View>
-        <Pressable
-          accessibilityLabel="Notifications"
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.notificationButton, pressed && styles.pressed]}
-        >
-          <Bell color={colors.ink} size={22} />
-        </Pressable>
       </View>
 
       <Card tone="lavender" style={styles.planCard}>
@@ -104,12 +99,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: { gap: spacing.lg, paddingTop: spacing.md },
   welcomeRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 96,
+    justifyContent: 'center',
+    minHeight: 88,
   },
-  welcomeCopy: { flex: 1, gap: spacing.xxs, paddingRight: spacing.md },
+  welcomeCopy: { gap: spacing.xxs },
   greeting: { color: colors.muted, fontFamily: typography.medium, fontSize: 16 },
   welcomeTitle: {
     color: colors.ink,
@@ -117,16 +110,6 @@ const styles = StyleSheet.create({
     fontSize: 34,
     letterSpacing: -0.7,
     lineHeight: 38,
-  },
-  notificationButton: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    height: 46,
-    justifyContent: 'center',
-    width: 46,
   },
   planCard: { gap: spacing.sm, padding: spacing.lg },
   planLabel: { color: colors.muted, fontFamily: typography.medium, fontSize: 15 },

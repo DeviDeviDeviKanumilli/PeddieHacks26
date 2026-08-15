@@ -106,7 +106,15 @@ export const registerErrorHandling = (app: FastifyInstance): void => {
           });
 
     if (apiError.statusCode >= 500) {
-      request.log.error({ err: error, requestId: request.id }, 'request failed');
+      request.log.error(
+        {
+          requestId: request.id,
+          route: request.routeOptions.url,
+          statusCode: apiError.statusCode,
+          code: apiError.code,
+        },
+        'request failed',
+      );
     }
     return reply.status(apiError.statusCode).send(asErrorResponse(request, apiError));
   });

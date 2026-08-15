@@ -11,6 +11,23 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: peddiehacks_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d peddiehacks_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ALLOW_DATABASE_BOOTSTRAP: 'true'
+      SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/peddiehacks_test
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -44,12 +61,14 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Database checks when a database URL is configured
-        run: pnpm test:db
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - name: Install PostgreSQL client when unavailable
+        run: command -v psql >/dev/null || (sudo apt-get update && sudo apt-get install --no-install-recommends -y postgresql-client)
 
-      - name: Prisma smoke check when a database URL is configured
+      - name: Prepare disposable PostgreSQL database
+        run: pnpm db:test:prepare
+
+      - name: Database and RLS checks
+        run: pnpm test:db
+
+      - name: Prisma RLS smoke check
         run: pnpm test:prisma
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

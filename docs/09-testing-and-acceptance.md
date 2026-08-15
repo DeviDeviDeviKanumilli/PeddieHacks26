@@ -69,8 +69,9 @@ pnpm test
 pnpm test:integration
 pnpm openapi:check
 pnpm build
-supabase db reset
+ALLOW_DATABASE_BOOTSTRAP=true SUPABASE_DB_URL=<disposable-url> pnpm db:test:prepare
 pnpm test:db
+pnpm test:prisma
 ```
 ## Current implementation status
 
@@ -83,17 +84,17 @@ pnpm test:db
 - `pnpm test:integration` (the API Fastify-injection suite)
 - `pnpm openapi:check` (required route/path smoke check)
 - `pnpm test:prisma` (RLS-scoped Prisma catalog smoke check when a database URL is set)
-- Disposable PostgreSQL execution of all migrations and `supabase/seed.sql`
+- Mandatory GitHub Actions PostgreSQL 17 execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
 - `supabase/tests/profile_rpc.sql` atomic profile replacement and version checks
 - `supabase/tests/session_lifecycle.sql` transactional session, metric, summary, and daily-progress checks
 - `supabase/tests/workout_item_rpc.sql` optimistic atomic item replacement check
 - Domain tests for session transition matrices, metric limits, confidence filtering, analysis formulas, and progress baselines
 
-The migration/seed checks currently run against a disposable local PostgreSQL
-instance because Docker is unavailable in the current environment. After migrations
-and seed data are applied, `pnpm test:db` runs each SQL test file using
-`SUPABASE_DB_URL` or `DATABASE_URL`. The equivalent Supabase command is:
+GitHub Actions creates a clean PostgreSQL service and runs `pnpm db:test:prepare`
+before the database and Prisma suites. The bootstrap script refuses to operate unless
+`ALLOW_DATABASE_BOOTSTRAP=true`; it must only be used with a disposable local or CI
+database. For the full local Supabase stack, the equivalent command is:
 
 ```text
 supabase db reset
@@ -101,5 +102,8 @@ pnpm test:db
 ```
 
 The authenticated profile, workout, tracked-session, analytics, and progress portions
-of the acceptance flow are covered by Fastify injection tests. Hosted deletion smoke
-tests, Docker-backed Supabase reset, and advisor output remain deployment-gated.
+of the acceptance flow are covered by Fastify injection tests. `pnpm smoke:hosted`
+automates public and authenticated deployment checks and can run the mutating loop,
+cross-user isolation, cleanup, and disposable-account deletion when the corresponding
+tokens and safety flags are provided. Docker-backed Supabase reset, hosted execution,
+advisor output, and load targets remain deployment-gated.

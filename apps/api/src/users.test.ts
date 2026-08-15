@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from './app.js';
 import type { AuthVerifier } from './auth.js';
+import { loadConfig } from './config.js';
 
 const authVerifier: AuthVerifier = {
   async verify(token) {
@@ -74,7 +75,7 @@ describe('user profile and settings routes', () => {
     expect(current.json().data.defaultRestDurationSeconds).toBe(90);
   });
 
-  it('supports retry-safe account deletion through the account boundary', async () => {
+  it('delegates account deletion and tolerates an adapter-level retry', async () => {
     app = await buildApp({ logger: false, authVerifier });
     const headers = { authorization: 'Bearer demo-token' };
     const first = await app.inject({ method: 'DELETE', url: '/v1/users/me', headers });
@@ -82,5 +83,20 @@ describe('user profile and settings routes', () => {
 
     expect(first.statusCode).toBe(204);
     expect(retry.statusCode).toBe(204);
+  });
+
+  it('applies the dedicated account-deletion rate limit', async () => {
+    app = await buildApp({
+      logger: false,
+      authVerifier,
+      config: loadConfig({ RATE_LIMIT_DELETION: '1', RATE_LIMIT_GENERAL: '100' }),
+    });
+    const headers = { authorization: 'Bearer demo-token' };
+    const first = await app.inject({ method: 'DELETE', url: '/v1/users/me', headers });
+    const limited = await app.inject({ method: 'DELETE', url: '/v1/users/me', headers });
+
+    expect(first.statusCode).toBe(204);
+    expect(limited.statusCode).toBe(429);
+    expect(limited.json().code).toBe('rate_limit_exceeded');
   });
 });

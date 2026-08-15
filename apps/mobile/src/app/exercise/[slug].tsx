@@ -1,16 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  ArrowLeft,
-  Camera,
-  Check,
-  CircleAlert,
-  Clock3,
-  Dumbbell,
-  Play,
-  Repeat2,
-  ShieldCheck,
-} from 'lucide-react-native';
+import { ArrowLeft, Camera, Check, CircleAlert, Play, ShieldCheck } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AnatomyMap } from '@/components/AnatomyMap';
@@ -52,37 +42,43 @@ export default function ExerciseDetailScreen() {
       </Screen>
     );
   return (
-    <Screen>
-      <Pressable
-        accessibilityLabel="Go back"
-        accessibilityRole="button"
-        onPress={() => router.back()}
-        style={styles.back}
-      >
-        <ArrowLeft color={colors.ink} size={22} />
-      </Pressable>
-      <View style={styles.art}>
+    <Screen style={styles.screen}>
+      <View style={styles.navigationRow}>
+        <Pressable
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={styles.back}
+        >
+          <ArrowLeft color={colors.ink} size={22} />
+        </Pressable>
+        <Text accessibilityRole="header" style={styles.screenTitle}>
+          Exercise
+        </Text>
+      </View>
+
+      <View style={styles.exerciseHeader}>
         <Image
-          accessibilityLabel={`Cartoon movement-family illustration for ${exercise.name}`}
-          resizeMode="contain"
+          accessibilityLabel={`Cartoon thumbnail for ${exercise.name}`}
+          resizeMode="cover"
           source={exerciseVisuals[exercise.visualKey]}
-          style={styles.artImage}
+          style={styles.thumbnail}
         />
-        <View style={styles.trackingBadge}>
-          {exercise.trackingSupported ? <Camera color={colors.lavenderDark} size={14} /> : null}
-          <Text style={styles.trackingText}>
-            {exercise.trackingSupported ? 'Optional tracking available' : 'Manual tracking'}
+        <View style={styles.exerciseIdentity}>
+          <Text style={styles.category}>
+            {exercise.category} · {exercise.position}
           </Text>
-        </View>
-        <View style={styles.illustrationBadge}>
-          <Text style={styles.illustrationText}>Movement family</Text>
+          <Text style={styles.exerciseName}>{exercise.name}</Text>
+          <View style={styles.trackingRow}>
+            {exercise.trackingSupported ? <Camera color={colors.muted} size={15} /> : null}
+            <Text style={styles.trackingText}>
+              {exercise.trackingSupported ? 'Camera tracking optional' : 'Manual tracking'}
+            </Text>
+          </View>
         </View>
       </View>
-      <View style={styles.intro}>
-        <Text style={styles.category}>
-          {exercise.category} · {exercise.position}
-        </Text>
-        <Title compact>{exercise.name}</Title>
+
+      <View style={styles.summary}>
         <Body muted>{exercise.summary}</Body>
         {liveDetail.isLoading ? (
           <View style={styles.syncRow}>
@@ -91,46 +87,42 @@ export default function ExerciseDetailScreen() {
           </View>
         ) : null}
       </View>
+
       <View style={styles.prescription}>
         <View style={styles.prescriptionItem}>
-          <Repeat2 color={colors.lavenderDark} size={20} />
           <Text style={styles.prescriptionValue}>
             {exercise.sets} × {exercise.reps}
           </Text>
-          <Text style={styles.prescriptionLabel}>sets × reps</Text>
+          <Text style={styles.prescriptionLabel}>Sets × reps</Text>
         </View>
+        <View style={styles.metricDivider} />
         <View style={styles.prescriptionItem}>
-          <Clock3 color={colors.lavenderDark} size={20} />
           <Text style={styles.prescriptionValue}>{exercise.restSeconds}s</Text>
-          <Text style={styles.prescriptionLabel}>rest</Text>
+          <Text style={styles.prescriptionLabel}>Rest</Text>
         </View>
+        <View style={styles.metricDivider} />
         <View style={styles.prescriptionItem}>
-          <Dumbbell color={colors.lavenderDark} size={20} />
           <Text style={styles.prescriptionValue}>Level {exercise.difficulty}</Text>
-          <Text style={styles.prescriptionLabel}>difficulty</Text>
+          <Text style={styles.prescriptionLabel}>Difficulty</Text>
         </View>
       </View>
-      <Card
-        tone={
-          exercise.compatibility === 'compatible'
-            ? 'success'
-            : exercise.compatibility === 'caution'
-              ? 'warning'
-              : 'danger'
-        }
-      >
-        <View style={styles.fitRow}>
+
+      <View style={styles.fitSection}>
+        <View style={styles.fitIcon}>
           {exercise.compatibility === 'compatible' ? (
-            <ShieldCheck color={colors.success} size={22} />
+            <ShieldCheck color={colors.success} size={20} />
           ) : (
-            <CircleAlert color={colors.warning} size={22} />
+            <CircleAlert color={colors.warning} size={20} />
           )}
-          <Text style={styles.fitTitle}>
-            {exercise.compatibility === 'compatible' ? 'Why this fits' : 'Review before starting'}
-          </Text>
         </View>
-        <Body muted>{exercise.compatibilityReason}</Body>
-      </Card>
+        <View style={styles.fitCopy}>
+          <Text style={styles.fitTitle}>
+            {exercise.compatibility === 'compatible' ? 'Good fit' : 'Review before starting'}
+          </Text>
+          <Text style={styles.fitReason}>{exercise.compatibilityReason}</Text>
+        </View>
+      </View>
+
       <View accessibilityRole="tablist" style={styles.tabs}>
         {(['overview', 'how-to', 'muscles'] as const).map((item) => (
           <Pressable
@@ -228,71 +220,77 @@ const Bullet = ({ text }: { text: string }) => (
 );
 
 const styles = StyleSheet.create({
+  screen: { gap: spacing.lg },
+  navigationRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    minHeight: 48,
+  },
   back: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
     borderRadius: radii.pill,
-    borderWidth: 1,
     height: 44,
     justifyContent: 'center',
     width: 44,
   },
-  art: {
-    alignItems: 'center',
-    backgroundColor: colors.lavenderSoft,
-    borderRadius: radii.lg,
-    height: 220,
-    justifyContent: 'center',
-    overflow: 'hidden',
+  screenTitle: {
+    color: colors.ink,
+    fontFamily: typography.semibold,
+    fontSize: 17,
+    marginLeft: spacing.sm,
   },
-  artImage: { height: '100%', width: '100%' },
-  trackingBadge: {
+  exerciseHeader: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radii.pill,
-    bottom: spacing.md,
     flexDirection: 'row',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    position: 'absolute',
+    gap: spacing.md,
   },
-  trackingText: { color: colors.ink, fontFamily: typography.semibold, fontSize: 11 },
-  illustrationBadge: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: radii.pill,
-    left: spacing.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    position: 'absolute',
-    top: spacing.md,
+  thumbnail: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.sm,
+    height: 96,
+    width: 96,
   },
-  illustrationText: { color: colors.muted, fontFamily: typography.semibold, fontSize: 10 },
-  intro: { gap: spacing.xs },
+  exerciseIdentity: { flex: 1, gap: spacing.xxs, minWidth: 0 },
+  exerciseName: {
+    color: colors.ink,
+    fontFamily: typography.semibold,
+    fontSize: 26,
+    letterSpacing: -0.5,
+    lineHeight: 30,
+  },
+  trackingRow: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  trackingText: { color: colors.muted, fontFamily: typography.medium, fontSize: 12 },
+  summary: { gap: spacing.xs },
   syncRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
   syncText: { color: colors.muted, fontFamily: typography.medium, fontSize: 12 },
   category: {
-    color: colors.lavenderDark,
-    fontFamily: typography.bold,
-    fontSize: 12,
+    color: colors.muted,
+    fontFamily: typography.semibold,
+    fontSize: 11,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  prescription: { flexDirection: 'row', gap: spacing.xs },
+  prescription: {
+    borderBottomColor: colors.line,
+    borderBottomWidth: 1,
+    borderTopColor: colors.line,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    paddingVertical: spacing.md,
+  },
   prescriptionItem: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderRadius: radii.md,
-    borderWidth: 1,
     flex: 1,
-    gap: 3,
-    padding: spacing.sm,
+    gap: spacing.xxs,
   },
-  prescriptionValue: { color: colors.ink, fontFamily: typography.semibold, fontSize: 14 },
+  metricDivider: { backgroundColor: colors.line, width: 1 },
+  prescriptionValue: { color: colors.ink, fontFamily: typography.semibold, fontSize: 15 },
   prescriptionLabel: { color: colors.muted, fontFamily: typography.medium, fontSize: 11 },
-  fitRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-  fitTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
+  fitSection: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
+  fitIcon: { paddingTop: 1 },
+  fitCopy: { flex: 1, gap: 2 },
+  fitTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 15 },
+  fitReason: { color: colors.muted, fontFamily: typography.body, fontSize: 14, lineHeight: 20 },
   sourceTitle: { color: colors.lavenderDark, fontFamily: typography.semibold, fontSize: 14 },
   sourceMeta: { color: colors.muted, fontFamily: typography.body, fontSize: 12 },
   tabs: { borderBottomColor: colors.line, borderBottomWidth: 1, flexDirection: 'row' },

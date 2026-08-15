@@ -87,6 +87,9 @@ The application now lives in `apps/mobile` and includes:
   full searchable, filterable catalog. Exercise and collection thumbnails use reusable abstract
   movement marks instead of person illustrations, with violet, teal, coral, and amber tones that
   distinguish strength, mobility, cardio, and balance contexts at a glance.
+- A compact exercise-detail header that places the movement thumbnail beside the exercise name.
+  Prescription and compatibility information use plain dividers and text hierarchy instead of a
+  large illustration banner or nested promotional cards.
 - Six-step onboarding with an interactive body diagram and equivalent labeled region list.
 - A SQLite-persisted guest adapter that remains usable without hosted configuration.
 - Supabase email/password authentication using only the publishable key, persisted native

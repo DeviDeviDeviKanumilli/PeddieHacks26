@@ -35,50 +35,69 @@ export const ProgressRing = ({
 };
 
 export const PoseOverlay = ({ variant = 'standing' }: { variant?: 'standing' | 'seated' }) => (
-  <svg className="pose-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-    <g className="pose-overlay__frame">
-      <path d="M8 18V8h10M82 8h10v10M8 82v10h10M92 82v10H82" />
-    </g>
-    {variant === 'standing' ? (
-      <g className="pose-overlay__skeleton">
-        <path d="M50 18 50 34 35 39 29 58 35 39 65 39 71 58M50 34 50 63 41 68 37 91M50 63 59 68 63 91" />
-        {[
-          ['50', '18'],
-          ['50', '34'],
-          ['35', '39'],
-          ['65', '39'],
-          ['29', '58'],
-          ['71', '58'],
-          ['50', '63'],
-          ['41', '68'],
-          ['59', '68'],
-          ['37', '91'],
-          ['63', '91'],
-        ].map(([cx, cy]) => (
-          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.8" />
-        ))}
+  <>
+    {/* The corner brackets should hug the frame, so they stay stretched to it. */}
+    <svg
+      className="pose-overlay"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <g className="pose-overlay__frame">
+        <path d="M8 18V8h10M82 8h10v10M8 82v10h10M92 82v10H82" />
       </g>
-    ) : (
-      <g className="pose-overlay__skeleton">
-        <path d="M50 17 49 34 37 39 32 57 37 39 62 40 70 53M49 34 49 64 36 69 52 74 36 69 28 88M49 64 66 69 75 88" />
-        {[
-          ['50', '17'],
-          ['49', '34'],
-          ['37', '39'],
-          ['62', '40'],
-          ['32', '57'],
-          ['70', '53'],
-          ['49', '64'],
-          ['36', '69'],
-          ['66', '69'],
-          ['28', '88'],
-          ['75', '88'],
-        ].map(([cx, cy]) => (
-          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.8" />
-        ))}
-      </g>
-    )}
-  </svg>
+    </svg>
+    {/*
+     * The figure must not stretch with the frame: under preserveAspectRatio="none" a wide
+     * preview pulled the joints far outside the body and read as broken pose detection.
+     */}
+    <svg
+      className="pose-overlay"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+    >
+      {variant === 'standing' ? (
+        <g className="pose-overlay__skeleton">
+          <path d="M50 18 50 34 35 39 29 58 35 39 65 39 71 58M50 34 50 63 41 68 37 91M50 63 59 68 63 91" />
+          {[
+            ['50', '18'],
+            ['50', '34'],
+            ['35', '39'],
+            ['65', '39'],
+            ['29', '58'],
+            ['71', '58'],
+            ['50', '63'],
+            ['41', '68'],
+            ['59', '68'],
+            ['37', '91'],
+            ['63', '91'],
+          ].map(([cx, cy]) => (
+            <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.8" />
+          ))}
+        </g>
+      ) : (
+        <g className="pose-overlay__skeleton">
+          <path d="M50 17 49 34 37 39 32 57 37 39 62 40 70 53M49 34 49 64 36 69 52 74 36 69 28 88M49 64 66 69 75 88" />
+          {[
+            ['50', '17'],
+            ['49', '34'],
+            ['37', '39'],
+            ['62', '40'],
+            ['32', '57'],
+            ['70', '53'],
+            ['49', '64'],
+            ['36', '69'],
+            ['66', '69'],
+            ['28', '88'],
+            ['75', '88'],
+          ].map(([cx, cy]) => (
+            <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.8" />
+          ))}
+        </g>
+      )}
+    </svg>
+  </>
 );
 
 export const CameraPreview = ({

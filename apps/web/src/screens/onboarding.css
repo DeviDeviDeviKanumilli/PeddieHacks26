@@ -60,7 +60,8 @@
 }
 
 .welcome-brand > span:last-child {
-  max-width: 15rem;
+  max-width: 17rem;
+  text-wrap: balance;
   color: var(--muted);
   font-size: 0.77rem;
   font-weight: 650;

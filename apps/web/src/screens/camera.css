@@ -183,13 +183,13 @@
 .camera-privacy-note {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.65rem;
   margin: 0.55rem 0 0;
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.45;
-  text-align: center;
+  /* Centred text next to a left-hand icon left the two visibly out of line. */
+  text-align: left;
 }
 
 .camera-privacy-note > span {
@@ -212,11 +212,8 @@
   color: var(--muted);
   font-size: 0.75rem;
   line-height: 1.4;
-}
-
-.camera-prototype-note {
-  justify-content: center;
-  text-align: center;
+  /* Matches the privacy note above it: text sits flush with its leading icon. */
+  text-align: left;
 }
 
 .camera-prototype-note svg,

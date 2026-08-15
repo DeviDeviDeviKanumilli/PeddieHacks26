@@ -598,7 +598,6 @@
   width: 100%;
   min-height: 3.8rem;
   flex-direction: row-reverse;
-  text-transform: uppercase;
 }
 
 .compatibility-warning_intro {

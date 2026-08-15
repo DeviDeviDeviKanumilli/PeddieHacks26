@@ -420,6 +420,11 @@
   color: var(--muted);
 }
 
+/* The 1fr column stretches a tag into a full-width bar; keep it sized to its label. */
+.history-overview__stat .tag {
+  justify-self: start;
+}
+
 .history-tools {
   margin-bottom: 0.9rem;
 }

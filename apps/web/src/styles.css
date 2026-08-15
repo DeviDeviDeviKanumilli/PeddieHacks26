@@ -1061,6 +1061,8 @@ main:focus {
   .page {
     min-height: calc(100dvh - 5.25rem);
     padding-top: 1.7rem;
+    /* The nav sits at the top on desktop, so the mobile bottom clearance is dead space. */
+    padding-bottom: 3rem;
   }
 
   .bottom-nav {
@@ -1070,6 +1072,29 @@ main:focus {
     left: 50%;
     width: min(36rem, calc(100% - 18rem));
     transform: translateX(-50%);
+  }
+
+  /*
+   * The nav is fixed, so page content scrolls underneath it. Without a backdrop the pill
+   * slices through cards and text mid-line. This full-bleed frosted strip sits above the
+   * content but below the pill, so anything scrolling past dissolves instead of being cut.
+   */
+  .bottom-nav::after {
+    position: fixed;
+    z-index: -1;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 6rem;
+    content: "";
+    background: linear-gradient(
+      to bottom,
+      oklch(0.985 0.008 278 / 0.88),
+      oklch(0.985 0.008 278 / 0)
+    );
+    backdrop-filter: blur(10px);
+    mask-image: linear-gradient(to bottom, black 60%, transparent);
+    pointer-events: none;
   }
 }
 

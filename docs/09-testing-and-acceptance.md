@@ -49,6 +49,12 @@
   error envelope.
 - Onboarding, discovery, compatibility warning, profile, session controls, history,
   progress, and analysis actions are screen-reader operable and use native touch targets.
+- Home owns the shared brand/notification header, Explore begins with discovery, and the
+  Explore **For me**/**All exercises** tabs expose their distinct recommendation and catalog
+  hierarchies. Collection rows and exercise rows must show a non-empty reusable movement mark.
+- Exercise detail keeps the reviewed family thumbnail beside the name and does not regress to
+  a large illustration banner. Progress exposes its range dropdown and scopes totals, activity,
+  muscle coverage, and recent workouts to the selected range.
 - Information conveyed by compatibility or progress colors also has text or an icon.
 - Camera permission is requested only after a user action, audio capture is disabled,
   denial and unavailable-device states offer a no-tracking path, and the native camera
@@ -74,13 +80,13 @@
 1. Start the Expo development server without live client environment variables and open
    the application on iOS and Android.
 2. Complete onboarding or demo sign-in and move through exercise discovery, selection,
-   detail, compatibility guidance, and profile summary.
+   detail, compatibility guidance, profile summary, both Explore modes, and a collection route.
 3. Choose an exercise, deny camera permission, continue without tracking, and complete a
    guided session with pause, resume, rest, and early-completion controls.
 4. Repeat with camera permission when available and verify the preview stays on-device
    and the native camera session stops after the assisted flow ends.
-5. Review the completion view, dashboard, history, and detailed analysis, then reload and
-   verify intended demo state persistence.
+5. Review the completion view, Progress dashboard, each range option, history, and detailed
+   analysis, then reload and verify intended demo state persistence.
 6. Inspect mobile network requests and confirm that no raw media, frames, audio, pose
    landmarks, or coordinates leave the device.
 
@@ -150,6 +156,8 @@ are unavailable. The hosted live-mode scenario and database tests are environmen
 - `supabase/tests/session_lifecycle.sql` transactional session, metric, summary, and daily-progress checks
 - `supabase/tests/workout_item_rpc.sql` optimistic atomic item replacement check
 - Domain tests for session transition matrices, metric limits, confidence filtering, analysis formulas, and progress baselines
+- Focused mobile tests for anatomy mappings, movement-mark rendering, collection predicates,
+  progress-range bounds, exercise-card accessibility, and count-only metric construction
 
 GitHub Actions creates a clean PostgreSQL service and runs `pnpm db:test:prepare`
 before the database and Prisma suites. The bootstrap script refuses to operate unless

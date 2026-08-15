@@ -29,6 +29,13 @@ uses reviewed demo data and SQLite-backed device persistence, while live mode us
 Supabase Auth and the bearer-aware Fastify API. Do not use the legacy `apps/web`
 prototype as the product runtime.
 
+The current mobile UI keeps Home focused on one plan, one tip, and two quick actions;
+Explore separates **For me** recommendations and collections from the full **All exercises**
+catalog; compact lists use reusable colored movement marks; exercise detail keeps a small
+family illustration beside the name; Progress begins with a date-range selector, totals, and
+activity; and no-camera sessions show an accessible **Tracking off** badge with manual rep
+guidance.
+
 ```bash
 pnpm dev:mobile
 pnpm dev:mobile:ios

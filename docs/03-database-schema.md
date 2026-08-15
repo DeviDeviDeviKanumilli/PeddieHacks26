@@ -47,6 +47,15 @@ Do not store diagnoses, free-text pain descriptions, birth dates, clinician note
 - `exercise_tracking_profiles`: exercise, model-neutral tracking key, version, confidence floor, ROM/tempo targets, and supported metric flags.
 - `exercise_form_rules`: tracking profile, feedback code, metric comparison, threshold, severity, and message key.
 
+### Client visual metadata boundary
+
+The database stores reviewed exercise content, category, position, family key, muscles, and
+requirements; it does not store a separate image for every exercise. The mobile client derives
+its `visualKey` from those reviewed attributes and chooses one of the reusable illustration
+families for detail screens. Compact list rows use the client-only `MovementMark` category
+registry, while `AnatomyMap` renders from canonical muscle IDs and intensities. These visual
+choices must not become a second eligibility or analytics source of truth.
+
 ## Workout and session tables
 
 - `workouts`: owner, source, title, status, requested duration, engine version, profile version, generation request snapshot, version, and timestamps.

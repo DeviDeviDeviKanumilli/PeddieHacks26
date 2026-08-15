@@ -73,6 +73,24 @@ scripts/
 - `supabase`: Ordered migrations, grants, RLS, database functions, taxonomies, and reproducible seed data.
 - `prisma`: Introspected typed model schema and Prisma Client generation target. It is not the owner of Supabase RLS, triggers, or RPC migrations.
 
+## Mobile presentation boundaries
+
+The mobile client owns presentation choices that do not belong in the API or database:
+
+- `AppHeader` is rendered on Home, Workout, Progress, and Profile. Explore starts with its
+  discovery title and search field so the tab does not repeat the global header.
+- Explore's **For me**, **All exercises**, and collection routes compose the reviewed catalog
+  with deterministic client filters. The API remains the source of truth for exercise content,
+  compatibility, and requirements.
+- `MovementMark` is a code-native category mark for compact exercise and collection rows. It
+  uses Lucide vectors and a shared color registry; it is not an exercise image, a muscle map,
+  or a server-stored media asset.
+- `AnatomyMap` is the reusable interactive front/back SVG for movement constraints and muscle
+  emphasis. The mobile client maps canonical API muscle attributes into it and keeps a text
+  equivalent for accessibility.
+- Progress range selection is presentation state, but its UTC bounds are passed unchanged to
+  the live `/v1/progress/activity` request. Guest mode applies those same bounds locally.
+
 ## Runtime modes
 
 The React Native mobile client supports two explicit data paths:

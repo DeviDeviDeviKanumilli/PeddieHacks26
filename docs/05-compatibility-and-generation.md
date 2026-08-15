@@ -68,6 +68,16 @@ Clamp to 0–100. Break ties by stable exercise slug. Every result includes the 
 
 Use catalog defaults first, then adjust sets from 1–5 to target 85–110% of requested duration. Avoid consecutive high-demand work on the same region. Preserve variety by family and target region.
 
+## Mobile discovery surface
+
+The native Explore tab presents the same reviewed compatibility data in two intentionally
+different modes. **For me** shows a short personalized list after hard-incompatible exercises
+are removed and then applies deterministic collection predicates to the compatible catalog.
+**All exercises** exposes search, category filters, and the complete catalog so a user can
+inspect movements outside the recommendation shortlist. Collection membership and category
+marks are presentation concerns; they never override hard conflicts, caution states, or the
+server/domain compatibility result.
+
 If there are not enough compatible exercises, return `422 insufficientCompatibleExercises` with safe configuration suggestions. Never fill the workout with an incompatible exercise.
 
 ## Alternatives

@@ -63,6 +63,11 @@ implemented in `apps/api`. Supabase-backed catalog/profile adapters are selected
 the required environment variables are present; tests use an injected deterministic
 repository and auth verifier.
 
+The API intentionally does not serve UI thumbnails or flattened body images. The native
+client uses the returned category/family and muscle attributes to select reusable visual
+families, category marks, and the interactive anatomy map. Mobile collection screens are
+client-defined groupings over the same `ExerciseSummary` catalog records.
+
 Movement-profile reads/writes and generated/manual workout CRUD are also implemented.
 Generated requests are stored with a client request ID and SHA-256 request hash;
 replaying the same content returns the original workout, while reusing the ID with
@@ -159,6 +164,10 @@ GET /v1/progress/exercises/:exerciseId
 ```
 
 Progress supports date ranges up to 366 days. Results include totals, daily activity, body coverage, and per-exercise trend baselines.
+The mobile Progress tab currently exposes Last 7 days, Last 4 weeks, and Last 12 weeks. It
+passes the selected UTC start and end dates to the activity route and applies the same bounds
+to local guest history before rendering totals, the activity grid, muscle coverage, and recent
+workouts.
 
 The API session repository has memory and Supabase implementations. Supabase creation,
 state transitions, metric ingestion, exercise completion, workout completion, daily

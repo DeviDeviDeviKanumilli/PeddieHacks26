@@ -65,6 +65,11 @@ The current in-memory limiter is appropriate for the single-replica demo only.
 - Compatibility explanations are transparent and non-clinical.
 - Performance-change output is explicitly an indicator derived from session metrics, not a medical fatigue diagnosis.
 
+The no-camera path is a privacy-preserving first-class experience, not an error state. The
+mobile session keeps the exercise anatomy and manual rep control available and exposes a
+compact icon-plus-text **Tracking off** status. That label must remain accessible to screen
+readers and must not imply that form, ROM, or fatigue data was measured.
+
 ## Deletion and retention
 
 - Retain derived metrics until the user deletes a session or account.

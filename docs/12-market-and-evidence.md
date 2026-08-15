@@ -118,7 +118,7 @@ The practical beachhead is adults who:
 - Want non-clinical home or gym exercise rather than rehabilitation treatment.
 - Can state which regions/capabilities they prefer, limit, or avoid.
 - Need seated, supported, unilateral, low-impact, or equipment-substituted options.
-- Are comfortable using a phone or web app and can stop or seek professional guidance
+- Are comfortable using a phone app and can stop or seek professional guidance
   when symptoms warrant it.
 
 This deliberately excludes acute injury, unexplained severe pain, immediate post-op

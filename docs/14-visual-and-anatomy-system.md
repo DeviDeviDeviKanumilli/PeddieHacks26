@@ -35,6 +35,19 @@ shared registry. Because these marks render as native vectors, list rows never d
 finishing its load before the thumbnail becomes visible. Collection rows may override the tone to
 keep adjacent collections visually distinct while retaining the mark that describes their content.
 
+The current mark registry is:
+
+| Category | Mark | Tone |
+| --- | --- | --- |
+| Strength | Dumbbell | Lavender/violet |
+| Mobility | Accessibility figure | Teal/green |
+| Cardio | Heart pulse | Coral/red |
+| Balance | Balance scale | Amber/yellow |
+
+The earlier generated files under `apps/mobile/assets/movement-marks` are retained as design
+experiments, but the live list and collection UI must use `MovementMark` rather than importing
+those bitmaps. This keeps thumbnails reusable, accessible, and independent of image load timing.
+
 ## Canonical muscle attributes
 
 The native `Exercise` model includes `muscleActivations` entries with:

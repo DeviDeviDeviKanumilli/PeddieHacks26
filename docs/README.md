@@ -4,6 +4,8 @@ This folder is the system source of truth for AdaptFit, a React Native iOS and A
 application with a Fastify API, domain rules, Supabase data model, privacy posture, and
 mobile deployment plan.
 
+Last updated: 2026-08-15.
+
 ## Reading order
 
 1. [Scope and requirements](01-scope-and-requirements.md)
@@ -53,6 +55,27 @@ progress, profile management, and account deletion are implemented.
 The mobile client also includes original flat illustration assets plus a reusable,
 data-driven front/back anatomy component for movement selection, exercise muscle emphasis,
 planned-workout coverage, and completed-workout history.
+
+### Current mobile presentation
+
+The shipped mobile surface is intentionally compact and follows the reference hierarchy:
+
+- Home owns the shared AdaptFit brand and notification header, a single current-plan card,
+  one daily tip, and two quick actions. Explore does not repeat the global header.
+- Explore preserves the **For me** and **All exercises** modes. **For me** shows a short
+  personalized list followed by collections; **All exercises** shows search, category chips,
+  and the complete catalog. Collections are deterministic client groupings over reviewed
+  catalog attributes, not a second source of exercise content.
+- Exercise and collection list rows use the reusable code-native `MovementMark` component,
+  so a visible category mark renders immediately instead of depending on a bitmap thumbnail.
+  The compact exercise detail keeps one reviewed family illustration beside the name and
+  avoids a large hero banner.
+- Progress puts the selected date-range dropdown and active-time/workout/exercise/rep totals
+  first, then the matching activity grid, muscle groups hit, and recent workouts. The same
+  range bounds are used for local guest data and live API activity requests.
+- A no-camera session keeps the anatomy view and rep controls visible, with a compact
+  icon-plus-text **Tracking off** badge and nearby manual-count guidance rather than a
+  full-screen warning.
 
 The backend workspace, Supabase schema, and Prisma data-access layer are also
 implemented. `apps/api` is a Fastify service with repository adapters, authenticated routes, OpenAPI output,

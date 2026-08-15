@@ -41,6 +41,20 @@ movement profile
   When configured, live mode uses Supabase Auth and the bearer-aware Fastify API client.
 - Every camera-assisted screen has an equally clear path that continues without tracking.
 
+## Current mobile product shape
+
+The current iOS and Android client uses five tabs: Home, Explore, Workout, Progress, and
+Profile. Home is intentionally focused on the next action. Explore has two distinct modes:
+**For me** shows a short compatible recommendation list and collections, while **All exercises**
+shows the searchable, filterable catalog. Exercise-list rows use reusable category marks, and
+the detail screen uses a compact family illustration beside the exercise name rather than a
+large hero banner.
+
+Progress begins with a dropdown for Last 7 days, Last 4 weeks, or Last 12 weeks, then shows
+range-scoped totals and the activity grid before muscle coverage and recent workouts. During a
+no-camera session, the app keeps the movement map and manual rep control visible and labels the
+state with an icon and **Tracking off** text.
+
 ## Out of scope
 
 - A replacement desktop-first website or expansion of the legacy `apps/web` prototype.
@@ -90,7 +104,9 @@ Every exercise needs source metadata, requirements, equipment behavior, safety c
 
 The mobile app must let a user navigate the supplied reference screens, configure movement
 constraints, choose camera tracking or continue without it, complete a guided exercise,
-and review history, progress, and detailed analysis without hosted dependencies.
+and review history, progress, and detailed analysis without hosted dependencies. The core
+discovery and progress hierarchy must remain understandable without relying on illustrations,
+color alone, or a camera permission.
 
 The hosted live acceptance flow must additionally allow a demo user to generate a
 compatible workout, swap an exercise, upload only derived metrics for a tracked session,

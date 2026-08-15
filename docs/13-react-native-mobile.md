@@ -89,9 +89,11 @@ The application now lives in `apps/mobile` and includes:
   code-native movement marks instead of person illustrations or image-only placeholders, with
   violet, teal, coral, and amber tones that distinguish strength, mobility, cardio, and balance
   contexts at a glance across exercise and collection lists.
-- A compact exercise-detail header that places the movement thumbnail beside the exercise name.
-  Prescription and compatibility information use plain dividers and text hierarchy instead of a
-  large illustration banner or nested promotional cards.
+- Collection routes reuse the same compatible catalog and exercise cards, showing the collection
+  title, description, profile-specific count, and a compact back-to-Explore control.
+- A compact exercise-detail header that places one reviewed movement-family illustration beside
+  the exercise name. Prescription and compatibility information use plain dividers and text
+  hierarchy instead of a large illustration banner or nested promotional cards.
 - A range-aware Progress dashboard that puts active time, workout, exercise, and rep totals first,
   followed by the matching activity grid. The selected 7-day, 4-week, or 12-week range also scopes
   local muscle coverage and recent workouts; live mode requests the same backend date window.
@@ -111,6 +113,11 @@ The application now lives in `apps/mobile` and includes:
 - Original flat geometric people illustrations for the welcome and reusable movement-family
   cards, plus a code-native front/back anatomy map whose regions are selectable and whose
   highlights are driven by exercise muscle attributes rather than per-exercise body images.
+
+The current client presentation contract is deliberately split: reviewed raster illustrations
+communicate posture or equipment on welcome/detail surfaces, while compact discovery and
+collection rows use native vector marks. No route should render a blank thumbnail while waiting
+for an optional bitmap asset.
 
 Run the client and focused checks with:
 

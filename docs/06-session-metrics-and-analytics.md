@@ -85,6 +85,18 @@ Progress compares the current score with the previous three completed sessions f
 
 `daily_progress` powers the activity grid, totals, and date-range summaries. Body coverage is calculated from completed exercises and muscle/body-region intensity metadata. Session deletion recomputes affected daily rows.
 
+## Mobile progress and tracking presentation
+
+The native Progress tab uses the selected 7-day, 4-week, or 12-week UTC window for its top-line
+active time, workout, exercise, and rep totals, activity grid, muscle groups hit, and recent
+workouts. Guest history is filtered locally; live mode requests the same window from the API.
+
+When camera tracking is not selected or permission is denied, the active session remains a
+valid manual-count path. The client keeps the anatomy view and **Count rep** control available,
+shows a compact video-off icon with **Tracking off**, and submits only counted-rep derived data
+when an authenticated session is synchronized. It does not manufacture form, ROM, or fatigue
+measurements for a manual session.
+
 The pure domain implementation now enforces the 100-rep/64 KB batch limits, rejects
 duplicate reps and unknown feedback codes, filters form metrics below 0.60 tracking
 confidence, renormalizes the documented score weights when metrics are missing, and

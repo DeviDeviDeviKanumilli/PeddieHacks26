@@ -121,7 +121,7 @@ SQL security suite, API tests, and OpenAPI checks all pass.
 Status: complete for the current backend scope. The deliberate Supabase RPC boundary
 remains documented in [the Prisma migration boundary](11-prisma-migration.md).
 
-## Phase 8 - Legacy reference prototype
+## Phase 9 - Legacy reference prototype
 
 - Preserve the earlier reference prototype under `apps/web` as historical implementation
   material; it is not the product target.
@@ -136,7 +136,7 @@ remains documented in [the Prisma migration boundary](11-prisma-migration.md).
 Status: complete as a legacy prototype. It does not satisfy the React Native mobile
 application requirement.
 
-## Phase 9 - React Native iOS and Android application
+## Phase 10 - React Native iOS and Android application
 
 - Add the Expo/React Native application under `apps/mobile`.
 - Implement native onboarding, five-tab navigation, discovery, exercise details,
@@ -159,6 +159,13 @@ session uploads, live progress reads, and account deletion. Jest/React Native Te
 Library coverage, a Maestro guest flow, EAS profiles, CI configuration checks, iOS and
 Android exports, and an iOS simulator lifecycle pass are present.
 
+The post-milestone mobile polish is also complete: Home owns the shared header; Explore
+has separate **For me** and **All exercises** hierarchies with collection routes; compact
+exercise and collection rows use visible code-native movement marks with distinct category
+tones; exercise detail uses a small family thumbnail beside the name; Progress has a
+range dropdown and activity-first layout; and manual sessions show a compact **Tracking off**
+badge with count guidance.
+
 The production pose-estimation native module, signed preview/store builds, Android
 emulator acceptance, hosted credentials, hosted migration/advisor execution, and final
 network inspection remain environment- or model-delivery-gated. See
@@ -167,7 +174,7 @@ network inspection remain environment- or model-delivery-gated. See
 ## Deferred
 
 - Desktop-first replacement UI or further product development in `apps/web`.
-- Training a new pose model; mobile integration and calibration are part of Phase 9.
+- Training a new pose model; mobile integration and calibration are part of Phase 10.
 - Clinician workflows.
 - Admin catalog UI.
 - Redis/distributed rate limiting.

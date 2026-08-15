@@ -90,6 +90,9 @@ The application now lives in `apps/mobile` and includes:
 - A compact exercise-detail header that places the movement thumbnail beside the exercise name.
   Prescription and compatibility information use plain dividers and text hierarchy instead of a
   large illustration banner or nested promotional cards.
+- A range-aware Progress dashboard that puts active time, workout, exercise, and rep totals first,
+  followed by the matching activity grid. The selected 7-day, 4-week, or 12-week range also scopes
+  local muscle coverage and recent workouts; live mode requests the same backend date window.
 - Six-step onboarding with an interactive body diagram and equivalent labeled region list.
 - A SQLite-persisted guest adapter that remains usable without hosted configuration.
 - Supabase email/password authentication using only the publishable key, persisted native

@@ -35,6 +35,12 @@ export type ProgressActivity = {
   averageScore: number | null;
 };
 
+export type ProgressActivityRange = {
+  startDate: string;
+  endDate: string;
+  limit: number;
+};
+
 export class MobileApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -147,8 +153,15 @@ export const mobileApi = {
     const response = await request<DataEnvelope<ProgressSummary>>('/v1/progress/summary');
     return response.data;
   },
-  getProgressActivity: async (): Promise<ProgressActivity[]> => {
-    const response = await request<{ data: ProgressActivity[] }>('/v1/progress/activity?limit=31');
+  getProgressActivity: async (range?: ProgressActivityRange): Promise<ProgressActivity[]> => {
+    const query = new URLSearchParams({ limit: String(range?.limit ?? 31) });
+    if (range) {
+      query.set('startDate', range.startDate);
+      query.set('endDate', range.endDate);
+    }
+    const response = await request<{ data: ProgressActivity[] }>(
+      `/v1/progress/activity?${query.toString()}`,
+    );
     return response.data;
   },
   deleteAccount: async (): Promise<void> => request<void>('/v1/users/me', { method: 'DELETE' }),

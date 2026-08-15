@@ -1,192 +1,364 @@
-import { CalendarDays, ChevronRight, Clock3, Flame, Repeat2 } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { Check, ChevronDown } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AnatomyMap } from '@/components/AnatomyMap';
 import { AppHeader } from '@/components/AppHeader';
-import { Body, Card, Metric, Screen, SectionHeading, Title } from '@/components/ui';
+import { Body, Screen, SectionHeading } from '@/components/ui';
 import { activationsFromLoad } from '@/lib/anatomy';
 import { mobileApi } from '@/lib/api';
 import { hasApiConfig } from '@/lib/config';
+import {
+  fillProgressActivity,
+  getProgressRange,
+  historyInProgressRange,
+  localProgressActivity,
+  type ProgressRangeId,
+  progressRangeBounds,
+  progressRanges,
+  summarizeProgressActivity,
+} from '@/lib/progressRange';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
-const activityLevels = [
-  0, 1, 0, 2, 1, 0, 3, 0, 0, 1, 2, 0, 1, 0, 0, 2, 1, 3, 0, 1, 0, 2, 0, 0, 1, 3, 2, 0,
-];
-const activity = activityLevels.map((level, day) => ({ day: `day-${day + 1}`, level }));
+const activityLevel = (seconds: number) => {
+  if (seconds === 0) return 0;
+  if (seconds < 600) return 1;
+  if (seconds < 1_200) return 2;
+  return 3;
+};
+
+const formatActiveTime = (seconds: number) => {
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
+};
+
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(
+    new Date(value),
+  );
+
+const RangeSelector = ({
+  value,
+  onChange,
+}: {
+  value: ProgressRangeId;
+  onChange: (value: ProgressRangeId) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const selected = getProgressRange(value);
+  return (
+    <View style={styles.rangeWrap}>
+      <Pressable
+        accessibilityLabel={`Progress range, ${selected.label}`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((current) => !current)}
+        style={({ pressed }) => [styles.rangeButton, pressed && styles.pressed]}
+      >
+        <Text style={styles.rangeButtonText}>{selected.label}</Text>
+        <ChevronDown color={colors.muted} size={17} />
+      </Pressable>
+      {open ? (
+        <View accessibilityRole="menu" style={styles.rangeMenu}>
+          {progressRanges.map((range) => {
+            const active = range.id === value;
+            return (
+              <Pressable
+                accessibilityRole="menuitem"
+                accessibilityState={{ selected: active }}
+                key={range.id}
+                onPress={() => {
+                  onChange(range.id);
+                  setOpen(false);
+                }}
+                style={({ pressed }) => [styles.rangeOption, pressed && styles.pressed]}
+              >
+                <Text style={[styles.rangeOptionText, active && styles.rangeOptionTextActive]}>
+                  {range.label}
+                </Text>
+                {active ? <Check color={colors.lavenderDark} size={16} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
+  );
+};
+
+const Stat = ({ label, value }: { label: string; value: string }) => (
+  <View style={styles.stat}>
+    <Text adjustsFontSizeToFit numberOfLines={1} style={styles.statValue}>
+      {value}
+    </Text>
+    <Text numberOfLines={2} style={styles.statLabel}>
+      {label}
+    </Text>
+  </View>
+);
 
 export default function ProgressScreen() {
+  const [rangeId, setRangeId] = useState<ProgressRangeId>('28d');
   const history = useAppStore((state) => state.history);
   const mode = useAppStore((state) => state.mode);
-  const liveSummary = useQuery({
-    queryKey: ['progress-summary'],
-    queryFn: mobileApi.getProgressSummary,
-    enabled: mode === 'live' && hasApiConfig,
-  });
+  const range = getProgressRange(rangeId);
+  const bounds = useMemo(() => progressRangeBounds(rangeId), [rangeId]);
   const liveActivity = useQuery({
-    queryKey: ['progress-activity'],
-    queryFn: mobileApi.getProgressActivity,
+    queryKey: ['progress-activity', rangeId, bounds.startDate, bounds.endDate],
+    queryFn: () =>
+      mobileApi.getProgressActivity({
+        startDate: bounds.startDate,
+        endDate: bounds.endDate,
+        limit: bounds.days,
+      }),
     enabled: mode === 'live' && hasApiConfig,
   });
-  const localSeconds = history.reduce((sum, item) => sum + item.durationSeconds, 0);
-  const localReps = history.reduce((sum, item) => sum + item.reps, 0);
-  const seconds = liveSummary.data?.totalActiveSeconds ?? localSeconds;
-  const reps = liveSummary.data?.totalReps ?? localReps;
-  const exerciseCount =
-    liveSummary.data?.totalExercises ?? history.reduce((sum, item) => sum + item.exercises, 0);
-  const displayActivity = liveActivity.data
-    ? liveActivity.data.slice(-28).map((item) => ({
-        day: item.activityDate,
-        level:
-          item.activeSeconds === 0
-            ? 0
-            : item.activeSeconds < 600
-              ? 1
-              : item.activeSeconds < 1200
-                ? 2
-                : 3,
-      }))
-    : activity;
-  const sessionCount = liveActivity.data
-    ? liveActivity.data.reduce((sum, item) => sum + item.sessionCount, 0)
-    : history.length;
-  const muscleLoad = history.reduce<Record<string, number>>((totals, item) => {
+
+  const rangeHistory = useMemo(() => historyInProgressRange(history, rangeId), [history, rangeId]);
+  const sourceActivity =
+    mode === 'live' && hasApiConfig
+      ? (liveActivity.data ?? [])
+      : localProgressActivity(history, rangeId);
+  const activity = useMemo(
+    () => fillProgressActivity(sourceActivity, rangeId),
+    [rangeId, sourceActivity],
+  );
+  const summary = useMemo(() => summarizeProgressActivity(activity), [activity]);
+  const cellSize = range.days > 28 ? 16 : range.days > 7 ? 24 : 30;
+
+  const muscleLoad = rangeHistory.reduce<Record<string, number>>((totals, item) => {
     for (const [id, load] of Object.entries(item.muscleLoad ?? {})) {
       totals[id] = (totals[id] ?? 0) + load;
     }
     return totals;
   }, {});
   const muscleActivations = activationsFromLoad(muscleLoad);
+
   return (
-    <Screen>
+    <Screen style={styles.screen}>
       <AppHeader />
-      <View style={styles.intro}>
-        <Title compact>Your movement story</Title>
-        <Body muted>
-          Progress is consistency, comfort, control, and the choices that made movement possible.
-        </Body>
+      <View style={styles.titleRow}>
+        <Text accessibilityRole="header" style={styles.title}>
+          Progress
+        </Text>
+        <RangeSelector onChange={setRangeId} value={rangeId} />
       </View>
-      <Card tone="lavender">
-        <View style={styles.metrics}>
-          <Metric label="Active time" value={`${Math.round(seconds / 60)}m`} />
-          <Metric label="Exercises" value={String(exerciseCount)} />
-          <Metric label="Reps" value={String(reps)} />
+
+      <View accessibilityLabel={`${range.label} summary`} style={styles.stats}>
+        <Stat label="Active time" value={formatActiveTime(summary.activeSeconds)} />
+        <View style={styles.statDivider} />
+        <Stat label="Workouts" value={String(summary.sessions)} />
+        <View style={styles.statDivider} />
+        <Stat label="Exercises" value={String(summary.exercises)} />
+        <View style={styles.statDivider} />
+        <Stat label="Reps" value={String(summary.reps)} />
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          Activity
+        </Text>
+        <Text style={styles.sectionMeta}>
+          {summary.sessions} workout{summary.sessions === 1 ? '' : 's'}
+        </Text>
+      </View>
+      <View style={styles.activityPanel}>
+        <View
+          accessibilityLabel={`${range.label} activity grid with ${summary.sessions} workouts`}
+          style={styles.grid}
+        >
+          {activity.map((row) => {
+            const level = activityLevel(row.activeSeconds);
+            return (
+              <View
+                accessibilityLabel={`${row.activityDate}, ${row.sessionCount} workouts`}
+                key={row.activityDate}
+                style={[
+                  styles.cell,
+                  { height: cellSize, width: cellSize },
+                  level === 1 && styles.levelOne,
+                  level === 2 && styles.levelTwo,
+                  level === 3 && styles.levelThree,
+                ]}
+              />
+            );
+          })}
         </View>
-      </Card>
-      <SectionHeading title="Activity" />
-      <Card>
-        <View style={styles.activityHeader}>
-          <View style={styles.activityTitle}>
-            <CalendarDays color={colors.lavenderDark} size={20} />
-            <Text style={styles.cardTitle}>Last 4 weeks</Text>
+        <View style={styles.activityFooter}>
+          <Text style={styles.dateLabel}>{formatDate(`${bounds.startDate}T00:00:00.000Z`)}</Text>
+          <View style={styles.legend}>
+            <Text style={styles.legendLabel}>Less</Text>
+            <View style={styles.legendCell} />
+            <View style={[styles.legendCell, styles.levelOne]} />
+            <View style={[styles.legendCell, styles.levelTwo]} />
+            <View style={[styles.legendCell, styles.levelThree]} />
+            <Text style={styles.legendLabel}>More</Text>
           </View>
-          <Text style={styles.subtle}>{sessionCount} workouts</Text>
+          <Text style={styles.dateLabel}>{formatDate(`${bounds.endDate}T00:00:00.000Z`)}</Text>
         </View>
-        <View accessibilityLabel="Four week activity grid" style={styles.grid}>
-          {displayActivity.map(({ day, level }) => (
-            <View
-              key={day}
-              style={[
-                styles.cell,
-                level === 1 && styles.levelOne,
-                level === 2 && styles.levelTwo,
-                level === 3 && styles.levelThree,
-              ]}
-            />
-          ))}
-        </View>
-        <View style={styles.legend}>
-          <Text style={styles.subtle}>Less</Text>
-          <View style={styles.cell} />
-          <View style={[styles.cell, styles.levelOne]} />
-          <View style={[styles.cell, styles.levelTwo]} />
-          <View style={[styles.cell, styles.levelThree]} />
-          <Text style={styles.subtle}>More</Text>
-        </View>
-      </Card>
-      <SectionHeading title="This week" />
-      <View style={styles.weekRow}>
-        <Card style={styles.weekCard}>
-          <Flame color={colors.warning} size={22} />
-          <Text style={styles.weekValue}>{sessionCount}</Text>
-          <Text style={styles.subtle}>sessions</Text>
-        </Card>
-        <Card style={styles.weekCard}>
-          <Clock3 color={colors.success} size={22} />
-          <Text style={styles.weekValue}>{Math.round(seconds / 60)}</Text>
-          <Text style={styles.subtle}>minutes</Text>
-        </Card>
-        <Card style={styles.weekCard}>
-          <Repeat2 color={colors.lavenderDark} size={22} />
-          <Text style={styles.weekValue}>{reps}</Text>
-          <Text style={styles.subtle}>reps</Text>
-        </Card>
       </View>
-      <SectionHeading title="Muscle coverage" />
+
+      <SectionHeading title="Muscle groups hit" />
       {muscleActivations.length > 0 ? (
         <AnatomyMap activations={muscleActivations} compact />
       ) : (
-        <Card>
-          <Text style={styles.emptyTitle}>Your muscle map is ready.</Text>
-          <Body muted>
-            Complete an exercise and AdaptFit will highlight the areas you worked—without needing a
-            different body image for every movement.
-          </Body>
-        </Card>
+        <View style={styles.emptySection}>
+          <Text style={styles.emptyTitle}>No muscle activity in this range</Text>
+          <Body muted>Complete an exercise to begin building your muscle coverage map.</Body>
+        </View>
       )}
+
       <SectionHeading title="Recent workouts" />
-      {history.length === 0 ? (
-        <Card>
-          <Text style={styles.emptyTitle}>Your first session will appear here.</Text>
-          <Body muted>Complete a workout to begin your activity history and movement trends.</Body>
-        </Card>
+      {rangeHistory.length === 0 ? (
+        <View style={styles.emptySection}>
+          <Text style={styles.emptyTitle}>No completed workouts</Text>
+          <Body muted>Your completed sessions will appear here.</Body>
+        </View>
       ) : (
-        history.map((item) => (
-          <Card key={item.id} style={styles.history}>
-            <View style={styles.historyIcon}>
-              <Clock3 color={colors.lavenderDark} size={20} />
-            </View>
-            <View style={styles.historyCopy}>
-              <Text style={styles.historyTitle}>{item.title}</Text>
-              <Text style={styles.subtle}>
+        <View style={styles.historyList}>
+          {rangeHistory.slice(0, 5).map((item) => (
+            <View key={item.id} style={styles.historyRow}>
+              <View style={styles.historyCopy}>
+                <Text style={styles.historyTitle}>{item.title}</Text>
+                <Text style={styles.historyDate}>{formatDate(item.completedAt)}</Text>
+              </View>
+              <Text style={styles.historyMeta}>
                 {Math.round(item.durationSeconds / 60)} min · {item.reps} reps
               </Text>
             </View>
-            <ChevronRight color={colors.muted} size={20} />
-          </Card>
-        ))
+          ))}
+        </View>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs, marginTop: spacing.md },
-  metrics: { flexDirection: 'row', gap: spacing.md },
-  activityHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  activityTitle: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
-  cardTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
-  subtle: { color: colors.muted, fontFamily: typography.medium, fontSize: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  cell: { backgroundColor: colors.line, borderRadius: 4, height: 24, width: 24 },
+  screen: { gap: spacing.lg, paddingTop: spacing.xs },
+  titleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 5,
+  },
+  title: {
+    color: colors.ink,
+    fontFamily: typography.semibold,
+    fontSize: 32,
+    letterSpacing: -0.7,
+  },
+  rangeWrap: { position: 'relative', zIndex: 10 },
+  rangeButton: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.xs,
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
+  },
+  rangeButtonText: { color: colors.ink, fontFamily: typography.medium, fontSize: 13 },
+  rangeMenu: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 50,
+    width: 176,
+    zIndex: 20,
+  },
+  rangeOption: {
+    alignItems: 'center',
+    borderBottomColor: colors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 46,
+    paddingHorizontal: spacing.sm,
+  },
+  rangeOptionText: { color: colors.muted, fontFamily: typography.medium, fontSize: 13 },
+  rangeOptionTextActive: { color: colors.ink, fontFamily: typography.semibold },
+  stats: {
+    borderBottomColor: colors.line,
+    borderBottomWidth: 1,
+    borderTopColor: colors.line,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    paddingVertical: spacing.md,
+  },
+  stat: { alignItems: 'center', flex: 1, gap: spacing.xxs, minWidth: 0 },
+  statDivider: { backgroundColor: colors.line, width: 1 },
+  statValue: {
+    color: colors.ink,
+    fontFamily: typography.semibold,
+    fontSize: 20,
+    letterSpacing: -0.3,
+  },
+  statLabel: {
+    color: colors.muted,
+    fontFamily: typography.medium,
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  sectionHeader: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 20 },
+  sectionMeta: { color: colors.muted, fontFamily: typography.medium, fontSize: 12 },
+  activityPanel: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    gap: spacing.md,
+    padding: spacing.md,
+  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  cell: { backgroundColor: colors.line, borderRadius: 4 },
   levelOne: { backgroundColor: '#C9C5EC' },
   levelTwo: { backgroundColor: colors.lavender },
   levelThree: { backgroundColor: colors.lavenderDark },
-  legend: { alignItems: 'center', flexDirection: 'row', gap: 5, justifyContent: 'flex-end' },
-  weekRow: { flexDirection: 'row', gap: spacing.xs },
-  weekCard: { alignItems: 'center', flex: 1, padding: spacing.sm },
-  weekValue: { color: colors.ink, fontFamily: typography.display, fontSize: 28 },
-  emptyTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
-  history: { alignItems: 'center', flexDirection: 'row', padding: spacing.md },
-  historyIcon: {
+  activityFooter: {
     alignItems: 'center',
-    backgroundColor: colors.lavenderSoft,
-    borderRadius: radii.md,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  historyCopy: { flex: 1 },
+  dateLabel: { color: colors.muted, fontFamily: typography.medium, fontSize: 10 },
+  legend: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  legendCell: { backgroundColor: colors.line, borderRadius: 2, height: 9, width: 9 },
+  legendLabel: { color: colors.muted, fontFamily: typography.medium, fontSize: 9 },
+  emptySection: {
+    borderBottomColor: colors.line,
+    borderBottomWidth: 1,
+    gap: spacing.xxs,
+    paddingBottom: spacing.lg,
+  },
+  emptyTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 16 },
+  historyList: { borderTopColor: colors.line, borderTopWidth: 1 },
+  historyRow: {
+    alignItems: 'center',
+    borderBottomColor: colors.line,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    minHeight: 68,
+    paddingVertical: spacing.sm,
+  },
+  historyCopy: { flex: 1, gap: 2 },
   historyTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 15 },
+  historyDate: { color: colors.muted, fontFamily: typography.body, fontSize: 12 },
+  historyMeta: { color: colors.muted, fontFamily: typography.medium, fontSize: 12 },
+  pressed: { opacity: 0.68 },
 });
-
-import { useQuery } from '@tanstack/react-query';

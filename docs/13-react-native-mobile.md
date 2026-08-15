@@ -82,6 +82,11 @@ The application now lives in `apps/mobile` and includes:
 - A deliberately focused Home tab: one current workout, one daily tip, and two quick actions.
   Exercise discovery remains in Explore, while history and totals remain in Progress so the
   landing experience does not duplicate those destinations.
+- A two-mode Explore tab that preserves **For me** and **All exercises**. For me contains a short
+  personalized recommendation list and attribute-driven collections; All exercises contains the
+  full searchable, filterable catalog. Exercise and collection thumbnails use reusable abstract
+  movement marks instead of person illustrations, with violet, teal, coral, and amber tones that
+  distinguish strength, mobility, cardio, and balance contexts at a glance.
 - Six-step onboarding with an interactive body diagram and equivalent labeled region list.
 - A SQLite-persisted guest adapter that remains usable without hosted configuration.
 - Supabase email/password authentication using only the publishable key, persisted native

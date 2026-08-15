@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Activity, ArrowLeft, Gauge, Move, Repeat2, Timer, TrendingUp } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -14,6 +15,8 @@ import {
 } from '@/components/ui';
 import { mobileApi } from '@/lib/api';
 import { hasApiConfig } from '@/lib/config';
+import { usePoseSession } from '@/lib/tracking/poseSession';
+import { summarizePoseSession } from '@/lib/tracking/sessionMetrics';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -23,6 +26,9 @@ export default function AnalysisScreen() {
   const mode = useAppStore((state) => state.mode);
   const exercise = catalog.find((item) => item.slug === params.exercise);
   const tracked = params.tracking === '1';
+  const poseReps = usePoseSession((state) => state.reps);
+  const poseSummary = summarizePoseSession(poseReps);
+  const nativeTracked = poseSummary.counted > 0;
   const completed = Number(params.completedReps ?? 0);
   const target = Number(params.targetReps ?? 0);
   const elapsed = Number(params.elapsed ?? 0);
@@ -80,14 +86,20 @@ export default function AnalysisScreen() {
             analysis?.rangeOfMotion.averageDeg !== null &&
             analysis?.rangeOfMotion.averageDeg !== undefined
               ? `${Math.round(analysis.rangeOfMotion.averageDeg)}° avg`
-              : tracked
-                ? '82° demo'
-                : 'Not measured'
+              : poseSummary.meanRomDeg !== null
+                ? `${Math.round(poseSummary.meanRomDeg)}° avg`
+                : nativeTracked
+                  ? 'Counted only'
+                  : 'Not measured'
           }
           detail={
-            tracked
-              ? 'Within the configured target on most demo reps.'
-              : 'Turn on supported tracking to measure range.'
+            poseSummary.meanRomDeg !== null
+              ? `On-device range ${poseSummary.minRomDeg}°–${poseSummary.maxRomDeg}°. Not a clinical measurement.`
+              : nativeTracked
+                ? 'Repetitions were counted on-device without a confident range sample.'
+                : tracked
+                  ? 'Guest simulation does not store range of motion.'
+                  : 'Turn on supported tracking to measure range.'
           }
         />
         <AnalysisCard
@@ -96,14 +108,12 @@ export default function AnalysisScreen() {
           value={
             analysis?.movementControl !== null && analysis?.movementControl !== undefined
               ? `${Math.round(analysis.movementControl)}%`
-              : tracked
-                ? '8/10 demo'
-                : 'Not measured'
+              : 'Not measured'
           }
           detail={
-            tracked
-              ? 'Movement remained mostly smooth.'
-              : 'No form score is inferred from manual reps.'
+            analysis?.movementControl !== null && analysis?.movementControl !== undefined
+              ? 'From derived control scores in this session.'
+              : 'No form score is inferred from counted reps or guest simulation.'
           }
         />
         <AnalysisCard
@@ -112,14 +122,12 @@ export default function AnalysisScreen() {
           value={
             analysis?.stability !== null && analysis?.stability !== undefined
               ? `${Math.round(analysis.stability)}%`
-              : tracked
-                ? '9/10 demo'
-                : 'Not measured'
+              : 'Not measured'
           }
           detail={
-            tracked
-              ? 'No sustained side lean detected in the demo.'
-              : 'Camera-based stability was unavailable.'
+            analysis?.stability !== null && analysis?.stability !== undefined
+              ? 'From derived stability scores in this session.'
+              : 'Camera landmarks never leave the device, and stability is not invented locally.'
           }
         />
         <AnalysisCard
@@ -209,5 +217,3 @@ const styles = StyleSheet.create({
   progressCopy: { flex: 1, gap: 3 },
   progressTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
 });
-
-import { useQuery } from '@tanstack/react-query';

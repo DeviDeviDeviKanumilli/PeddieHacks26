@@ -8,7 +8,15 @@ import { AnatomyMap } from '@/components/AnatomyMap';
 import { Button, Card, Screen } from '@/components/ui';
 import { useAppIsActive } from '@/hooks/useAppIsActive';
 import { isPoseTrackingAvailable, type PoseAnglesEvent, SessionCamera } from '@/lib/poseCamera';
+import { MoveState, RangeOfMotionTracker } from '@/lib/tracking/analyzer';
+import { usePoseSession } from '@/lib/tracking/poseSession';
 import { createSetTracker, getCalibratedRecipe, getTrackingRecipe } from '@/lib/tracking/recipes';
+import {
+  combinedRangeOfMotion,
+  feedbackForRep,
+  finiteJointAngle,
+  type PoseRepRecord,
+} from '@/lib/tracking/sessionMetrics';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -55,26 +63,94 @@ export default function ActiveSessionScreen() {
   const nativePose = tracking && isPoseTrackingAvailable();
   const nativeCounting = nativePose && calibratedRecipe !== undefined;
   const demoTracking = tracking && mode === 'guest' && !nativeCounting;
+  const recordPoseRep = usePoseSession((state) => state.recordPoseRep);
+  const beginPoseSession = usePoseSession((state) => state.beginPoseSession);
   const trackerRef = useRef(
     calibratedRecipe ? createSetTracker(calibratedRecipe, targetReps) : null,
   );
+  const romRef = useRef({
+    left: new RangeOfMotionTracker(),
+    right: new RangeOfMotionTracker(),
+  });
+  const confidenceRef = useRef<number[]>([]);
+  const repStartedAt = useRef(Date.now());
+  const setStartedAt = useRef(Date.now());
+  const [poseCue, setPoseCue] = useState('Keep the movement smooth');
   useEffect(() => {
+    if (currentSet === 1) beginPoseSession();
     trackerRef.current = calibratedRecipe ? createSetTracker(calibratedRecipe, targetReps) : null;
-  }, [calibratedRecipe, targetReps]);
+    romRef.current = { left: new RangeOfMotionTracker(), right: new RangeOfMotionTracker() };
+    confidenceRef.current = [];
+    repStartedAt.current = Date.now();
+    setStartedAt.current = Date.now();
+    setReps(0);
+  }, [beginPoseSession, calibratedRecipe, currentSet, targetReps]);
+  const recordNativeRep = useCallback(
+    (
+      partial: Omit<PoseRepRecord, 'setNumber' | 'repNumber' | 'recordedOffsetMs'> & {
+        repNumber: number;
+      },
+    ) => {
+      recordPoseRep({
+        ...partial,
+        setNumber: currentSet,
+        recordedOffsetMs: Math.min(
+          86_400_000,
+          Math.round(priorElapsed * 1000 + (Date.now() - setStartedAt.current)),
+        ),
+      });
+    },
+    [currentSet, priorElapsed, recordPoseRep],
+  );
+  const snapshotCurrentRep = useCallback(
+    (repNumber: number, targetPositionReached: boolean) => {
+      const meanConfidence =
+        confidenceRef.current.length === 0
+          ? null
+          : confidenceRef.current.reduce((sum, value) => sum + value, 0) /
+            confidenceRef.current.length;
+      const durationMs = Math.max(0, Date.now() - repStartedAt.current);
+      recordNativeRep({
+        repNumber,
+        counted: true,
+        durationMs,
+        rangeOfMotionDeg: combinedRangeOfMotion(
+          romRef.current.left.getStats()?.rangeOfMotionDegrees ?? null,
+          romRef.current.right.getStats()?.rangeOfMotionDegrees ?? null,
+        ),
+        trackingConfidence:
+          meanConfidence === null ? null : Math.min(1, Math.max(0, meanConfidence)),
+        targetPositionReached,
+        feedbackCodes: feedbackForRep({ confidence: meanConfidence, durationMs }),
+      });
+      romRef.current = { left: new RangeOfMotionTracker(), right: new RangeOfMotionTracker() };
+      confidenceRef.current = [];
+      repStartedAt.current = Date.now();
+    },
+    [recordNativeRep],
+  );
   const onAngles = useCallback(
     (event: PoseAnglesEvent) => {
+      if (!nativePose || paused) return;
+      const { leftAngle, rightAngle, confidence } = event.nativeEvent;
+      const left = finiteJointAngle(leftAngle);
+      const right = finiteJointAngle(rightAngle);
+      if (confidence > 0) confidenceRef.current.push(confidence);
+      romRef.current.left.addAngle(left);
+      romRef.current.right.addAngle(right);
       const tracker = trackerRef.current;
-      if (!nativeCounting || paused || tracker === null) return;
-      tracker.update(
-        {
-          left: event.nativeEvent.leftAngle,
-          right: event.nativeEvent.rightAngle,
-        },
-        Date.now() / 1000,
+      if (!nativeCounting || tracker === null) return;
+      const completed = tracker.update({ left, right }, Date.now() / 1000);
+      setPoseCue(
+        tracker.moveState === MoveState.TARGET_REACHED
+          ? 'Target reached—return with control'
+          : 'Keep the movement smooth',
       );
+      if (!completed) return;
+      snapshotCurrentRep(tracker.repsInSet, true);
       setReps(tracker.repsInSet);
     },
-    [nativeCounting, paused],
+    [nativeCounting, nativePose, paused, snapshotCurrentRep],
   );
   useEffect(() => {
     if (paused) return;
@@ -99,10 +175,10 @@ export default function ActiveSessionScreen() {
     }, 600);
     return () => clearTimeout(timer);
   }, [currentSet, elapsed, params, priorCompleted, priorElapsed, reps, targetReps, totalSets]);
-  const feedbackText = useMemo(
-    () => feedback[Math.floor(reps / 2) % feedback.length] ?? feedback[0],
-    [reps],
-  );
+  const feedbackText = useMemo(() => {
+    if (nativeCounting) return poseCue;
+    return feedback[Math.floor(reps / 2) % feedback.length] ?? feedback[0];
+  }, [nativeCounting, poseCue, reps]);
   useEffect(() => {
     if (!tracking || !spokenFeedback || paused || !appIsActive || !feedbackText) return;
     Speech.stop();
@@ -112,6 +188,15 @@ export default function ActiveSessionScreen() {
     };
   }, [appIsActive, feedbackText, paused, spokenFeedback, tracking]);
   if (!exercise) return null;
+  const countRep = () => {
+    setReps((value) => {
+      const next = Math.min(targetReps, value + 1);
+      if (nativePose && next > value) {
+        snapshotCurrentRep(next, false);
+      }
+      return next;
+    });
+  };
   const end = () =>
     router.replace(
       `/session/complete?${new URLSearchParams({
@@ -162,9 +247,11 @@ export default function ActiveSessionScreen() {
             <Text style={styles.trackingBadgeText}>Tracking off</Text>
           </View>
         ) : null}
-        {nativeCounting ? (
+        {nativePose ? (
           <View style={styles.demoBadge}>
-            <Text style={styles.demoText}>On-device tracking</Text>
+            <Text style={styles.demoText}>
+              {nativeCounting ? 'On-device tracking' : 'On-device camera'}
+            </Text>
           </View>
         ) : demoTracking ? (
           <View style={styles.demoBadge}>
@@ -199,7 +286,7 @@ export default function ActiveSessionScreen() {
         <Pressable
           accessibilityLabel="Count one repetition"
           accessibilityRole="button"
-          onPress={() => setReps((value) => Math.min(targetReps, value + 1))}
+          onPress={countRep}
           style={styles.count}
         >
           <Plus color={colors.surface} size={28} />

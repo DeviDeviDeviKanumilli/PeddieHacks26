@@ -5,6 +5,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Metric, Screen, Title } from '@/components/ui';
 import { combineMuscleLoad } from '@/lib/anatomy';
 import { completeLiveSession, type LiveSessionContext } from '@/lib/sessionSync';
+import { usePoseSession } from '@/lib/tracking/poseSession';
+import { poseRepToMetric, summarizePoseSession } from '@/lib/tracking/sessionMetrics';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 
@@ -17,6 +19,9 @@ export default function CompleteScreen() {
   const saved = useRef(false);
   const syncStarted = useRef(false);
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+  const poseReps = usePoseSession((state) => state.reps);
+  const poseSummary = summarizePoseSession(poseReps);
+  const nativeTracked = poseSummary.counted > 0;
   const sets = Number(params.set ?? params.sets ?? 1);
   const repsPerSet = Number(params.reps ?? exercise?.reps ?? 0);
   const targetReps = repsPerSet * Number(params.sets ?? sets);
@@ -30,10 +35,10 @@ export default function CompleteScreen() {
       durationSeconds: elapsed,
       exercises: 1,
       reps: completedReps,
-      averageScore: params.tracking === '1' ? 88 : null,
+      averageScore: null,
       muscleLoad: combineMuscleLoad([exercise.muscleActivations]),
     });
-  }, [completeWorkout, completedReps, elapsed, exercise, params.tracking]);
+  }, [completeWorkout, completedReps, elapsed, exercise]);
   useEffect(() => {
     if (
       syncStarted.current ||
@@ -51,10 +56,16 @@ export default function CompleteScreen() {
       exerciseSessionVersion: Number(params.exerciseSessionVersion),
       remainingSessions: params.remainingSessions ?? '',
     };
-    void completeLiveSession({ context, completedReps, repsPerSet, elapsedSeconds: elapsed })
+    void completeLiveSession({
+      context,
+      completedReps,
+      repsPerSet,
+      elapsedSeconds: elapsed,
+      ...(poseReps.length > 0 ? { metrics: poseReps.map(poseRepToMetric) } : {}),
+    })
       .then(() => setSyncState('synced'))
       .catch(() => setSyncState('error'));
-  }, [completedReps, elapsed, mode, params, repsPerSet]);
+  }, [completedReps, elapsed, mode, params, poseReps, repsPerSet]);
   if (!exercise) return null;
   const query = new URLSearchParams({
     ...params,
@@ -87,20 +98,36 @@ export default function CompleteScreen() {
           <Body>
             {syncState === 'syncing'
               ? 'Syncing counted reps and completion…'
-              : syncState === 'synced'
-                ? 'Counted reps and progress are synced.'
-                : 'Saved on this device. Account sync can be retried later.'}
+              : syncState === 'error'
+                ? 'Saved on this device. Account sync can be retried later.'
+                : nativeTracked
+                  ? 'Counted reps, on-device range, and progress are synced.'
+                  : 'Counted reps and progress are synced.'}
           </Body>
         </Card>
       ) : null}
-      {params.tracking === '1' ? (
+      {nativeTracked ? (
         <Card tone="success">
           <View style={styles.insight}>
             <Sparkles color={colors.success} size={22} />
             <View style={styles.insightCopy}>
-              <Text style={styles.insightTitle}>Movement stayed consistent</Text>
+              <Text style={styles.insightTitle}>On-device measurements saved</Text>
               <Body muted>
-                Demo-derived values are clearly separated from real account metrics.
+                {poseSummary.meanRomDeg === null
+                  ? 'Repetitions were counted on this device. Range was not confident enough to store.'
+                  : `Average range was ${Math.round(poseSummary.meanRomDeg)}°. Only derived measurements may sync.`}
+              </Body>
+            </View>
+          </View>
+        </Card>
+      ) : params.tracking === '1' ? (
+        <Card tone="success">
+          <View style={styles.insight}>
+            <Sparkles color={colors.success} size={22} />
+            <View style={styles.insightCopy}>
+              <Text style={styles.insightTitle}>Camera was on</Text>
+              <Body muted>
+                Guest tracking is simulated and is not stored as form, range, or fatigue data.
               </Body>
             </View>
           </View>

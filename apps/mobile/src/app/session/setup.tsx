@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Chip, Eyebrow, Screen, Title } from '@/components/ui';
 import { hasApiConfig } from '@/lib/config';
 import { type LiveSessionContext, startLiveSession } from '@/lib/sessionSync';
+import { usePoseSession } from '@/lib/tracking/poseSession';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -26,6 +27,7 @@ export default function SessionSetupScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mode = useAppStore((state) => state.mode);
+  const clearPoseSession = usePoseSession((state) => state.clearPoseSession);
   const clientRequestId = useRef(Crypto.randomUUID()).current;
   if (!exercise) return null;
   const routeToSession = (context?: LiveSessionContext) => {
@@ -55,12 +57,14 @@ export default function SessionSetupScreen() {
       hasApiConfig &&
       Boolean(params.workout?.match(/^[0-9a-f-]{36}$/iu));
     if (!canSync) {
+      clearPoseSession();
       routeToSession();
       return;
     }
     setLoading(true);
     setError(null);
     try {
+      clearPoseSession();
       routeToSession(await startLiveSession(workout.id, exercise.id, clientRequestId));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Session sync could not start.');
@@ -116,7 +120,7 @@ export default function SessionSetupScreen() {
             <Text style={styles.label}>Optional camera feedback</Text>
             <Text style={styles.hint}>
               {exercise.trackingSupported
-                ? 'Preview stays on-device. Guest tracking is clearly simulated.'
+                ? 'Preview and pose stay on this device. Live mode may sync derived counts and range only.'
                 : 'Automated tracking is not available for this exercise.'}
             </Text>
           </View>

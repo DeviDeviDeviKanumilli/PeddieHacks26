@@ -176,7 +176,8 @@ Remaining on-device pose work, in the order imposed by the current Android test 
 1. Mac-side prep is in the repository: `expo-dev-client`, a TypeScript port of
    `exercise_analyzer.py` with tests, a calibrated biceps-curl recipe, an Android
    MediaPipe native module that emits angles (never landmarks), compile-time bundling of
-   `pose_landmarker_lite.task`, and `pnpm dev:mobile:android:device` to build the APK.
+   `pose_landmarker_lite.task`, `pnpm dev:mobile:android:device` to build the APK, and
+   session complete/analysis/live upload wired to on-device range and confidence.
 2. Install that development build on the Android phone. Confirm the existing camera
    preview and no-camera session still work. Use a LAN IP or hosted API URL, not
    `localhost`. Expo Go is not a valid runtime for this step.

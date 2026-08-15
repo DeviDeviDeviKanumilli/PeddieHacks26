@@ -94,8 +94,9 @@ workouts. Guest history is filtered locally; live mode requests the same window 
 When camera tracking is not selected or permission is denied, the active session remains a
 valid manual-count path. The client keeps the anatomy view and **Count rep** control available,
 shows a compact video-off icon with **Tracking off**, and submits only counted-rep derived data
-when an authenticated session is synchronized. It does not manufacture form, ROM, or fatigue
-measurements for a manual session.
+when an authenticated session is synchronized. On-device pose sessions may also submit
+allowlisted range and confidence. The client does not manufacture form, ROM, or fatigue
+measurements for a manual or guest-simulated session.
 
 The pure domain implementation now enforces the 100-rep/64 KB batch limits, rejects
 duplicate reps and unknown feedback codes, filters form metrics below 0.60 tracking

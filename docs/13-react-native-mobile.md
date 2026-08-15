@@ -59,8 +59,9 @@ The Android development path now lives in `apps/mobile/modules/adaptfit-pose`. I
 MediaPipe Pose Landmarker on-device and emits left/right joint angles plus confidence.
 Landmarks, frames, and images stay in native code. `apps/mobile/src/lib/tracking` ports
 the Python analyzer; seated biceps curl is the first calibrated recipe. Guest mode still
-uses a labeled timer when the native module is missing (Expo Go). Live mode still uploads
-count-only `RepMetric`s and must not persist simulated form values.
+uses a labeled timer when the native module is missing (Expo Go). Live mode uploads
+allowlisted `RepMetric`s from on-device counts, range, and confidence when the native
+module produced them, and must not persist simulated form values.
 
 Expo Go cannot load MediaPipe or a bundled `.task` model. Use `expo-dev-client` and
 `pnpm dev:mobile:android:device` so the module owns one camera session for setup and the
@@ -76,8 +77,9 @@ Keep this split:
 
 Never emit landmark coordinates, frames, images, or audio to JavaScript for persistence
 or to the API. If the native module is absent, keep the labeled guest simulation; live
-mode must not persist simulated form, ROM, or fatigue values. Skip native counting when
-the exercise has no calibrated tracking recipe.
+mode must not persist simulated form, ROM, or fatigue values. Skip native auto-counting
+when the exercise has no calibrated tracking recipe; stub recipes still supply joint
+indices for the camera, and manual counts may record on-device range from those angles.
 
 Calibrate six client recipes rather than training a new pose model. Seed data currently
 reuses one ROM window (`30–140°`) and tempo (`2–6s`) for every tracked exercise. Each
@@ -153,8 +155,9 @@ The application now lives in `apps/mobile` and includes:
 - Camera permission disclosure, camera setup, equally prominent no-camera continuation,
   compact in-session tracking-off status, nearby manual rep guidance, pause, timed rest, early
   completion, and metrics-first analysis.
-- Authenticated session lifecycle calls that submit only counted-rep derived records;
-  simulated guest form values are never persisted to the backend.
+- Authenticated session lifecycle calls that submit counted-rep derived records, and
+  on-device pose range/confidence when the native module produced them. Simulated guest
+  form values are never persisted to the backend.
 - An Android-first local Expo module under `apps/mobile/modules/adaptfit-pose` that runs
   MediaPipe Pose Landmarker on-device and emits joint angles only. The TypeScript port of
   `exercise_analyzer.py` counts biceps-curl reps from those angles. Expo Go cannot load

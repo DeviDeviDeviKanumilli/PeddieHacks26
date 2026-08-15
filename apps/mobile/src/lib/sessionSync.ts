@@ -57,12 +57,12 @@ export const completeLiveSession = async (input: {
   completedReps: number;
   repsPerSet: number;
   elapsedSeconds: number;
+  metrics?: RepMetric[];
 }): Promise<void> => {
-  const metrics = buildCountedRepMetrics(
-    input.completedReps,
-    input.repsPerSet,
-    input.elapsedSeconds,
-  );
+  const metrics =
+    input.metrics !== undefined && input.metrics.length > 0
+      ? input.metrics
+      : buildCountedRepMetrics(input.completedReps, input.repsPerSet, input.elapsedSeconds);
   for (let index = 0; index < metrics.length; index += 100) {
     await mobileApi.ingestMetrics(input.context.exerciseSessionId, {
       batchId: Crypto.randomUUID(),

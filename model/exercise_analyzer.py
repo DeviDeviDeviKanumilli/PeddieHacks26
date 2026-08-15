@@ -280,3 +280,99 @@ class ExerciseSetTracker:
                 self._rest_ends_at_seconds = now + self.rest_seconds
 
         return rep_completed
+
+
+@dataclass(frozen=True)
+class ExerciseStats:
+    exercise_name: str
+    exercise_time_seconds: float
+    phase: ExercisePhase
+    reps_completed: int
+    sets_completed: int
+    sets_planned: int
+    reps_per_set: int
+    motion_stats: dict[str, RangeOfMotionStats | None]
+
+
+def _completed_counts(exercise_tracker: ExerciseSetTracker) -> tuple[int, int]:
+    if exercise_tracker.phase is ExercisePhase.COMPLETE:
+        completed_sets = exercise_tracker.total_sets
+        completed_reps = completed_sets * exercise_tracker.reps_per_set
+    elif exercise_tracker.phase is ExercisePhase.RESTING:
+        completed_sets = exercise_tracker.current_set
+        completed_reps = completed_sets * exercise_tracker.reps_per_set
+    else:
+        completed_sets = exercise_tracker.current_set - 1
+        completed_reps = (
+            completed_sets * exercise_tracker.reps_per_set
+            + exercise_tracker.reps_in_set
+        )
+
+    return completed_sets, completed_reps
+
+
+def analyze_exercise(
+    exercise_name: str,
+    exercise_time_seconds: float,
+    exercise_tracker: ExerciseSetTracker,
+    motion_trackers: Mapping[str, RangeOfMotionTracker],
+) -> ExerciseStats:
+    """Create an immutable snapshot of an exercise session's final statistics."""
+    if not isinstance(exercise_name, str) or not exercise_name.strip():
+        raise ValueError("exercise_name must be a non-empty string")
+    if not isinstance(exercise_tracker, ExerciseSetTracker):
+        raise TypeError("exercise_tracker must be an ExerciseSetTracker")
+
+    duration = float(exercise_time_seconds)
+    if not isfinite(duration) or duration < 0.0:
+        raise ValueError("exercise_time_seconds must be finite and non-negative")
+    if any(
+        not isinstance(name, str)
+        or not name.strip()
+        or not isinstance(tracker, RangeOfMotionTracker)
+        for name, tracker in motion_trackers.items()
+    ):
+        raise ValueError(
+            "motion_trackers must map limb names to RangeOfMotionTracker values"
+        )
+
+    completed_sets, completed_reps = _completed_counts(exercise_tracker)
+    return ExerciseStats(
+        exercise_name=exercise_name.strip(),
+        exercise_time_seconds=duration,
+        phase=exercise_tracker.phase,
+        reps_completed=completed_reps,
+        sets_completed=completed_sets,
+        sets_planned=exercise_tracker.total_sets,
+        reps_per_set=exercise_tracker.reps_per_set,
+        motion_stats={
+            name: tracker.get_stats() for name, tracker in motion_trackers.items()
+        },
+    )
+
+
+def format_exercise_stats(stats: ExerciseStats) -> str:
+    """Format an exercise statistics snapshot for the terminal."""
+    lines = [
+        "Exercise summary",
+        f"Exercise: {stats.exercise_name}",
+        f"Status: {stats.phase.value.lower()}",
+        f"Exercise time: {stats.exercise_time_seconds:.2f} seconds",
+        f"Sets completed: {stats.sets_completed}/{stats.sets_planned}",
+        f"Reps completed: {stats.reps_completed}",
+        "Motion statistics:",
+    ]
+
+    for limb_name, motion in stats.motion_stats.items():
+        if motion is None:
+            lines.append(f"  {limb_name}: no valid motion samples")
+            continue
+        lines.append(
+            f"  {limb_name}: samples={motion.sample_count}, "
+            f"mean={motion.mean_angle_degrees:.2f} deg, "
+            f"min={motion.min_angle_degrees:.2f} deg, "
+            f"max={motion.max_angle_degrees:.2f} deg, "
+            f"ROM={motion.range_of_motion_degrees:.2f} deg"
+        )
+
+    return "\n".join(lines)

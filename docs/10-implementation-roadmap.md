@@ -41,6 +41,11 @@ are pending environment availability.
 
 Exit criteria: authenticated and anonymous access boundaries work in integration tests.
 
+Status: public catalog/reference routes, bearer-token request context, typed errors,
+request IDs, OpenAPI output, rate limiting, and compatibility lookup are complete in
+the repository-injected API. Profile persistence, readiness dependency checks, and
+the remaining authenticated resources are pending.
+
 ## Phase 4 — Personalization and compatibility
 
 - Implement profile/settings routes.

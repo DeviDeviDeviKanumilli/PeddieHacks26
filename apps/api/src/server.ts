@@ -1,11 +1,11 @@
 import { buildApp } from './app.js';
+import { loadConfig } from './config.js';
 
-const port = Number.parseInt(process.env.PORT ?? '3000', 10);
-const host = process.env.HOST ?? '::';
-const app = await buildApp();
+const config = loadConfig(process.env, { requireSupabase: true });
+const app = await buildApp({ config });
 
 try {
-  await app.listen({ port, host });
+  await app.listen({ port: config.port, host: config.host });
 } catch (error) {
   app.log.error(error);
   process.exit(1);

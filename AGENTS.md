@@ -53,4 +53,5 @@ For database changes, also run local Supabase reset/migrations, seed validation,
 - `@peddie/contracts` contains TypeBox schemas for movement profiles, compatibility, workout generation, errors, references, and pagination.
 - `@peddie/domain` contains the deterministic `compatibility-v1` and `generation-v1` engines plus the 24-exercise catalog and tests.
 - Supabase CLI configuration, six ordered migrations, deterministic catalog seed, and an SQL RLS isolation test are now present. A disposable local PostgreSQL run passes them; Docker-backed `supabase db reset` remains to be run when Docker is available.
-- Persistence adapters, authenticated routes, sessions, metrics, analytics, and deployment wiring are still pending.
+- The API now has typed error envelopes, request IDs, optional Supabase Auth verification, OpenAPI output, rate limiting, repository injection, public reference/exercise routes, and authenticated compatibility lookup.
+- Profile writes, workout persistence/generation routes, sessions, metrics, analytics, deletion, and Railway deployment wiring are still pending.

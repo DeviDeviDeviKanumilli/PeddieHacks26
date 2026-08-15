@@ -51,6 +51,12 @@ GET /v1/exercises/:exerciseId
 
 Exercise filters include search, body region, category, position, equipment, difficulty, tracking support, sort, cursor, and limit. `compatible=true` requires authentication.
 
+The public catalog and reference routes, authenticated exercise compatibility route,
+typed error envelope, OpenAPI document, request IDs, and general rate limit are now
+implemented in `apps/api`. Supabase-backed catalog/profile adapters are selected when
+the required environment variables are present; tests use an injected deterministic
+repository and auth verifier.
+
 ## Profile routes
 
 ```http

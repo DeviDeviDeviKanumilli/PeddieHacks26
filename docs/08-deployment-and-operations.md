@@ -22,6 +22,8 @@
 - Bind to host `::`.
 - Configure `/healthz` as deployment health check.
 - Use `/readyz` for a bounded Supabase dependency check.
+- Require `SUPABASE_URL` and `SUPABASE_ANON_KEY` at API startup; the server never uses a service key for client-facing requests.
+- Expose `/openapi.json` and `/docs` for the versioned backend contract.
 - Use config-as-code for build, start, healthcheck, restart policy, and draining.
 - Deploy migrations before API code that requires them.
 
@@ -32,8 +34,8 @@ NODE_ENV
 LOG_LEVEL
 CORS_ORIGINS
 SUPABASE_URL
-SUPABASE_PUBLISHABLE_KEY
-SUPABASE_SECRET_KEY
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
 RATE_LIMIT_GENERAL
 RATE_LIMIT_GENERATION
 RATE_LIMIT_METRICS

@@ -26,6 +26,10 @@ and row-level security test suite.
 
 Exit criteria: `supabase db reset` succeeds from an empty local database and all RLS tests pass.
 
+Status: schema, seed, RLS policies, grants, indexes, activation validation, and
+disposable PostgreSQL checks are complete. Docker-backed reset and advisor output
+are pending environment availability.
+
 ## Phase 3 — API foundation
 
 - Implement environment validation.

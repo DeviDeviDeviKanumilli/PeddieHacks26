@@ -52,4 +52,5 @@ For database changes, also run local Supabase reset/migrations, seed validation,
 - Planning documents and the backend-only workspace scaffold are committed and pushed to `origin/main`.
 - `@peddie/contracts` contains TypeBox schemas for movement profiles, compatibility, workout generation, errors, references, and pagination.
 - `@peddie/domain` contains the deterministic `compatibility-v1` and `generation-v1` engines plus the 24-exercise catalog and tests.
-- The Supabase schema, persistence adapters, authenticated routes, sessions, metrics, analytics, and deployment wiring are still pending.
+- Supabase CLI configuration, six ordered migrations, deterministic catalog seed, and an SQL RLS isolation test are now present. A disposable local PostgreSQL run passes them; Docker-backed `supabase db reset` remains to be run when Docker is available.
+- Persistence adapters, authenticated routes, sessions, metrics, analytics, and deployment wiring are still pending.

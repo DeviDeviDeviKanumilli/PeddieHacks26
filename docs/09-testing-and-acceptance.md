@@ -72,3 +72,25 @@ pnpm test:integration
 pnpm build
 pnpm openapi:check
 ```
+## Current implementation status
+
+### Current automated gates
+
+- `pnpm format`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- Disposable PostgreSQL execution of all migrations and `supabase/seed.sql`
+- `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
+
+The migration/seed checks currently run against a disposable local PostgreSQL
+instance because Docker is unavailable in the current environment. The equivalent
+Supabase command is:
+
+```text
+supabase db reset
+psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls.sql
+```
+
+The hosted acceptance flow remains pending until the authenticated API and session
+state machine are implemented.

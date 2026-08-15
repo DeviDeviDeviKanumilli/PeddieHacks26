@@ -43,6 +43,7 @@ Do not store diagnoses, free-text pain descriptions, birth dates, clinician note
 - `exercise_capability_demands`: exercise/capability pair, demand level, and required flag.
 - `exercise_equipment_options`: exercise, equipment, required/optional mode, and OR-group key.
 - `exercise_muscles`: exercise/muscle pair, role, and intensity.
+- `exercise_goals`: exercise/goal pair used for deterministic ranking and generation.
 - `exercise_tracking_profiles`: exercise, model-neutral tracking key, version, confidence floor, ROM/tempo targets, and supported metric flags.
 - `exercise_form_rules`: tracking profile, feedback code, metric comparison, threshold, severity, and message key.
 
@@ -90,3 +91,9 @@ Create migrations through the Supabase CLI. The expected order is:
 6. Validation constraints and catalog-source checks.
 
 `supabase/seed.sql` contains only deterministic reference data, the 24 exercise catalog records, tracking rules, and local demo fixtures. It must not contain real user data, secrets, or production credentials.
+
+Implementation status: the six CLI-created migrations and deterministic seed are in
+place. A disposable PostgreSQL 16 execution applies every migration and seed row,
+and `supabase/tests/rls.sql` verifies owner isolation and anonymous catalog access.
+The Docker-backed `supabase db reset` and Supabase advisors are pending because the
+current machine has no Docker daemon.

@@ -46,7 +46,9 @@ including onboarding, discovery, exercise details and safety gates, native camer
 permission/setup, active workout states, completion, dashboard, history, and analysis.
 The repository still contains an earlier `apps/web` reference prototype, but it is not
 the primary application and must not define future platform decisions. The mobile client
-will provide local guest state plus optional Supabase Auth and Fastify API connectivity.
+provides local guest state plus optional Supabase Auth and Fastify API connectivity.
+Native onboarding, discovery, workout/session flows, camera-optional tracking, analysis,
+progress, profile management, and account deletion are implemented.
 
 The backend workspace, Supabase schema, and Prisma data-access layer are also
 implemented. `apps/api` is a Fastify service with repository adapters, authenticated routes, OpenAPI output,

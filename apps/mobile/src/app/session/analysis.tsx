@@ -11,16 +11,31 @@ import {
   SectionHeading,
   Title,
 } from '@/components/ui';
-import { exercises } from '@/data/catalog';
+import { mobileApi } from '@/lib/api';
+import { hasApiConfig } from '@/lib/config';
+import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function AnalysisScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
-  const exercise = exercises.find((item) => item.slug === params.exercise);
+  const catalog = useAppStore((state) => state.catalog);
+  const mode = useAppStore((state) => state.mode);
+  const exercise = catalog.find((item) => item.slug === params.exercise);
   const tracked = params.tracking === '1';
   const completed = Number(params.completedReps ?? 0);
   const target = Number(params.targetReps ?? 0);
   const elapsed = Number(params.elapsed ?? 0);
+  const liveAnalysis = useQuery({
+    queryKey: ['exercise-analysis', params.exerciseSessionId],
+    queryFn: () => mobileApi.getExerciseAnalysis(params.exerciseSessionId ?? ''),
+    enabled: mode === 'live' && hasApiConfig && Boolean(params.exerciseSessionId),
+    retry: 3,
+    retryDelay: 600,
+  });
+  const analysis = liveAnalysis.data;
+  const completion =
+    analysis?.completion.percentage ?? (target > 0 ? Math.round((completed / target) * 100) : null);
+  const tempo = analysis?.tempo.meanSeconds ?? (completed > 0 ? elapsed / completed : null);
   return (
     <Screen>
       <Pressable
@@ -43,12 +58,9 @@ export default function AnalysisScreen() {
         <View style={styles.metrics}>
           <Metric
             label="Completion"
-            value={target > 0 ? `${Math.round((completed / target) * 100)}%` : '—'}
+            value={completion === null ? '—' : `${Math.round(completion)}%`}
           />
-          <Metric
-            label="Tempo"
-            value={completed > 0 ? `${(elapsed / completed).toFixed(1)}s` : '—'}
-          />
+          <Metric label="Tempo" value={tempo === null ? '—' : `${tempo.toFixed(1)}s`} />
           <Metric label="Sets" value={params.set ?? '1'} />
         </View>
       </Card>
@@ -57,7 +69,14 @@ export default function AnalysisScreen() {
         <AnalysisCard
           icon={Move}
           label="Range of motion"
-          value={tracked ? '82° avg' : 'Not measured'}
+          value={
+            analysis?.rangeOfMotion.averageDeg !== null &&
+            analysis?.rangeOfMotion.averageDeg !== undefined
+              ? `${Math.round(analysis.rangeOfMotion.averageDeg)}° avg`
+              : tracked
+                ? '82° demo'
+                : 'Not measured'
+          }
           detail={
             tracked
               ? 'Within the configured target on most demo reps.'
@@ -67,7 +86,13 @@ export default function AnalysisScreen() {
         <AnalysisCard
           icon={Gauge}
           label="Control"
-          value={tracked ? '8/10' : 'Not measured'}
+          value={
+            analysis?.movementControl !== null && analysis?.movementControl !== undefined
+              ? `${Math.round(analysis.movementControl)}%`
+              : tracked
+                ? '8/10 demo'
+                : 'Not measured'
+          }
           detail={
             tracked
               ? 'Movement remained mostly smooth.'
@@ -77,7 +102,13 @@ export default function AnalysisScreen() {
         <AnalysisCard
           icon={Activity}
           label="Stability"
-          value={tracked ? '9/10' : 'Not measured'}
+          value={
+            analysis?.stability !== null && analysis?.stability !== undefined
+              ? `${Math.round(analysis.stability)}%`
+              : tracked
+                ? '9/10 demo'
+                : 'Not measured'
+          }
           detail={
             tracked
               ? 'No sustained side lean detected in the demo.'
@@ -87,7 +118,7 @@ export default function AnalysisScreen() {
         <AnalysisCard
           icon={Timer}
           label="Average tempo"
-          value={completed > 0 ? `${(elapsed / completed).toFixed(1)} sec` : '—'}
+          value={tempo === null ? '—' : `${tempo.toFixed(1)} sec`}
           detail="Time between completed repetitions."
         />
       </View>
@@ -171,3 +202,5 @@ const styles = StyleSheet.create({
   progressCopy: { flex: 1, gap: 3 },
   progressTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
 });
+
+import { useQuery } from '@tanstack/react-query';

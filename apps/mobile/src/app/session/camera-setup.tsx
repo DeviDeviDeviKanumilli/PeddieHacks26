@@ -3,10 +3,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Check, RotateCcw } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
+import { useAppIsActive } from '@/hooks/useAppIsActive';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function CameraSetupScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
+  const appIsActive = useAppIsActive();
   const query = new URLSearchParams(params).toString();
   return (
     <Screen>
@@ -19,7 +21,7 @@ export default function CameraSetupScreen() {
         </Body>
       </View>
       <View style={styles.preview}>
-        <CameraView facing="front" mirror style={StyleSheet.absoluteFill} />
+        {appIsActive ? <CameraView facing="front" mirror style={StyleSheet.absoluteFill} /> : null}
         <View style={styles.guide}>
           <View style={styles.head} />
           <View style={styles.torso} />

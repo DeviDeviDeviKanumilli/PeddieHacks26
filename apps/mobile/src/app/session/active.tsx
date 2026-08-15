@@ -1,10 +1,11 @@
 import { CameraView } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Speech from 'expo-speech';
 import { CircleStop, Pause, Play, Plus, VideoOff } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Screen } from '@/components/ui';
-import { exercises } from '@/data/catalog';
+import { useAppIsActive } from '@/hooks/useAppIsActive';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -22,12 +23,26 @@ export default function ActiveSessionScreen() {
     rest: string;
     tracking: string;
     set: string;
+    elapsedTotal?: string;
+    completedTotal?: string;
+    workoutSessionId?: string;
+    workoutSessionVersion?: string;
+    exerciseSessionId?: string;
+    exerciseSessionVersion?: string;
+    remainingSessions?: string;
   }>();
   const mode = useAppStore((state) => state.mode);
-  const exercise = exercises.find((item) => item.slug === params.exercise) ?? exercises[0];
+  const spokenFeedback = useAppStore((state) =>
+    state.profile.accessibility.includes('Spoken feedback'),
+  );
+  const appIsActive = useAppIsActive();
+  const catalog = useAppStore((state) => state.catalog);
+  const exercise = catalog.find((item) => item.slug === params.exercise) ?? catalog[0];
   const targetReps = Number(params.reps ?? exercise?.reps ?? 8);
   const totalSets = Number(params.sets ?? exercise?.sets ?? 2);
   const currentSet = Number(params.set ?? 1);
+  const priorElapsed = Number(params.elapsedTotal ?? 0);
+  const priorCompleted = Number(params.completedTotal ?? 0);
   const [reps, setReps] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -45,21 +60,37 @@ export default function ActiveSessionScreen() {
   }, [demoTracking, paused, targetReps]);
   useEffect(() => {
     if (reps < targetReps) return;
-    const query = new URLSearchParams({ ...params, elapsed: String(elapsed) }).toString();
+    const query = new URLSearchParams({
+      ...params,
+      elapsedTotal: String(priorElapsed + elapsed),
+      completedTotal: String(priorCompleted + reps),
+    }).toString();
     const timer = setTimeout(() => {
       if (currentSet < totalSets) router.replace(`/session/rest?${query}`);
       else router.replace(`/session/complete?${query}`);
     }, 600);
     return () => clearTimeout(timer);
-  }, [currentSet, elapsed, params, reps, targetReps, totalSets]);
+  }, [currentSet, elapsed, params, priorCompleted, priorElapsed, reps, targetReps, totalSets]);
   const feedbackText = useMemo(
     () => feedback[Math.floor(reps / 2) % feedback.length] ?? feedback[0],
     [reps],
   );
+  useEffect(() => {
+    if (!tracking || !spokenFeedback || paused || !appIsActive || !feedbackText) return;
+    Speech.stop();
+    Speech.speak(feedbackText, { rate: 0.92 });
+    return () => {
+      Speech.stop();
+    };
+  }, [appIsActive, feedbackText, paused, spokenFeedback, tracking]);
   if (!exercise) return null;
   const end = () =>
     router.replace(
-      `/session/complete?${new URLSearchParams({ ...params, elapsed: String(elapsed), completedReps: String(reps) }).toString()}`,
+      `/session/complete?${new URLSearchParams({
+        ...params,
+        elapsedTotal: String(priorElapsed + elapsed),
+        completedTotal: String(priorCompleted + reps),
+      }).toString()}`,
     );
   return (
     <Screen padded={false} scroll={false} style={styles.screen}>
@@ -75,7 +106,7 @@ export default function ActiveSessionScreen() {
         </Text>
       </View>
       <View style={styles.stage}>
-        {tracking ? (
+        {tracking && appIsActive && !paused ? (
           <CameraView facing="front" mirror style={StyleSheet.absoluteFill} />
         ) : (
           <View style={styles.noCamera}>

@@ -2,7 +2,15 @@ import Storage from 'expo-sqlite/kv-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { exercises } from '@/data/catalog';
-import type { AppMode, MovementProfile, RegionState, Workout, WorkoutHistory } from '@/types';
+import { buildGuestWorkout } from '@/lib/guestWorkout';
+import type {
+  AppMode,
+  Exercise,
+  MovementProfile,
+  RegionState,
+  Workout,
+  WorkoutHistory,
+} from '@/types';
 
 const defaultProfile: MovementProfile = {
   goals: [],
@@ -16,11 +24,13 @@ const defaultProfile: MovementProfile = {
 type AppStore = {
   mode: AppMode;
   accountEmail: string | null;
+  catalog: Exercise[];
   profile: MovementProfile;
   recommendedWorkout: Workout;
   history: WorkoutHistory[];
   setMode: (mode: AppMode) => void;
   setAccountEmail: (email: string | null) => void;
+  mergeExercises: (exercises: Exercise[]) => void;
   setGoals: (goals: string[]) => void;
   setRegion: (id: string, state: RegionState) => void;
   setCapability: (id: string, state: RegionState) => void;
@@ -28,34 +38,29 @@ type AppStore = {
   setAccessibility: (accessibility: string[]) => void;
   completeOnboarding: () => void;
   resetOnboarding: () => void;
+  clearLocalData: () => void;
   regenerateWorkout: () => void;
+  setRecommendedWorkout: (workout: Workout) => void;
   completeWorkout: (summary: Omit<WorkoutHistory, 'id' | 'completedAt'>) => void;
 };
-
-const buildWorkout = (): Workout => ({
-  id: 'guest-workout-1',
-  title: 'Your steady strength set',
-  durationMinutes: 18,
-  focus: 'Seated upper body + mobility',
-  items: exercises.slice(0, 4).map((exercise, index) => ({
-    id: `guest-item-${index + 1}`,
-    exerciseSlug: exercise.slug,
-    sets: exercise.sets,
-    reps: exercise.reps,
-    restSeconds: exercise.restSeconds,
-  })),
-});
 
 export const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
       mode: 'guest',
       accountEmail: null,
+      catalog: exercises,
       profile: defaultProfile,
-      recommendedWorkout: buildWorkout(),
+      recommendedWorkout: buildGuestWorkout(defaultProfile, exercises),
       history: [],
       setMode: (mode) => set({ mode }),
       setAccountEmail: (accountEmail) => set({ accountEmail }),
+      mergeExercises: (incoming) =>
+        set((state) => {
+          const merged = new Map(state.catalog.map((exercise) => [exercise.slug, exercise]));
+          for (const exercise of incoming) merged.set(exercise.slug, exercise);
+          return { catalog: [...merged.values()] };
+        }),
       setGoals: (goals) => set((state) => ({ profile: { ...state.profile, goals } })),
       setRegion: (id, regionState) =>
         set((state) => ({
@@ -76,9 +81,28 @@ export const useAppStore = create<AppStore>()(
       setAccessibility: (accessibility) =>
         set((state) => ({ profile: { ...state.profile, accessibility } })),
       completeOnboarding: () =>
-        set((state) => ({ profile: { ...state.profile, onboardingComplete: true } })),
+        set((state) => {
+          const profile = { ...state.profile, onboardingComplete: true };
+          return {
+            profile,
+            recommendedWorkout: buildGuestWorkout(profile, state.catalog),
+          };
+        }),
       resetOnboarding: () => set({ profile: defaultProfile }),
-      regenerateWorkout: () => set({ recommendedWorkout: buildWorkout() }),
+      clearLocalData: () =>
+        set({
+          mode: 'guest',
+          accountEmail: null,
+          catalog: exercises,
+          profile: defaultProfile,
+          recommendedWorkout: buildGuestWorkout(defaultProfile, exercises),
+          history: [],
+        }),
+      regenerateWorkout: () =>
+        set((state) => ({
+          recommendedWorkout: buildGuestWorkout(state.profile, state.catalog),
+        })),
+      setRecommendedWorkout: (recommendedWorkout) => set({ recommendedWorkout }),
       completeWorkout: (summary) =>
         set((state) => ({
           history: [

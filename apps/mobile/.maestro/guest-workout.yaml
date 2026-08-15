@@ -22,7 +22,7 @@ name: Guest onboarding and camera-optional workout
 - tapOn: "Haptic feedback"
 - tapOn: "Continue"
 - assertVisible: "A profile built around today—not forever."
-- tapOn: "Show my recommendations"
+- tapOn: "Enter AdaptFit"
 - assertVisible: "What feels possible today?"
 - tapOn: "Review workout"
 - scrollUntilVisible:

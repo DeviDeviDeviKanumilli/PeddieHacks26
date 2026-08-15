@@ -12,16 +12,16 @@ import {
   SectionHeading,
   Title,
 } from '@/components/ui';
-import { exercises } from '@/data/catalog';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function HomeScreen() {
   const workout = useAppStore((state) => state.recommendedWorkout);
+  const catalog = useAppStore((state) => state.catalog);
   const history = useAppStore((state) => state.history);
   const totalSeconds = history.reduce((sum, item) => sum + item.durationSeconds, 0);
   const totalReps = history.reduce((sum, item) => sum + item.reps, 0);
-  const first = exercises.find((exercise) => exercise.slug === workout.items[0]?.exerciseSlug);
+  const first = catalog.find((exercise) => exercise.slug === workout.items[0]?.exerciseSlug);
   return (
     <Screen>
       <AppHeader />
@@ -51,8 +51,12 @@ export default function HomeScreen() {
             <Text style={styles.pillText}>{workout.items.length} movements</Text>
           </View>
         </View>
-        <Button icon={ArrowRight} onPress={() => router.push(`/workout/${workout.id}`)}>
-          Review workout
+        <Button
+          disabled={workout.items.length === 0}
+          icon={ArrowRight}
+          onPress={() => router.push(`/workout/${workout.id}`)}
+        >
+          {workout.items.length === 0 ? 'Adjust your movement profile' : 'Review workout'}
         </Button>
       </Card>
       <SectionHeading title="Your momentum" />

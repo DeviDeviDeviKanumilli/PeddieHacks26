@@ -1,29 +1,72 @@
+import * as Crypto from 'expo-crypto';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Camera, Minus, Play, Plus, TimerReset } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Chip, Eyebrow, Screen, Title } from '@/components/ui';
-import { exercises } from '@/data/catalog';
+import { hasApiConfig } from '@/lib/config';
+import { type LiveSessionContext, startLiveSession } from '@/lib/sessionSync';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function SessionSetupScreen() {
   const params = useLocalSearchParams<{ exercise?: string; workout?: string }>();
   const workout = useAppStore((state) => state.recommendedWorkout);
+  const catalog = useAppStore((state) => state.catalog);
   const exercise = useMemo(
     () =>
-      exercises.find((item) => item.slug === (params.exercise ?? workout.items[0]?.exerciseSlug)) ??
-      exercises[0],
-    [params.exercise, workout.items],
+      catalog.find((item) => item.slug === (params.exercise ?? workout.items[0]?.exerciseSlug)) ??
+      catalog[0],
+    [catalog, params.exercise, workout.items],
   );
   const [sets, setSets] = useState(exercise?.sets ?? 2);
   const [reps, setReps] = useState(exercise?.reps ?? 8);
   const [rest, setRest] = useState(exercise?.restSeconds ?? 45);
   const [tracking, setTracking] = useState(Boolean(exercise?.trackingSupported));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const mode = useAppStore((state) => state.mode);
+  const clientRequestId = useRef(Crypto.randomUUID()).current;
   if (!exercise) return null;
-  const begin = () => {
-    const query = `exercise=${exercise.slug}&sets=${sets}&reps=${reps}&rest=${rest}&tracking=${tracking ? '1' : '0'}&set=1`;
+  const routeToSession = (context?: LiveSessionContext) => {
+    const query = new URLSearchParams({
+      exercise: exercise.slug,
+      sets: String(sets),
+      reps: String(reps),
+      rest: String(rest),
+      tracking: tracking ? '1' : '0',
+      set: '1',
+      ...(context
+        ? {
+            workoutSessionId: context.workoutSessionId,
+            workoutSessionVersion: String(context.workoutSessionVersion),
+            exerciseSessionId: context.exerciseSessionId,
+            exerciseSessionVersion: String(context.exerciseSessionVersion),
+            remainingSessions: context.remainingSessions,
+          }
+        : {}),
+    }).toString();
     router.push(tracking ? `/session/permission?${query}` : `/session/active?${query}`);
+  };
+  const begin = async (localOnly = false) => {
+    const canSync =
+      !localOnly &&
+      mode === 'live' &&
+      hasApiConfig &&
+      Boolean(params.workout?.match(/^[0-9a-f-]{36}$/iu));
+    if (!canSync) {
+      routeToSession();
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      routeToSession(await startLiveSession(workout.id, exercise.id, clientRequestId));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Session sync could not start.');
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <Screen>
@@ -83,9 +126,19 @@ export default function SessionSetupScreen() {
           <Chip label="Continue without" onPress={() => setTracking(false)} selected={!tracking} />
         </View>
       </Card>
-      <Button icon={Play} onPress={begin}>
+      {error ? (
+        <Card tone="warning">
+          <Body>{error}</Body>
+        </Card>
+      ) : null}
+      <Button icon={Play} loading={loading} onPress={() => void begin()}>
         Continue to workout
       </Button>
+      {error ? (
+        <Button onPress={() => void begin(true)} variant="quiet">
+          Continue on this device
+        </Button>
+      ) : null}
     </Screen>
   );
 }

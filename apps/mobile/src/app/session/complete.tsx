@@ -1,21 +1,26 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Check, ChevronRight, Repeat2, Sparkles } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Metric, Screen, Title } from '@/components/ui';
-import { exercises } from '@/data/catalog';
+import { completeLiveSession, type LiveSessionContext } from '@/lib/sessionSync';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 export default function CompleteScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
-  const exercise = exercises.find((item) => item.slug === params.exercise);
+  const catalog = useAppStore((state) => state.catalog);
+  const exercise = catalog.find((item) => item.slug === params.exercise);
   const completeWorkout = useAppStore((state) => state.completeWorkout);
+  const mode = useAppStore((state) => state.mode);
   const saved = useRef(false);
+  const syncStarted = useRef(false);
+  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const sets = Number(params.set ?? params.sets ?? 1);
-  const targetReps = Number(params.reps ?? exercise?.reps ?? 0) * sets;
-  const completedReps = Number(params.completedReps ?? params.reps ?? exercise?.reps ?? 0) * sets;
-  const elapsed = Math.max(Number(params.elapsed ?? 0), completedReps * 3);
+  const repsPerSet = Number(params.reps ?? exercise?.reps ?? 0);
+  const targetReps = repsPerSet * Number(params.sets ?? sets);
+  const completedReps = Number(params.completedTotal ?? repsPerSet * sets);
+  const elapsed = Math.max(Number(params.elapsedTotal ?? 0), completedReps * 3);
   useEffect(() => {
     if (saved.current || !exercise) return;
     saved.current = true;
@@ -27,6 +32,27 @@ export default function CompleteScreen() {
       averageScore: params.tracking === '1' ? 88 : null,
     });
   }, [completeWorkout, completedReps, elapsed, exercise, params.tracking]);
+  useEffect(() => {
+    if (
+      syncStarted.current ||
+      mode !== 'live' ||
+      !params.workoutSessionId ||
+      !params.exerciseSessionId
+    )
+      return;
+    syncStarted.current = true;
+    setSyncState('syncing');
+    const context: LiveSessionContext = {
+      workoutSessionId: params.workoutSessionId,
+      workoutSessionVersion: Number(params.workoutSessionVersion),
+      exerciseSessionId: params.exerciseSessionId,
+      exerciseSessionVersion: Number(params.exerciseSessionVersion),
+      remainingSessions: params.remainingSessions ?? '',
+    };
+    void completeLiveSession({ context, completedReps, repsPerSet, elapsedSeconds: elapsed })
+      .then(() => setSyncState('synced'))
+      .catch(() => setSyncState('error'));
+  }, [completedReps, elapsed, mode, params, repsPerSet]);
   if (!exercise) return null;
   const query = new URLSearchParams({
     ...params,
@@ -54,6 +80,17 @@ export default function CompleteScreen() {
           <Metric label="Time" value={`${Math.round(elapsed / 60)}m`} />
         </View>
       </Card>
+      {syncState !== 'idle' ? (
+        <Card tone={syncState === 'error' ? 'warning' : 'success'}>
+          <Body>
+            {syncState === 'syncing'
+              ? 'Syncing counted reps and completion…'
+              : syncState === 'synced'
+                ? 'Counted reps and progress are synced.'
+                : 'Saved on this device. Account sync can be retried later.'}
+          </Body>
+        </Card>
+      ) : null}
       {params.tracking === '1' ? (
         <Card tone="success">
           <View style={styles.insight}>

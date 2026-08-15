@@ -36,6 +36,9 @@ export default function RootLayout() {
     Newsreader_600SemiBold,
     Newsreader_600SemiBold_Italic,
   });
+  const reducedMotion = useAppStore((state) =>
+    state.profile.accessibility.includes('Reduced motion'),
+  );
 
   useEffect(() => {
     if (loaded) void SplashScreen.hideAsync();
@@ -73,7 +76,7 @@ export default function RootLayout() {
           <StatusBar style="dark" />
           <Stack
             screenOptions={{
-              animation: 'slide_from_right',
+              animation: reducedMotion ? 'none' : 'slide_from_right',
               contentStyle: { backgroundColor: colors.canvas },
               headerShown: false,
             }}

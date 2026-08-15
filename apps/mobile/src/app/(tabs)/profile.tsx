@@ -10,9 +10,10 @@ import {
   PersonStanding,
   Settings2,
 } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
 import { Body, Button, Card, Screen, SectionHeading, Title } from '@/components/ui';
+import { mobileApi } from '@/lib/api';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
@@ -22,12 +23,43 @@ export default function ProfileScreen() {
   const mode = useAppStore((state) => state.mode);
   const accountEmail = useAppStore((state) => state.accountEmail);
   const reset = useAppStore((state) => state.resetOnboarding);
+  const clearLocalData = useAppStore((state) => state.clearLocalData);
   const editProfile = () => {
     reset();
     router.replace('/onboarding/goals');
   };
   const signOut = async () => {
     await getSupabaseClient()?.auth.signOut();
+    clearLocalData();
+    router.replace('/onboarding/welcome');
+  };
+  const deleteAccount = () => {
+    Alert.alert(
+      'Delete AdaptFit account?',
+      'This permanently deletes your synced profile, workouts, sessions, and progress. It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await mobileApi.deleteAccount();
+                await getSupabaseClient()?.auth.signOut();
+                clearLocalData();
+                router.replace('/onboarding/welcome');
+              } catch (error) {
+                Alert.alert(
+                  'Account was not deleted',
+                  error instanceof Error ? error.message : 'Please try again when you are online.',
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
   return (
     <Screen>
@@ -84,6 +116,11 @@ export default function ProfileScreen() {
           measurements may be saved when you use a synced account.
         </Body>
       </Card>
+      {mode === 'live' ? (
+        <Button onPress={deleteAccount} variant="danger">
+          Delete synced account
+        </Button>
+      ) : null}
     </Screen>
   );
 }

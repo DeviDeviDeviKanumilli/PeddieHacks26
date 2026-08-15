@@ -1,11 +1,13 @@
 import { Search, SlidersHorizontal } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { Body, Chip, Field, Screen, Title } from '@/components/ui';
-import { exercises } from '@/data/catalog';
+import { mobileApi } from '@/lib/api';
+import { hasApiConfig } from '@/lib/config';
 import { discoverExercises } from '@/lib/discovery';
+import { exerciseSummaryFromApi } from '@/lib/exercises';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -16,9 +18,30 @@ export default function ExploreScreen() {
   const [category, setCategory] = useState('All');
   const [personalized, setPersonalized] = useState(true);
   const regions = useAppStore((state) => state.profile.regions);
+  const catalog = useAppStore((state) => state.catalog);
+  const mergeExercises = useAppStore((state) => state.mergeExercises);
+  const mode = useAppStore((state) => state.mode);
+  const liveCatalog = useQuery({
+    queryKey: ['exercise-catalog'],
+    queryFn: () => mobileApi.listExercises(),
+    enabled: mode === 'live' && hasApiConfig,
+    staleTime: 5 * 60_000,
+  });
+  useEffect(() => {
+    if (!liveCatalog.data) return;
+    const currentCatalog = useAppStore.getState().catalog;
+    mergeExercises(
+      liveCatalog.data.data.map((summary) =>
+        exerciseSummaryFromApi(
+          summary,
+          currentCatalog.find((exercise) => exercise.slug === summary.slug),
+        ),
+      ),
+    );
+  }, [liveCatalog.data, mergeExercises]);
   const results = useMemo(
-    () => discoverExercises({ catalog: exercises, regions, personalized, category, query }),
-    [category, personalized, query, regions],
+    () => discoverExercises({ catalog, regions, personalized, category, query }),
+    [catalog, category, personalized, query, regions],
   );
   return (
     <Screen>
@@ -70,6 +93,11 @@ export default function ExploreScreen() {
       <Text accessibilityLiveRegion="polite" style={styles.count}>
         {results.length} exercise{results.length === 1 ? '' : 's'}
       </Text>
+      {liveCatalog.isFetching ? (
+        <Text accessibilityLiveRegion="polite" style={styles.count}>
+          Refreshing reviewed catalog…
+        </Text>
+      ) : null}
       <View style={styles.list}>
         {results.map((exercise) => (
           <ExerciseCard exercise={exercise} key={exercise.slug} />
@@ -113,3 +141,5 @@ const styles = StyleSheet.create({
   count: { color: colors.muted, fontFamily: typography.medium, fontSize: 13 },
   list: { gap: spacing.md },
 });
+
+import { useQuery } from '@tanstack/react-query';

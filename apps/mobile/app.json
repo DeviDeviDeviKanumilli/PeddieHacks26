@@ -4,6 +4,7 @@
     "slug": "adaptfit-mobile",
     "version": "0.1.0",
     "scheme": "adaptfit",
+    "platforms": ["ios", "android"],
     "orientation": "default",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,

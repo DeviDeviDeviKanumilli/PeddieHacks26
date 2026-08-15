@@ -10,12 +10,12 @@ import {
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
-import { exercises } from '@/data/catalog';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function WorkoutReviewScreen() {
   const workout = useAppStore((state) => state.recommendedWorkout);
+  const catalog = useAppStore((state) => state.catalog);
   return (
     <Screen>
       <Pressable
@@ -44,7 +44,7 @@ export default function WorkoutReviewScreen() {
       </Card>
       <View style={styles.timeline}>
         {workout.items.map((item, index) => {
-          const exercise = exercises.find((candidate) => candidate.slug === item.exerciseSlug);
+          const exercise = catalog.find((candidate) => candidate.slug === item.exerciseSlug);
           if (!exercise) return null;
           return (
             <View key={item.id} style={styles.timelineRow}>
@@ -84,6 +84,14 @@ export default function WorkoutReviewScreen() {
           );
         })}
       </View>
+      {workout.items.length === 0 ? (
+        <Card tone="warning">
+          <Body>
+            No exercise matches every current constraint and equipment choice. Update your profile
+            or browse the catalog to review options individually.
+          </Body>
+        </Card>
+      ) : null}
       <Card tone="lavender">
         <View style={styles.duration}>
           <Clock3 color={colors.lavenderDark} size={24} />
@@ -93,8 +101,12 @@ export default function WorkoutReviewScreen() {
           </View>
         </View>
       </Card>
-      <Button icon={Play} onPress={() => router.push(`/session/setup?workout=${workout.id}`)}>
-        Start workout
+      <Button
+        disabled={workout.items.length === 0}
+        icon={Play}
+        onPress={() => router.push(`/session/setup?workout=${workout.id}`)}
+      >
+        {workout.items.length === 0 ? 'Adjust profile first' : 'Start workout'}
       </Button>
     </Screen>
   );

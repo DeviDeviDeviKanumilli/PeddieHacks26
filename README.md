@@ -23,11 +23,17 @@ Prisma/Supabase/Postgres data layer, and an earlier web reference prototype.
 Requirements are Node.js 24 through 26, pnpm 11.5.1, Expo-compatible iOS/Android tooling,
 and Supabase credentials only when running the API or using live authentication.
 
-The React Native workspace under `apps/mobile` is the primary application target and the
-next implementation phase. Once scaffolded, it will run through Expo on an iOS simulator,
-Android emulator, or physical device. Guest mode will use seeded data and device-local
-persistence so the core flow remains usable without hosted credentials. Do not use the
-legacy `apps/web` prototype as the product runtime.
+The React Native workspace under `apps/mobile` is the implemented primary application. It
+runs through Expo on an iOS simulator, Android emulator, or physical device. Guest mode
+uses reviewed demo data and SQLite-backed device persistence, while live mode uses
+Supabase Auth and the bearer-aware Fastify API. Do not use the legacy `apps/web`
+prototype as the product runtime.
+
+```bash
+pnpm dev:mobile
+pnpm dev:mobile:ios
+pnpm dev:mobile:android
+```
 
 To run the API, provide the server values shown in `.env.example` through your shell or
 deployment environment, then run:
@@ -71,3 +77,6 @@ applies all Supabase migrations and seed data, runs the SQL/RLS suite, and execu
 RLS-scoped Prisma smoke test on every push to `main` and every pull request. See
 [the documentation index](docs/README.md) for the full architecture and acceptance
 requirements.
+
+The focused native component suite is `pnpm test:mobile`; the committed Maestro guest
+flow is under `apps/mobile/.maestro` and requires the Maestro CLI plus a built app.

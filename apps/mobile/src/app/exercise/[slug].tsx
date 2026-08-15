@@ -14,7 +14,6 @@ import {
 import { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Screen, SectionHeading, Title } from '@/components/ui';
-import { exercises } from '@/data/catalog';
 import { mobileApi } from '@/lib/api';
 import { hasApiConfig } from '@/lib/config';
 import { exerciseFromApi } from '@/lib/exercises';
@@ -26,7 +25,8 @@ type Tab = 'overview' | 'how-to' | 'muscles';
 export default function ExerciseDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const [tab, setTab] = useState<Tab>('overview');
-  const fallback = exercises.find((item) => item.slug === slug);
+  const catalog = useAppStore((state) => state.catalog);
+  const fallback = catalog.find((item) => item.slug === slug);
   const mode = useAppStore((state) => state.mode);
   const liveDetail = useQuery({
     queryKey: ['exercise', slug],

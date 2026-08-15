@@ -138,6 +138,11 @@ are unavailable. The hosted live-mode scenario and database tests are environmen
 - `pnpm openapi:check` (required route/path smoke check)
 - Recursive React Native client typecheck and mobile build/config validation through the
   root commands
+- Native Jest/React Native Testing Library coverage for the body-map text controls,
+  compatibility adaptation, contract mapping, profile synchronization, and count-only
+  metric construction
+- A committed Maestro guest onboarding and no-camera workout flow under
+  `apps/mobile/.maestro`
 - `pnpm test:prisma` (RLS-scoped Prisma catalog smoke check when a database URL is set)
 - Mandatory GitHub Actions PostgreSQL 17 execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
@@ -160,7 +165,8 @@ The authenticated profile, workout, tracked-session, analytics, and progress por
 of the acceptance flow are covered by Fastify injection tests. `pnpm smoke:hosted`
 automates public and authenticated deployment checks and can run the mutating loop,
 cross-user isolation, cleanup, and disposable-account deletion when the corresponding
-tokens and safety flags are provided. Native route, interaction, camera-privacy, and
-device coverage belongs in `apps/mobile`. Full iOS/Android live-mode acceptance,
+tokens and safety flags are provided. Native route, interaction, and camera-privacy
+coverage now belongs to `apps/mobile`; an iOS simulator launch and terminate/relaunch
+lifecycle pass has been completed. Full iOS/Android live-mode acceptance,
 Docker-backed Supabase reset, hosted execution, advisor output, and load targets remain
 deployment-gated.

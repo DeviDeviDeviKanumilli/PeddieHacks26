@@ -13,6 +13,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, shadow, spacing, typography } from '@/theme/tokens';
 
 export const Screen = ({
@@ -78,35 +79,38 @@ export const Button = ({
   loading?: boolean;
   icon?: LucideIcon;
   accessibilityLabel?: string;
-}) => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel={accessibilityLabel}
-    accessibilityState={{ disabled, busy: loading }}
-    disabled={disabled || loading}
-    onPress={() => {
-      void Haptics.selectionAsync();
-      onPress();
-    }}
-    style={({ pressed }) => [
-      styles.button,
-      buttonVariants[variant],
-      pressed && !disabled && styles.pressed,
-      disabled && styles.disabled,
-    ]}
-  >
-    {loading ? (
-      <ActivityIndicator color={variant === 'primary' ? colors.surface : colors.lavenderDark} />
-    ) : (
-      <>
-        {Icon ? (
-          <Icon color={variant === 'primary' ? colors.surface : colors.lavenderDark} size={20} />
-        ) : null}
-        <Text style={[styles.buttonText, buttonTextVariants[variant]]}>{children}</Text>
-      </>
-    )}
-  </Pressable>
-);
+}) => {
+  const haptics = useAppStore((state) => state.profile.accessibility.includes('Haptic feedback'));
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled, busy: loading }}
+      disabled={disabled || loading}
+      onPress={() => {
+        if (haptics) void Haptics.selectionAsync();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.button,
+        buttonVariants[variant],
+        pressed && !disabled && styles.pressed,
+        disabled && styles.disabled,
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={variant === 'primary' ? colors.surface : colors.lavenderDark} />
+      ) : (
+        <>
+          {Icon ? (
+            <Icon color={variant === 'primary' ? colors.surface : colors.lavenderDark} size={20} />
+          ) : null}
+          <Text style={[styles.buttonText, buttonTextVariants[variant]]}>{children}</Text>
+        </>
+      )}
+    </Pressable>
+  );
+};
 
 export const Chip = ({
   label,
@@ -118,23 +122,26 @@ export const Chip = ({
   selected: boolean;
   onPress: () => void;
   tone?: 'lavender' | 'danger' | 'success';
-}) => (
-  <Pressable
-    accessibilityRole="checkbox"
-    accessibilityState={{ checked: selected }}
-    onPress={() => {
-      void Haptics.selectionAsync();
-      onPress();
-    }}
-    style={({ pressed }) => [
-      styles.chip,
-      selected && chipSelected[tone],
-      pressed && styles.pressed,
-    ]}
-  >
-    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
-  </Pressable>
-);
+}) => {
+  const haptics = useAppStore((state) => state.profile.accessibility.includes('Haptic feedback'));
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: selected }}
+      onPress={() => {
+        if (haptics) void Haptics.selectionAsync();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.chip,
+        selected && chipSelected[tone],
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+    </Pressable>
+  );
+};
 
 export const Field = (props: TextInputProps) => (
   <TextInput
@@ -172,7 +179,7 @@ const cardTones = StyleSheet.create({
 });
 
 const buttonVariants = StyleSheet.create({
-  primary: { backgroundColor: colors.lavenderDark },
+  primary: { backgroundColor: colors.lavenderDark, borderColor: colors.lavenderDark },
   secondary: { backgroundColor: colors.lavenderSoft, borderColor: colors.lavender },
   quiet: { backgroundColor: 'transparent', borderColor: colors.line },
   danger: { backgroundColor: colors.dangerSoft, borderColor: colors.danger },

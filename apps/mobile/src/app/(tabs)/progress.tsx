@@ -2,6 +2,8 @@ import { CalendarDays, ChevronRight, Clock3, Flame, Repeat2 } from 'lucide-react
 import { StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
 import { Body, Card, Metric, Screen, SectionHeading, Title } from '@/components/ui';
+import { mobileApi } from '@/lib/api';
+import { hasApiConfig } from '@/lib/config';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -12,8 +14,39 @@ const activity = activityLevels.map((level, day) => ({ day: `day-${day + 1}`, le
 
 export default function ProgressScreen() {
   const history = useAppStore((state) => state.history);
-  const seconds = history.reduce((sum, item) => sum + item.durationSeconds, 0);
-  const reps = history.reduce((sum, item) => sum + item.reps, 0);
+  const mode = useAppStore((state) => state.mode);
+  const liveSummary = useQuery({
+    queryKey: ['progress-summary'],
+    queryFn: mobileApi.getProgressSummary,
+    enabled: mode === 'live' && hasApiConfig,
+  });
+  const liveActivity = useQuery({
+    queryKey: ['progress-activity'],
+    queryFn: mobileApi.getProgressActivity,
+    enabled: mode === 'live' && hasApiConfig,
+  });
+  const localSeconds = history.reduce((sum, item) => sum + item.durationSeconds, 0);
+  const localReps = history.reduce((sum, item) => sum + item.reps, 0);
+  const seconds = liveSummary.data?.totalActiveSeconds ?? localSeconds;
+  const reps = liveSummary.data?.totalReps ?? localReps;
+  const exerciseCount =
+    liveSummary.data?.totalExercises ?? history.reduce((sum, item) => sum + item.exercises, 0);
+  const displayActivity = liveActivity.data
+    ? liveActivity.data.slice(-28).map((item) => ({
+        day: item.activityDate,
+        level:
+          item.activeSeconds === 0
+            ? 0
+            : item.activeSeconds < 600
+              ? 1
+              : item.activeSeconds < 1200
+                ? 2
+                : 3,
+      }))
+    : activity;
+  const sessionCount = liveActivity.data
+    ? liveActivity.data.reduce((sum, item) => sum + item.sessionCount, 0)
+    : history.length;
   return (
     <Screen>
       <AppHeader />
@@ -26,10 +59,7 @@ export default function ProgressScreen() {
       <Card tone="lavender">
         <View style={styles.metrics}>
           <Metric label="Active time" value={`${Math.round(seconds / 60)}m`} />
-          <Metric
-            label="Exercises"
-            value={String(history.reduce((sum, item) => sum + item.exercises, 0))}
-          />
+          <Metric label="Exercises" value={String(exerciseCount)} />
           <Metric label="Reps" value={String(reps)} />
         </View>
       </Card>
@@ -40,10 +70,10 @@ export default function ProgressScreen() {
             <CalendarDays color={colors.lavenderDark} size={20} />
             <Text style={styles.cardTitle}>Last 4 weeks</Text>
           </View>
-          <Text style={styles.subtle}>{history.length} workouts</Text>
+          <Text style={styles.subtle}>{sessionCount} workouts</Text>
         </View>
         <View accessibilityLabel="Four week activity grid" style={styles.grid}>
-          {activity.map(({ day, level }) => (
+          {displayActivity.map(({ day, level }) => (
             <View
               key={day}
               style={[
@@ -68,7 +98,7 @@ export default function ProgressScreen() {
       <View style={styles.weekRow}>
         <Card style={styles.weekCard}>
           <Flame color={colors.warning} size={22} />
-          <Text style={styles.weekValue}>{history.length}</Text>
+          <Text style={styles.weekValue}>{sessionCount}</Text>
           <Text style={styles.subtle}>sessions</Text>
         </Card>
         <Card style={styles.weekCard}>
@@ -137,3 +167,5 @@ const styles = StyleSheet.create({
   historyCopy: { flex: 1 },
   historyTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 15 },
 });
+
+import { useQuery } from '@tanstack/react-query';

@@ -1,20 +1,41 @@
 import { router } from 'expo-router';
 import { Check, Dumbbell, Goal, PersonStanding } from 'lucide-react-native';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
+import { hasApiConfig } from '@/lib/config';
+import { syncMovementProfile } from '@/lib/profileSync';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 export default function SummaryScreen() {
   const profile = useAppStore((state) => state.profile);
   const complete = useAppStore((state) => state.completeOnboarding);
+  const mode = useAppStore((state) => state.mode);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(false);
   const constrained = Object.values(profile.regions).filter(
     (state) => state === 'avoid' || state === 'limited',
   ).length;
-  const finish = () => {
+  const enterApp = () => {
     complete();
     router.replace('/(tabs)');
+  };
+  const finish = async () => {
+    if (mode !== 'live' || !hasApiConfig) {
+      enterApp();
+      return;
+    }
+    setSyncing(true);
+    setSyncError(false);
+    try {
+      await syncMovementProfile(profile);
+      enterApp();
+    } catch {
+      setSyncError(true);
+      setSyncing(false);
+    }
   };
   return (
     <Screen>
@@ -50,9 +71,21 @@ export default function SummaryScreen() {
           symptoms.
         </Body>
       </Card>
-      <Button icon={Check} onPress={finish}>
+      {syncError ? (
+        <Card tone="warning">
+          <Body>
+            Your profile is saved on this device, but account sync is unavailable right now.
+          </Body>
+        </Card>
+      ) : null}
+      <Button icon={Check} loading={syncing} onPress={() => void finish()}>
         Enter AdaptFit
       </Button>
+      {syncError ? (
+        <Button onPress={enterApp} variant="quiet">
+          Continue without sync
+        </Button>
+      ) : null}
     </Screen>
   );
 }

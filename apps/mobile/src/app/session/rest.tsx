@@ -3,13 +3,14 @@ import { FastForward, TimerReset } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
-import { exercises } from '@/data/catalog';
+import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 export default function RestScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
   const [remaining, setRemaining] = useState(Number(params.rest ?? 45));
-  const exercise = exercises.find((item) => item.slug === params.exercise);
+  const catalog = useAppStore((state) => state.catalog);
+  const exercise = catalog.find((item) => item.slug === params.exercise);
   const currentSet = Number(params.set ?? 1);
   const next = () =>
     router.replace(

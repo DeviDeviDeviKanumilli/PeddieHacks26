@@ -73,3 +73,37 @@ than raw landmarks.
 - Accept the release only when a user can add a movement constraint, see recommendations
   visibly adapt, understand the reason, complete a camera-optional workout, review
   metrics-first analysis, and see progress in guest and authenticated modes.
+
+## Implemented mobile milestone
+
+The application now lives in `apps/mobile` and includes:
+
+- Expo Router stacks plus native Home, Explore, Workout, Progress, and Profile tabs.
+- Six-step onboarding with an interactive body diagram and equivalent labeled region list.
+- A SQLite-persisted guest adapter that remains usable without hosted configuration.
+- Supabase email/password authentication using only the publishable key, persisted native
+  sessions, AppState-aware token refresh, and bearer-token API requests.
+- Profile and accessibility-settings synchronization, deterministic live workout
+  generation, full public catalog hydration, reviewed exercise sources, and live progress.
+- Camera permission disclosure, camera setup, equally prominent no-camera continuation,
+  manual rep counting, pause, timed rest, early completion, and metrics-first analysis.
+- Authenticated session lifecycle calls that submit only counted-rep derived records;
+  simulated guest form values are never persisted to the backend.
+- Account deletion, EAS development/preview/production profiles, Jest and React Native
+  Testing Library coverage, and a committed Maestro guest acceptance flow.
+
+Run the client and focused checks with:
+
+```text
+pnpm dev:mobile
+pnpm dev:mobile:ios
+pnpm dev:mobile:android
+pnpm test:mobile
+pnpm --filter @peddie/mobile build
+```
+
+The iOS and Android export gate succeeds without private environment variables. Physical
+devices must use a reachable API URL rather than `localhost`. The production pose model,
+signed app-store artifacts, hosted live-mode acceptance, Android device pass, and traffic
+inspection remain release gates because they require external credentials, model assets,
+or platform tooling not stored in this repository.

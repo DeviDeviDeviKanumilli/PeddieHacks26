@@ -150,7 +150,19 @@ Exit criteria: the complete reference flow runs as a native iOS and Android appl
 works in guest and authenticated modes, adapts recommendations to movement constraints,
 handles camera denial, and sends only allowlisted derived metrics to the API.
 
-Status: planned. See [the React Native mobile plan](13-react-native-mobile.md).
+Status: the executable mobile milestone is complete. `apps/mobile` now contains the
+native onboarding and five-tab experience, searchable body-map equivalent, adaptive
+discovery, reviewed exercise detail, generated workout review, camera permission and
+no-camera paths, active/rest/completion/analysis flows, local guest persistence,
+Supabase email authentication, movement/settings synchronization, derived count-only
+session uploads, live progress reads, and account deletion. Jest/React Native Testing
+Library coverage, a Maestro guest flow, EAS profiles, CI configuration checks, iOS and
+Android exports, and an iOS simulator lifecycle pass are present.
+
+The production pose-estimation native module, signed preview/store builds, Android
+emulator acceptance, hosted credentials, hosted migration/advisor execution, and final
+network inspection remain environment- or model-delivery-gated. See
+[the React Native mobile plan](13-react-native-mobile.md).
 
 ## Deferred
 

@@ -85,7 +85,10 @@ PATCH  /v1/settings
 
 Movement-profile writes include `expectedVersion`. Stale writes return `409 version_conflict`.
 
-`DELETE /v1/users/me` deletes application data and then the Supabase Auth identity. The operation is retry-safe.
+`DELETE /v1/users/me` deletes the Supabase Auth identity through a server-only service
+client; the database foreign keys cascade application data. Missing identities are
+treated as success so retries remain safe. The route returns `503` when the service
+role key is not configured.
 
 ## Exercise and workout routes
 

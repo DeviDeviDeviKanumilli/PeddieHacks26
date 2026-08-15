@@ -6,6 +6,12 @@ import { HealthResponseSchema, ReadyResponseSchema } from '@peddie/contracts';
 import { createClient } from '@supabase/supabase-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import {
+  type AccountRepository,
+  MemoryAccountRepository,
+  SupabaseAccountRepository,
+  UnavailableAccountRepository,
+} from './account-repository.js';
+import {
   type AuthVerifier,
   authenticateRequest,
   RejectingAuthVerifier,
@@ -20,6 +26,7 @@ import {
 import { type AppConfig, loadConfig } from './config.js';
 import { registerErrorHandling } from './errors.js';
 import { SupabaseMovementProfileRepository } from './profile-repository.js';
+import { MemoryReadinessCheck, type ReadinessCheck, SupabaseReadinessCheck } from './readiness.js';
 import { registerCatalogRoutes } from './routes/catalog.js';
 import { registerProfileRoutes } from './routes/profile.js';
 import { registerSessionRoutes } from './routes/sessions.js';
@@ -49,6 +56,8 @@ export type AppOptions = {
   workouts?: WorkoutRepository;
   users?: UserRepository;
   sessions?: SessionRepository;
+  accounts?: AccountRepository;
+  readiness?: ReadinessCheck;
   authVerifier?: AuthVerifier;
 };
 
@@ -58,6 +67,16 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   const supabase = hasSupabase
     ? createClient(config.supabaseUrl, config.supabaseAnonKey)
     : undefined;
+  const serviceSupabase =
+    hasSupabase && config.supabaseServiceRoleKey !== undefined
+      ? createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: false,
+          },
+        })
+      : undefined;
   const memoryRepository = new MemoryCatalogRepository();
   const catalog =
     options.catalog ??
@@ -78,6 +97,16 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     (supabase === undefined
       ? new MemorySessionRepository(catalog)
       : new SupabaseSessionRepository(supabase));
+  const accounts =
+    options.accounts ??
+    (serviceSupabase !== undefined
+      ? new SupabaseAccountRepository(serviceSupabase)
+      : supabase === undefined
+        ? new MemoryAccountRepository()
+        : new UnavailableAccountRepository());
+  const readiness =
+    options.readiness ??
+    (supabase === undefined ? new MemoryReadinessCheck() : new SupabaseReadinessCheck(supabase));
   const authVerifier =
     options.authVerifier ??
     (supabase === undefined ? new RejectingAuthVerifier() : new SupabaseAuthVerifier(supabase));
@@ -128,13 +157,25 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     async () => ({ data: { service: 'api' as const, status: 'ok' as const } }),
   );
 
-  app.get('/readyz', { schema: { response: { 200: ReadyResponseSchema } } }, async () => ({
-    data: { service: 'api' as const, status: 'ready' as const },
-  }));
+  app.get(
+    '/readyz',
+    { schema: { response: { 200: ReadyResponseSchema, 503: ReadyResponseSchema } } },
+    async (_request, reply) => {
+      try {
+        await readiness.check();
+        return { data: { service: 'api' as const, status: 'ready' as const } };
+      } catch (error) {
+        app.log.warn({ err: error }, 'readiness dependency check failed');
+        return reply
+          .status(503)
+          .send({ data: { service: 'api' as const, status: 'degraded' as const } });
+      }
+    },
+  );
 
   await registerCatalogRoutes(app, { catalog, profiles });
   await registerProfileRoutes(app, { profiles });
-  await registerUserRoutes(app, { users });
+  await registerUserRoutes(app, { users, accounts });
   await registerWorkoutRoutes(app, { catalog, profiles, workouts });
   await registerSessionRoutes(app, { sessions, workouts });
 

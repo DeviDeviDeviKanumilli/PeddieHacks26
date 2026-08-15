@@ -5,6 +5,7 @@ import {
   UserProfileResponseSchema,
 } from '@peddie/contracts';
 import type { FastifyInstance } from 'fastify';
+import type { AccountRepository } from '../account-repository.js';
 import { requireUser } from '../auth.js';
 import { ApiError } from '../errors.js';
 import type { UserRepository } from '../user-repository.js';
@@ -23,7 +24,10 @@ const userIdForRequest = (userId: string | null): string => {
 
 export const registerUserRoutes = async (
   app: FastifyInstance,
-  dependencies: { readonly users: UserRepository },
+  dependencies: {
+    readonly users: UserRepository;
+    readonly accounts: AccountRepository;
+  },
 ): Promise<void> => {
   app.get(
     '/v1/users/me',
@@ -50,6 +54,17 @@ export const registerUserRoutes = async (
       return {
         data: await dependencies.users.patchProfile(userIdForRequest(request.userId), body),
       };
+    },
+  );
+
+  app.delete(
+    '/v1/users/me',
+    {
+      preHandler: requireUser,
+    },
+    async (request, reply) => {
+      await dependencies.accounts.deleteAccount(userIdForRequest(request.userId));
+      return reply.status(204).send();
     },
   );
 

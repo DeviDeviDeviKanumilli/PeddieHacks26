@@ -25,6 +25,21 @@ describe('API health', () => {
     expect(response.json()).toEqual({ data: { service: 'api', status: 'ok' } });
   });
 
+  it('returns degraded readiness when a dependency check fails', async () => {
+    app = await buildApp({
+      logger: false,
+      readiness: {
+        async check() {
+          throw new Error('database unavailable');
+        },
+      },
+    });
+    const response = await app.inject({ method: 'GET', url: '/readyz' });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({ data: { service: 'api', status: 'degraded' } });
+  });
+
   it('publishes an OpenAPI document for the backend routes', async () => {
     app = await buildApp({ logger: false });
     const response = await app.inject({ method: 'GET', url: '/openapi.json' });

@@ -73,4 +73,14 @@ describe('user profile and settings routes', () => {
     });
     expect(current.json().data.defaultRestDurationSeconds).toBe(90);
   });
+
+  it('supports retry-safe account deletion through the account boundary', async () => {
+    app = await buildApp({ logger: false, authVerifier });
+    const headers = { authorization: 'Bearer demo-token' };
+    const first = await app.inject({ method: 'DELETE', url: '/v1/users/me', headers });
+    const retry = await app.inject({ method: 'DELETE', url: '/v1/users/me', headers });
+
+    expect(first.statusCode).toBe(204);
+    expect(retry.statusCode).toBe(204);
+  });
 });

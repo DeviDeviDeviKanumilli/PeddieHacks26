@@ -26,9 +26,10 @@ and row-level security test suite.
 
 Exit criteria: `supabase db reset` succeeds from an empty local database and all RLS tests pass.
 
-Status: schema, seed, RLS policies, grants, indexes, activation validation, and
-disposable PostgreSQL checks are complete. Docker-backed reset and advisor output
-are pending environment availability.
+Status: schema, seed, RLS policies, grants, indexes, activation validation, session
+deletion, account-deletion boundary, and disposable PostgreSQL checks are complete.
+Docker-backed reset, advisor output, and hosted smoke testing are pending environment
+availability.
 
 ## Phase 3 — API foundation
 
@@ -87,8 +88,7 @@ Exit criteria: hosted demo acceptance passes with a complete tracked session.
 Status: pure state-machine, metric-validation, analytics, and progress-baseline
 helpers, contract schemas, memory/Supabase repositories, transactional lifecycle
 functions, derived metric ingestion, completion summaries, history, and progress API
-routes are complete. Hosted verification, deletion smoke tests, and readiness wiring
-remain.
+routes are complete. Hosted verification and deletion smoke tests remain.
 
 ## Phase 7 — Deletion, security, and deployment
 
@@ -99,6 +99,10 @@ remain.
 - Run hosted smoke tests and document rollback steps.
 
 Exit criteria: hosted demo is reproducible, private data is isolated, and deletion is verified.
+
+Status: retry-safe account deletion, dependency-aware readiness, environment guidance,
+and Railway config-as-code are implemented. Hosted migration, advisor, and smoke-test
+verification remain deployment-gated.
 
 ## Deferred
 

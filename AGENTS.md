@@ -57,4 +57,4 @@ For database changes, also run local Supabase reset/migrations, seed validation,
 - The API now also exposes authenticated `/v1/users/me` and `/v1/settings` reads/patches through memory and Supabase repository adapters; nested settings patches are merged and validated.
 - `@peddie/domain` now also contains session state machines, derived-metric validation, exercise analysis, performance-change classification, and progress-baseline helpers; matching API schemas are in `@peddie/contracts`.
 - The API now also exposes workout/exercise session lifecycle, derived metric batches, analysis, activity/progress, and owner-scoped session deletion through memory and Supabase repositories. Session completion and daily-progress rebuilds use transactional Supabase functions; raw pose/media fields are rejected.
-- Account deletion, dependency readiness checks, and Railway deployment wiring are still pending.
+- Account deletion now uses a server-only service-role adapter with retry-safe handling, `/readyz` performs a bounded Supabase dependency check, and `railway.toml` contains backend deployment wiring. Hosted migrations/advisors and smoke tests remain environment-gated.

@@ -100,7 +100,8 @@ The application now lives in `apps/mobile` and includes:
 - Profile and accessibility-settings synchronization, deterministic live workout
   generation, full public catalog hydration, reviewed exercise sources, and live progress.
 - Camera permission disclosure, camera setup, equally prominent no-camera continuation,
-  manual rep counting, pause, timed rest, early completion, and metrics-first analysis.
+  compact in-session tracking-off status, nearby manual rep guidance, pause, timed rest, early
+  completion, and metrics-first analysis.
 - Authenticated session lifecycle calls that submit only counted-rep derived records;
   simulated guest form values are never persisted to the backend.
 - Account deletion, EAS development/preview/production profiles, Jest and React Native

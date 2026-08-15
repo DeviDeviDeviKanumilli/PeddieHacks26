@@ -119,13 +119,18 @@ export default function ActiveSessionScreen() {
                 showMuscleLabels={false}
               />
             </View>
-            <VideoOff color={colors.lavender} size={46} />
-            <Text style={styles.noCameraTitle}>Tracking is off</Text>
-            <Text style={styles.noCameraBody}>
-              Use the rep button whenever you complete a comfortable repetition.
-            </Text>
           </View>
         )}
+        {!tracking ? (
+          <View
+            accessible
+            accessibilityLabel="Camera tracking is off. Repetitions are counted manually."
+            style={styles.trackingBadge}
+          >
+            <VideoOff color={colors.warning} size={16} strokeWidth={2.25} />
+            <Text style={styles.trackingBadgeText}>Tracking off</Text>
+          </View>
+        ) : null}
         {demoTracking ? (
           <View style={styles.demoBadge}>
             <Text style={styles.demoText}>Simulated guest tracking</Text>
@@ -136,6 +141,9 @@ export default function ActiveSessionScreen() {
             {reps}
           </Text>
           <Text style={styles.repTarget}>of {targetReps} reps</Text>
+          {!tracking ? (
+            <Text style={styles.manualHint}>Tap Count rep after each repetition</Text>
+          ) : null}
         </View>
         {tracking ? (
           <View style={styles.feedback}>
@@ -213,19 +221,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1D1D29',
     flex: 1,
-    gap: spacing.sm,
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
-  noCameraMap: { maxWidth: 310, opacity: 0.9, width: '88%' },
-  noCameraTitle: { color: colors.surface, fontFamily: typography.display, fontSize: 30 },
-  noCameraBody: {
-    color: colors.neutral,
-    fontFamily: typography.body,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
+  noCameraMap: { maxWidth: 360, opacity: 0.9, width: '92%' },
+  trackingBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.warningSoft,
+    borderRadius: radii.pill,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    position: 'absolute',
+    right: spacing.md,
+    top: spacing.md,
+    zIndex: 2,
   },
+  trackingBadgeText: { color: colors.warning, fontFamily: typography.semibold, fontSize: 12 },
   demoBadge: {
     backgroundColor: 'rgba(20,20,30,0.78)',
     borderRadius: radii.pill,
@@ -248,6 +261,12 @@ const styles = StyleSheet.create({
   },
   rep: { color: colors.surface, fontFamily: typography.display, fontSize: 82, lineHeight: 84 },
   repTarget: { color: colors.lavenderSoft, fontFamily: typography.semibold, fontSize: 15 },
+  manualHint: {
+    color: colors.neutral,
+    fontFamily: typography.medium,
+    fontSize: 11,
+    marginTop: spacing.xs,
+  },
   feedback: {
     alignItems: 'center',
     backgroundColor: colors.surface,

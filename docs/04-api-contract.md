@@ -51,6 +51,12 @@ GET /v1/exercises/:exerciseId
 
 Exercise filters include search, body region, category, position, equipment, difficulty, tracking support, sort, cursor, and limit. `compatible=true` requires authentication.
 
+Exercise collections return compact `ExerciseSummary` values. The single-exercise route
+returns the additive `ExerciseDetail` contract with reviewed instructions, safety cues,
+adaptations, body and capability demands, equipment options, muscles, approved source
+attribution, and tracking profile key/version. Native clients must use this detail
+contract instead of inventing exercise guidance locally.
+
 The public catalog and reference routes, authenticated exercise compatibility route,
 typed error envelope, OpenAPI document, request IDs, and route-specific rate limits are
 implemented in `apps/api`. Supabase-backed catalog/profile adapters are selected when

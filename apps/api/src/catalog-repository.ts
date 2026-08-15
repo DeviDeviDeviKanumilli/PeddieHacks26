@@ -1,4 +1,4 @@
-import type { ExerciseSummary } from '@peddie/contracts';
+import type { ExerciseDetail, ExerciseSummary } from '@peddie/contracts';
 import { CURATED_EXERCISES, type ExerciseCandidate, type MovementProfile } from '@peddie/domain';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ApiError } from './errors.js';
@@ -48,7 +48,7 @@ export interface CatalogRepository {
   getReferenceData(): Promise<ReferenceData>;
   listExerciseCandidates(): Promise<readonly ExerciseCandidate[]>;
   listExercises(filters: ExerciseListFilters): Promise<ExercisePage>;
-  getExercise(idOrSlug: string): Promise<ExerciseSummary | null>;
+  getExercise(idOrSlug: string): Promise<ExerciseDetail | null>;
   getExerciseCandidate(idOrSlug: string): Promise<ExerciseCandidate | null>;
 }
 
@@ -115,6 +115,45 @@ const summaryFor = (candidate: ExerciseCandidate): ExerciseSummary => ({
   defaultPrescription: prescriptionFor(candidate),
   trackingSupported: candidate.trackingProfileKey !== undefined,
   contentVersion: 1,
+});
+
+const detailFor = (candidate: ExerciseCandidate): ExerciseDetail => ({
+  ...summaryFor(candidate),
+  instructions: [
+    'Set up in a stable position and choose a comfortable range.',
+    'Move slowly with control while breathing normally.',
+    'Return to the starting position before the next repetition.',
+  ],
+  safetyCues: [
+    'Stop for sharp pain, dizziness, or unexpected symptoms.',
+    'Reduce the range, load, or pace whenever control changes.',
+  ],
+  adaptations: [
+    'Use a smaller range or fewer repetitions.',
+    'Add stable support or choose the seated alternative when available.',
+  ],
+  bodyDemands: [...candidate.bodyDemands],
+  capabilityDemands: [...candidate.capabilityDemands],
+  equipmentOptions: [...candidate.equipmentOptions],
+  muscles: [
+    {
+      muscleGroupId: candidate.primaryRegionIds.at(0) ?? 'general',
+      role: 'primary',
+      intensity: Math.max(1, Math.min(5, candidate.difficulty + 1)),
+    },
+  ],
+  sources: [
+    {
+      title: 'AdaptFit reviewed general-wellness exercise catalog',
+      publisher: 'AdaptFit',
+      url: 'https://www.cdc.gov/physical-activity/php/about/index.html',
+      publicationYear: null,
+    },
+  ],
+  trackingProfile:
+    candidate.trackingProfileKey === undefined
+      ? null
+      : { key: candidate.trackingProfileKey, version: 1 },
 });
 
 const referenceData: ReferenceData = {
@@ -296,11 +335,11 @@ export class MemoryCatalogRepository implements CatalogRepository, MovementProfi
     };
   }
 
-  async getExercise(idOrSlug: string): Promise<ExerciseSummary | null> {
+  async getExercise(idOrSlug: string): Promise<ExerciseDetail | null> {
     const candidate = this.candidates.find(
       (item) => item.id === idOrSlug || item.slug === idOrSlug,
     );
-    return candidate === undefined ? null : summaryFor(candidate);
+    return candidate === undefined ? null : detailFor(candidate);
   }
 
   async getExerciseCandidate(idOrSlug: string): Promise<ExerciseCandidate | null> {
@@ -365,6 +404,13 @@ const rowArray = (row: Row, key: string): readonly Row[] => {
   const value = row[key];
   return Array.isArray(value) ? value.map(rowRecord) : [];
 };
+const rowStringArray = (row: Row, key: string): string[] => {
+  const value = row[key];
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    throw new Error(`Catalog row is missing ${key}.`);
+  }
+  return value as string[];
+};
 
 const mapSupabaseSummary = (row: Row): ExerciseSummary => ({
   id: rowString(row, 'id'),
@@ -380,6 +426,56 @@ const mapSupabaseSummary = (row: Row): ExerciseSummary => ({
   trackingSupported: rowArray(row, 'exercise_tracking_profiles').length > 0,
   contentVersion: rowNumber(row, 'content_version', 1),
 });
+
+const mapSupabaseDetail = (row: Row): ExerciseDetail => {
+  const tracking = rowArray(row, 'exercise_tracking_profiles').at(0);
+  return {
+    ...mapSupabaseSummary(row),
+    instructions: rowStringArray(row, 'instructions'),
+    safetyCues: rowStringArray(row, 'safety_cues'),
+    adaptations: rowStringArray(row, 'adaptations'),
+    bodyDemands: rowArray(row, 'exercise_body_demands').map((demand) => ({
+      regionId: rowString(demand, 'body_region_id'),
+      involvement: rowString(
+        demand,
+        'involvement',
+      ) as ExerciseDetail['bodyDemands'][number]['involvement'],
+      demand: rowString(demand, 'demand') as ExerciseDetail['bodyDemands'][number]['demand'],
+    })),
+    capabilityDemands: rowArray(row, 'exercise_capability_demands').map((demand) => ({
+      capabilityId: rowString(demand, 'capability_id'),
+      demand: rowString(demand, 'demand') as ExerciseDetail['capabilityDemands'][number]['demand'],
+      required: demand.required === true,
+    })),
+    equipmentOptions: rowArray(row, 'exercise_equipment_options').map((option) => ({
+      equipmentId: rowString(option, 'equipment_id'),
+      mode: rowString(option, 'mode') as ExerciseDetail['equipmentOptions'][number]['mode'],
+      ...(typeof option.or_group === 'string' ? { orGroup: option.or_group } : {}),
+    })),
+    muscles: rowArray(row, 'exercise_muscles').map((muscle) => ({
+      muscleGroupId: rowString(muscle, 'muscle_group_id'),
+      role: rowString(muscle, 'role') as ExerciseDetail['muscles'][number]['role'],
+      intensity: rowNumber(muscle, 'intensity'),
+    })),
+    sources: rowArray(row, 'exercise_source_links').map((link) => {
+      const source = rowRecord(link.exercise_sources);
+      return {
+        title: rowString(source, 'title'),
+        publisher: rowString(source, 'publisher'),
+        url: rowString(source, 'url'),
+        publicationYear:
+          typeof source.publication_year === 'number' ? source.publication_year : null,
+      };
+    }),
+    trackingProfile:
+      tracking === undefined
+        ? null
+        : {
+            key: rowString(tracking, 'tracking_key'),
+            version: rowNumber(tracking, 'version'),
+          },
+  };
+};
 
 export class SupabaseCatalogRepository implements CatalogRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -545,11 +641,11 @@ export class SupabaseCatalogRepository implements CatalogRepository {
     return paginateRows(rows, filters);
   }
 
-  async getExercise(idOrSlug: string): Promise<ExerciseSummary | null> {
+  async getExercise(idOrSlug: string): Promise<ExerciseDetail | null> {
     const query = this.client
       .from('exercises')
       .select(
-        'id,slug,name,summary,category,position,difficulty,default_prescription,content_version,exercise_tracking_profiles(exercise_id)',
+        'id,slug,name,summary,category,position,difficulty,default_prescription,instructions,safety_cues,adaptations,content_version,exercise_tracking_profiles(tracking_key,version),exercise_body_demands(body_region_id,involvement,demand),exercise_capability_demands(capability_id,demand,required),exercise_equipment_options(equipment_id,mode,or_group),exercise_muscles(muscle_group_id,role,intensity),exercise_source_links(exercise_sources(title,publisher,url,publication_year))',
       )
       .eq('active', true);
     const result = await (isUuid(idOrSlug)
@@ -564,7 +660,7 @@ export class SupabaseCatalogRepository implements CatalogRepository {
         detail: 'The catalog dependency could not be reached.',
       });
     }
-    return result.data === null ? null : mapSupabaseSummary(rowRecord(result.data));
+    return result.data === null ? null : mapSupabaseDetail(rowRecord(result.data));
   }
 
   async getExerciseCandidate(idOrSlug: string): Promise<ExerciseCandidate | null> {

@@ -1,4 +1,4 @@
-import type { ExerciseSummary } from '@peddie/contracts';
+import type { ExerciseDetail, ExerciseSummary } from '@peddie/contracts';
 import type { ExerciseCandidate } from '@peddie/domain';
 import type {
   BodyRegionReference,
@@ -54,6 +54,9 @@ const isUuid = (value: string): boolean =>
 
 const prescriptionFor = (value: unknown): ExerciseSummary['defaultPrescription'] =>
   value as ExerciseSummary['defaultPrescription'];
+
+const stringArrayFor = (value: Prisma.JsonValue): string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string') ? value : [];
 
 const mapSummary = (row: {
   readonly id: string;
@@ -311,7 +314,7 @@ export class PrismaCatalogRepository implements CatalogRepository {
     }
   }
 
-  async getExercise(idOrSlug: string): Promise<ExerciseSummary | null> {
+  async getExercise(idOrSlug: string): Promise<ExerciseDetail | null> {
     try {
       return await withAnonymousPrismaContext(this.database, async (database) => {
         const row = await database.exercises.findFirst({
@@ -325,11 +328,77 @@ export class PrismaCatalogRepository implements CatalogRepository {
             position: true,
             difficulty: true,
             default_prescription: true,
+            instructions: true,
+            safety_cues: true,
+            adaptations: true,
             content_version: true,
-            exercise_tracking_profiles: { select: { exercise_id: true } },
+            exercise_tracking_profiles: { select: { tracking_key: true, version: true } },
+            exercise_body_demands: {
+              select: { body_region_id: true, involvement: true, demand: true },
+            },
+            exercise_capability_demands: {
+              select: { capability_id: true, demand: true, required: true },
+            },
+            exercise_equipment_options: {
+              select: { equipment_id: true, mode: true, or_group: true },
+            },
+            exercise_muscles: {
+              select: { muscle_group_id: true, role: true, intensity: true },
+            },
+            exercise_source_links: {
+              where: { exercise_sources: { review_status: 'approved' } },
+              select: {
+                exercise_sources: {
+                  select: { title: true, publisher: true, url: true, publication_year: true },
+                },
+              },
+            },
           },
         });
-        return row === null ? null : mapSummary(row);
+        if (row === null) return null;
+        return {
+          ...mapSummary({
+            ...row,
+            exercise_tracking_profiles:
+              row.exercise_tracking_profiles === null ? null : { exercise_id: row.id },
+          }),
+          instructions: stringArrayFor(row.instructions),
+          safetyCues: stringArrayFor(row.safety_cues),
+          adaptations: stringArrayFor(row.adaptations),
+          bodyDemands: row.exercise_body_demands.map((demand) => ({
+            regionId: demand.body_region_id,
+            involvement: demand.involvement as ExerciseDetail['bodyDemands'][number]['involvement'],
+            demand: demand.demand as ExerciseDetail['bodyDemands'][number]['demand'],
+          })),
+          capabilityDemands: row.exercise_capability_demands.map((demand) => ({
+            capabilityId: demand.capability_id,
+            demand: demand.demand as ExerciseDetail['capabilityDemands'][number]['demand'],
+            required: demand.required,
+          })),
+          equipmentOptions: row.exercise_equipment_options.map((option) => ({
+            equipmentId: option.equipment_id,
+            mode: option.mode as ExerciseDetail['equipmentOptions'][number]['mode'],
+            ...(option.or_group === null ? {} : { orGroup: option.or_group }),
+          })),
+          muscles: row.exercise_muscles.map((muscle) => ({
+            muscleGroupId: muscle.muscle_group_id,
+            role: muscle.role as ExerciseDetail['muscles'][number]['role'],
+            intensity: muscle.intensity,
+          })),
+          sources: row.exercise_source_links.map(({ exercise_sources: source }) => ({
+            title: source.title,
+            publisher: source.publisher,
+            url: source.url,
+            publicationYear: source.publication_year,
+          })),
+          trackingProfile:
+            row.exercise_tracking_profiles === null
+              ? null
+              : {
+                  key: row.exercise_tracking_profiles.tracking_key,
+                  version: row.exercise_tracking_profiles.version,
+                },
+        };
       });
     } catch (error) {
       if (error instanceof ApiError) throw error;

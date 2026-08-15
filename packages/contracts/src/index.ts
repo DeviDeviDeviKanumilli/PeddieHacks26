@@ -207,6 +207,78 @@ export const ExerciseSummarySchema = Type.Object({
 
 export type ExerciseSummary = Static<typeof ExerciseSummarySchema>;
 
+export const ExerciseDetailSchema = Type.Intersect([
+  ExerciseSummarySchema,
+  Type.Object({
+    instructions: Type.Array(NonEmptyStringSchema, { minItems: 1, maxItems: 20 }),
+    safetyCues: Type.Array(NonEmptyStringSchema, { minItems: 1, maxItems: 20 }),
+    adaptations: Type.Array(NonEmptyStringSchema, { minItems: 1, maxItems: 20 }),
+    bodyDemands: Type.Array(
+      Type.Object({
+        regionId: NonEmptyStringSchema,
+        involvement: Type.Union([
+          Type.Literal('primary'),
+          Type.Literal('secondary'),
+          Type.Literal('stabilizing'),
+        ]),
+        demand: Type.Union([
+          Type.Literal('minimal'),
+          Type.Literal('moderate'),
+          Type.Literal('high'),
+        ]),
+      }),
+      { minItems: 1, maxItems: 30 },
+    ),
+    capabilityDemands: Type.Array(
+      Type.Object({
+        capabilityId: NonEmptyStringSchema,
+        demand: Type.Union([
+          Type.Literal('minimal'),
+          Type.Literal('moderate'),
+          Type.Literal('high'),
+        ]),
+        required: Type.Boolean(),
+      }),
+      { maxItems: 30 },
+    ),
+    equipmentOptions: Type.Array(
+      Type.Object({
+        equipmentId: NonEmptyStringSchema,
+        mode: Type.Union([Type.Literal('required'), Type.Literal('optional')]),
+        orGroup: Type.Optional(NonEmptyStringSchema),
+      }),
+      { maxItems: 30 },
+    ),
+    muscles: Type.Array(
+      Type.Object({
+        muscleGroupId: NonEmptyStringSchema,
+        role: Type.Union([
+          Type.Literal('primary'),
+          Type.Literal('secondary'),
+          Type.Literal('stabilizer'),
+        ]),
+        intensity: Type.Integer({ minimum: 1, maximum: 5 }),
+      }),
+      { minItems: 1, maxItems: 30 },
+    ),
+    sources: Type.Array(
+      Type.Object({
+        title: NonEmptyStringSchema,
+        publisher: NonEmptyStringSchema,
+        url: Type.String({ minLength: 1, maxLength: 2048 }),
+        publicationYear: Type.Union([Type.Integer({ minimum: 1900, maximum: 2100 }), Type.Null()]),
+      }),
+      { minItems: 1, maxItems: 20 },
+    ),
+    trackingProfile: Type.Union([
+      Type.Object({ key: NonEmptyStringSchema, version: Type.Integer({ minimum: 1 }) }),
+      Type.Null(),
+    ]),
+  }),
+]);
+
+export type ExerciseDetail = Static<typeof ExerciseDetailSchema>;
+
 export const GeneratedWorkoutItemSchema = Type.Object({
   id: UuidSchema,
   position: Type.Integer({ minimum: 1, maximum: 6 }),

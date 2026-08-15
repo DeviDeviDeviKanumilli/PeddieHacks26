@@ -1,5 +1,6 @@
 import {
   CompatibilityResultSchema,
+  ExerciseDetailSchema,
   ExerciseSummarySchema,
   PageSchema,
   ReferenceDataResponseSchema,
@@ -20,7 +21,7 @@ const ExerciseListResponseSchema = Type.Object({
   data: Type.Array(ExerciseSummarySchema),
   page: PageSchema,
 });
-const ExerciseResponseSchema = Type.Object({ data: ExerciseSummarySchema });
+const ExerciseResponseSchema = Type.Object({ data: ExerciseDetailSchema });
 const CompatibilityResponseSchema = Type.Object({ data: CompatibilityResultSchema });
 const ExerciseIdParamsSchema = Type.Object({
   exerciseId: Type.String({ minLength: 1, maxLength: 120 }),

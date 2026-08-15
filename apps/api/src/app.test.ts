@@ -76,6 +76,28 @@ describe('API health', () => {
     });
   });
 
+  it('serves reviewed exercise detail required by native clients', async () => {
+    app = await buildApp({ logger: false });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/exercises/seated-biceps-curl',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toMatchObject({
+      slug: 'seated-biceps-curl',
+      instructions: expect.any(Array),
+      safetyCues: expect.any(Array),
+      adaptations: expect.any(Array),
+      bodyDemands: expect.any(Array),
+      capabilityDemands: expect.any(Array),
+      equipmentOptions: expect.any(Array),
+      muscles: expect.any(Array),
+      sources: expect.any(Array),
+      trackingProfile: { key: 'seated-biceps-curl-v1', version: 1 },
+    });
+  });
+
   it('protects compatibility and accepts a valid bearer token', async () => {
     app = await buildApp({ logger: false, authVerifier: testAuthVerifier });
     const exerciseId = '00000000-0000-4000-8000-000000000001';

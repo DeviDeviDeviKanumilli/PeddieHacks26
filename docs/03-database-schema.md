@@ -104,3 +104,25 @@ completion or deletion.
 The Docker-backed `supabase db reset` and Supabase advisors are still environment-gated
 because the current machine has no Docker daemon. `pnpm test:db` provides a repeatable
 SQL-test entrypoint whenever `SUPABASE_DB_URL` or `DATABASE_URL` is available.
+
+## Prisma ORM boundary
+
+`prisma/schema.prisma` is introspected from the existing `public` tables plus the
+`auth.users` foreign-key target. `prisma.config.ts` uses `DIRECT_URL` for CLI
+operations and `DATABASE_URL` as a fallback for client generation. The generated
+client is written to `apps/api/src/generated/prisma` and is intentionally ignored
+from Git; `pnpm prisma:generate` recreates it on install/build.
+
+Prisma owns typed table queries in the catalog, profile, user/settings, workout, and
+session-history repositories. Each request transaction sets the Postgres role and
+`request.jwt.claim.sub` before executing queries, preserving the existing forced-RLS
+policies. The API must therefore use a connection role that can `SET LOCAL ROLE`
+to `anon` and `authenticated` (the Supabase Postgres roles provide this in hosted
+deployments).
+
+Supabase SQL remains canonical for RLS policies, grants, triggers, check constraints,
+catalog-validation functions, Auth hooks, and lifecycle RPCs. Do not run `prisma
+migrate dev`, `prisma db push`, or `prisma migrate reset` against the Supabase
+project: those commands cannot reproduce the security objects and can damage the
+Auth schema. Change tables in `supabase/migrations`, apply them with the Supabase
+CLI, then run `DIRECT_URL=... pnpm exec prisma db pull` and `pnpm prisma:generate`.

@@ -101,6 +101,23 @@ Status: retry-safe account deletion, dependency-aware readiness, environment gui
 and Railway config-as-code are implemented. Hosted migration, advisor, and smoke-test
 verification remain deployment-gated.
 
+## Phase 8 — Prisma ORM migration
+
+- Add Prisma 7 with the PostgreSQL driver adapter and generated client.
+- Introspect the existing public schema without replacing Supabase migrations.
+- Move catalog, profile/settings, workout, readiness, session-history, and progress
+  table access to typed Prisma repositories.
+- Establish Postgres `anon`/`authenticated` roles and JWT subject claims inside Prisma
+  transactions so forced RLS continues to enforce ownership.
+- Keep Supabase Auth, Auth Admin deletion, and lifecycle RPCs on `supabase-js`.
+- Add Prisma generation, smoke checks, build/CI gates, and deployment documentation.
+
+Exit criteria: clean checkout generation/build, RLS-scoped Prisma smoke check, existing
+SQL security suite, API tests, and OpenAPI checks all pass.
+
+Status: complete for the current backend scope. The deliberate Supabase RPC boundary
+remains documented in [the Prisma migration boundary](11-prisma-migration.md).
+
 ## Deferred
 
 - Frontend implementation and design references.

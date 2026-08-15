@@ -20,9 +20,10 @@
 
 - Listen on Railway's injected `PORT`.
 - Bind to host `::`.
-- Configure `/readyz` as the deployment health check; it returns `503 degraded` when the Supabase dependency check fails.
+- Configure `/readyz` as the deployment health check; it returns `503 degraded` when the Postgres/Prisma dependency check fails.
 - Use `/healthz` as the process-only liveness check.
 - Require `SUPABASE_URL` and `SUPABASE_ANON_KEY` at API startup; the server never uses a service key for client-facing requests.
+- Require `DATABASE_URL` at API startup for the Prisma PostgreSQL adapter. Prefer a pooled runtime URL; keep `DIRECT_URL` for migration/introspection tooling.
 - Expose `/openapi.json` and `/docs` for the versioned backend contract.
 - Use config-as-code for build, start, healthcheck, restart policy, and draining.
 - Deploy migrations before API code that requires them.
@@ -38,6 +39,8 @@ CORS_ORIGINS
 SUPABASE_URL
 SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
+DATABASE_URL
+DIRECT_URL
 RATE_LIMIT_GENERAL
 RATE_LIMIT_GENERATION
 RATE_LIMIT_METRICS
@@ -55,7 +58,8 @@ endpoint and the database seed does not contain credentials.
 
 1. Run `pnpm format`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
    `pnpm openapi:check`, and `pnpm build`.
-2. Run local `supabase db reset`, then `pnpm test:db`.
+2. Run local `supabase db reset`, then `pnpm test:db` and `pnpm test:prisma` with
+   `DATABASE_URL` or `SUPABASE_DB_URL` set.
 3. Review migration diff and security/performance advisors.
 4. Apply migrations to the hosted demo.
 5. Deploy the API service.

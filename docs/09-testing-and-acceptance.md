@@ -82,6 +82,7 @@ pnpm test:db
 - `pnpm build`
 - `pnpm test:integration` (the API Fastify-injection suite)
 - `pnpm openapi:check` (required route/path smoke check)
+- `pnpm test:prisma` (RLS-scoped Prisma catalog smoke check when a database URL is set)
 - Disposable PostgreSQL execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
 - `supabase/tests/profile_rpc.sql` atomic profile replacement and version checks

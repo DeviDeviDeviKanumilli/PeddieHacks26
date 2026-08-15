@@ -21,12 +21,20 @@ import { type AppConfig, loadConfig } from './config.js';
 import { registerErrorHandling } from './errors.js';
 import { SupabaseMovementProfileRepository } from './profile-repository.js';
 import { registerCatalogRoutes } from './routes/catalog.js';
+import { registerProfileRoutes } from './routes/profile.js';
+import { registerWorkoutRoutes } from './routes/workouts.js';
+import {
+  MemoryWorkoutRepository,
+  SupabaseWorkoutRepository,
+  type WorkoutRepository,
+} from './workout-repository.js';
 
 export type AppOptions = {
   logger?: boolean;
   config?: AppConfig;
   catalog?: CatalogRepository;
   profiles?: MovementProfileRepository;
+  workouts?: WorkoutRepository;
   authVerifier?: AuthVerifier;
 };
 
@@ -43,6 +51,11 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   const profiles =
     options.profiles ??
     (supabase === undefined ? memoryRepository : new SupabaseMovementProfileRepository(supabase));
+  const workouts =
+    options.workouts ??
+    (supabase === undefined
+      ? new MemoryWorkoutRepository()
+      : new SupabaseWorkoutRepository(supabase));
   const authVerifier =
     options.authVerifier ??
     (supabase === undefined ? new RejectingAuthVerifier() : new SupabaseAuthVerifier(supabase));
@@ -95,6 +108,8 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   }));
 
   await registerCatalogRoutes(app, { catalog, profiles });
+  await registerProfileRoutes(app, { profiles });
+  await registerWorkoutRoutes(app, { catalog, profiles, workouts });
 
   app.get('/openapi.json', async () => app.swagger());
 

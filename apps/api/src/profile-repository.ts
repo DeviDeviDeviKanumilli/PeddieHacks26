@@ -86,12 +86,18 @@ export class SupabaseMovementProfileRepository implements MovementProfileReposit
     expectedVersion: number,
     profile: Omit<MovementProfile, 'version'>,
   ): Promise<MovementProfile> {
-    const { data: nextVersion, error: versionError } = await this.client.rpc(
-      'bump_movement_profile_version',
-      { p_user_id: userId, p_expected_version: expectedVersion },
-    );
-    if (versionError) {
-      if (versionError.message.toLowerCase().includes('version conflict')) {
+    const result = await this.client.rpc('replace_movement_profile', {
+      p_user_id: userId,
+      p_expected_version: expectedVersion,
+      p_body_regions: profile.bodyRegions,
+      p_capabilities: profile.capabilities,
+      p_equipment_ids: profile.equipmentIds,
+      p_goal_ids: profile.goalIds,
+      p_intensity_preference: profile.intensityPreference,
+    });
+    if (result.error) {
+      const message = result.error.message.toLowerCase();
+      if (message.includes('version conflict')) {
         throw new ApiError({
           statusCode: 409,
           code: 'version_conflict',
@@ -99,60 +105,20 @@ export class SupabaseMovementProfileRepository implements MovementProfileReposit
           detail: 'The movement profile changed since it was loaded.',
         });
       }
-      throw dependencyError('The profile version could not be updated.');
-    }
-
-    const next = typeof nextVersion === 'number' ? nextVersion : expectedVersion + 1;
-    const deletes = await Promise.all([
-      this.client.from('user_body_regions').delete().eq('user_id', userId),
-      this.client.from('user_capabilities').delete().eq('user_id', userId),
-      this.client.from('user_equipment').delete().eq('user_id', userId),
-      this.client.from('user_goals').delete().eq('user_id', userId),
-    ]);
-    if (deletes.some((result) => result.error)) {
-      throw dependencyError('The movement profile selections could not be replaced.');
-    }
-
-    const bodyRows = Object.entries(profile.bodyRegions).map(([body_region_id, state]) => ({
-      user_id: userId,
-      body_region_id,
-      state,
-    }));
-    const capabilityRows = Object.entries(profile.capabilities).map(([capability_id, state]) => ({
-      user_id: userId,
-      capability_id,
-      state,
-    }));
-    const equipmentRows = profile.equipmentIds.map((equipment_id) => ({
-      user_id: userId,
-      equipment_id,
-    }));
-    const goalRows = profile.goalIds.map((goal_id, index) => ({
-      user_id: userId,
-      goal_id,
-      priority: index + 1,
-    }));
-    const writes = await Promise.all([
-      bodyRows.length === 0
-        ? Promise.resolve({ error: null })
-        : this.client.from('user_body_regions').insert(bodyRows),
-      capabilityRows.length === 0
-        ? Promise.resolve({ error: null })
-        : this.client.from('user_capabilities').insert(capabilityRows),
-      equipmentRows.length === 0
-        ? Promise.resolve({ error: null })
-        : this.client.from('user_equipment').insert(equipmentRows),
-      goalRows.length === 0
-        ? Promise.resolve({ error: null })
-        : this.client.from('user_goals').insert(goalRows),
-      this.client
-        .from('profiles')
-        .update({ intensity_preference: profile.intensityPreference })
-        .eq('user_id', userId),
-    ]);
-    if (writes.some((result) => result.error)) {
+      if (message.includes('not owner')) {
+        throw new ApiError({
+          statusCode: 403,
+          code: 'forbidden',
+          title: 'Forbidden',
+          detail: 'The movement profile does not belong to the signed-in user.',
+        });
+      }
       throw dependencyError('The movement profile could not be saved.');
     }
-    return { ...profile, version: next };
+    const data = rowRecord(result.data);
+    return {
+      ...profile,
+      version: typeof data.version === 'number' ? data.version : expectedVersion + 1,
+    };
   }
 }

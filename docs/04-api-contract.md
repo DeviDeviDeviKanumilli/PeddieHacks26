@@ -57,6 +57,12 @@ implemented in `apps/api`. Supabase-backed catalog/profile adapters are selected
 the required environment variables are present; tests use an injected deterministic
 repository and auth verifier.
 
+Movement-profile reads/writes and generated/manual workout CRUD are also implemented.
+Generated requests are stored with a client request ID and SHA-256 request hash;
+replaying the same content returns the original workout, while reusing the ID with
+different content returns `409 idempotency_conflict`. Manual caution items require
+acknowledgement of every returned warning code.
+
 ## Profile routes
 
 ```http

@@ -55,8 +55,9 @@ the remaining authenticated resources are pending.
 
 Exit criteria: full compatibility matrix and equipment behavior are covered by tests.
 
-Status: domain rules and unit coverage are in place; persistence-backed profile
-routes and API integration tests remain.
+Status: domain rules, persistence-backed profile routes, compatibility responses,
+and API integration tests are in place. Alternatives and broader profile/settings
+resources remain.
 
 ## Phase 5 — Workouts
 
@@ -66,6 +67,10 @@ routes and API integration tests remain.
 - Add optimistic concurrency and idempotent creates.
 
 Exit criteria: generated workouts are duration-bounded and never contain hard conflicts.
+
+Status: generated and manual workout creation, deterministic compatibility checks,
+idempotent client request IDs, list/get, optimistic patching, and archive behavior
+are implemented and covered by API tests. Workout-session execution remains.
 
 ## Phase 6 — Sessions and analytics
 

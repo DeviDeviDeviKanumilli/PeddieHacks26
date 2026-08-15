@@ -73,6 +73,70 @@ export const MovementProfileSchema = Type.Object({
 
 export type MovementProfile = Static<typeof MovementProfileSchema>;
 
+export const UpdateMovementProfileRequestSchema = Type.Object({
+  expectedVersion: Type.Integer({ minimum: 1 }),
+  bodyRegions: Type.Record(NonEmptyStringSchema, BodyRegionStateSchema),
+  capabilities: Type.Record(NonEmptyStringSchema, CapabilityStateSchema),
+  equipmentIds: Type.Array(NonEmptyStringSchema, { maxItems: 64, uniqueItems: true }),
+  goalIds: Type.Array(NonEmptyStringSchema, { maxItems: 32, uniqueItems: true }),
+  intensityPreference: IntensityPreferenceSchema,
+});
+
+export type UpdateMovementProfileRequest = Static<typeof UpdateMovementProfileRequestSchema>;
+
+export const ExperienceLevelSchema = Type.Union([
+  Type.Literal('beginner'),
+  Type.Literal('intermediate'),
+  Type.Literal('advanced'),
+]);
+
+export const UserProfileSchema = Type.Object({
+  userId: UuidSchema,
+  displayName: Type.Union([Type.String({ maxLength: 120 }), Type.Null()]),
+  timezone: NonEmptyStringSchema,
+  experienceLevel: ExperienceLevelSchema,
+  intensityPreference: IntensityPreferenceSchema,
+  onboardingCompletedAt: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+});
+
+export const UserProfileResponseSchema = Type.Object({ data: UserProfileSchema });
+export type UserProfile = Static<typeof UserProfileSchema>;
+
+export const UserProfilePatchSchema = Type.Object({
+  displayName: Type.Optional(Type.Union([Type.String({ maxLength: 120 }), Type.Null()])),
+  timezone: Type.Optional(NonEmptyStringSchema),
+  experienceLevel: Type.Optional(ExperienceLevelSchema),
+  intensityPreference: Type.Optional(IntensityPreferenceSchema),
+});
+
+export const AccessibilityPreferencesSchema = Type.Object({
+  reducedMotion: Type.Optional(Type.Boolean()),
+  highContrast: Type.Optional(Type.Boolean()),
+  largerText: Type.Optional(Type.Boolean()),
+  screenReader: Type.Optional(Type.Boolean()),
+});
+
+export const FeedbackPreferencesSchema = Type.Object({
+  spokenFeedback: Type.Optional(Type.Boolean()),
+  visualFeedback: Type.Optional(Type.Boolean()),
+  hapticFeedback: Type.Optional(Type.Boolean()),
+  detailLevel: Type.Optional(
+    Type.Union([Type.Literal('brief'), Type.Literal('standard'), Type.Literal('detailed')]),
+  ),
+});
+
+export const SettingsSchema = Type.Object({
+  accessibilityPreferences: AccessibilityPreferencesSchema,
+  feedbackPreferences: FeedbackPreferencesSchema,
+  poseOverlayEnabled: Type.Boolean(),
+  defaultRestDurationSeconds: Type.Integer({ minimum: 0, maximum: 300 }),
+});
+
+export const SettingsResponseSchema = Type.Object({ data: SettingsSchema });
+export type Settings = Static<typeof SettingsSchema>;
+
+export const SettingsPatchSchema = Type.Partial(SettingsSchema);
+
 export const CompatibilityStatusSchema = Type.Union([
   Type.Literal('compatible'),
   Type.Literal('caution'),
@@ -142,6 +206,7 @@ export const ExerciseSummarySchema = Type.Object({
 export type ExerciseSummary = Static<typeof ExerciseSummarySchema>;
 
 export const GeneratedWorkoutItemSchema = Type.Object({
+  id: UuidSchema,
   position: Type.Integer({ minimum: 1, maximum: 6 }),
   exerciseId: UuidSchema,
   exerciseSlug: NonEmptyStringSchema,
@@ -174,6 +239,12 @@ export type GenerateWorkoutRequest = Static<typeof GenerateWorkoutRequestSchema>
 
 export const GenerateWorkoutResponseSchema = Type.Object({
   data: Type.Object({
+    workoutId: UuidSchema,
+    source: Type.Literal('generated'),
+    status: Type.Union([Type.Literal('draft'), Type.Literal('active')]),
+    version: Type.Integer({ minimum: 1 }),
+    createdAt: Type.String({ minLength: 1 }),
+    updatedAt: Type.String({ minLength: 1 }),
     engineVersion: NonEmptyStringSchema,
     requestedDurationMinutes: Type.Integer({ minimum: 5, maximum: 45 }),
     totalEstimatedSeconds: Type.Integer({ minimum: 1 }),
@@ -187,6 +258,74 @@ export const PageSchema = Type.Object({
   nextCursor: Type.Union([Type.String(), Type.Null()]),
   hasMore: Type.Boolean(),
 });
+
+export const WorkoutStatusSchema = Type.Union([
+  Type.Literal('draft'),
+  Type.Literal('active'),
+  Type.Literal('completed'),
+  Type.Literal('archived'),
+]);
+
+export const WorkoutSourceSchema = Type.Union([Type.Literal('generated'), Type.Literal('manual')]);
+
+export const WorkoutItemSchema = Type.Object({
+  id: UuidSchema,
+  position: Type.Integer({ minimum: 1, maximum: 50 }),
+  exerciseId: UuidSchema,
+  exerciseSlug: NonEmptyStringSchema,
+  sets: Type.Integer({ minimum: 1, maximum: 5 }),
+  reps: Type.Optional(Type.Integer({ minimum: 1, maximum: 50 })),
+  holdSeconds: Type.Optional(Type.Integer({ minimum: 1, maximum: 600 })),
+  restSeconds: Type.Integer({ minimum: 0, maximum: 300 }),
+  compatibility: CompatibilityResultSchema,
+});
+
+export const WorkoutSchema = Type.Object({
+  id: UuidSchema,
+  source: WorkoutSourceSchema,
+  title: NonEmptyStringSchema,
+  status: WorkoutStatusSchema,
+  requestedDurationMinutes: Type.Union([Type.Integer({ minimum: 5, maximum: 45 }), Type.Null()]),
+  engineVersion: Type.Union([NonEmptyStringSchema, Type.Null()]),
+  profileVersion: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]),
+  version: Type.Integer({ minimum: 1 }),
+  createdAt: Type.String({ minLength: 1 }),
+  updatedAt: Type.String({ minLength: 1 }),
+  items: Type.Array(WorkoutItemSchema, { minItems: 1, maxItems: 50 }),
+});
+
+export const WorkoutResponseSchema = Type.Object({ data: WorkoutSchema });
+export const WorkoutListResponseSchema = Type.Object({
+  data: Type.Array(WorkoutSchema),
+  page: PageSchema,
+});
+
+export const CreateManualWorkoutRequestSchema = Type.Object({
+  clientRequestId: UuidSchema,
+  title: Type.String({ minLength: 1, maxLength: 120 }),
+  items: Type.Array(
+    Type.Object({
+      exerciseId: UuidSchema,
+      sets: Type.Integer({ minimum: 1, maximum: 5 }),
+      reps: Type.Optional(Type.Integer({ minimum: 1, maximum: 50 })),
+      holdSeconds: Type.Optional(Type.Integer({ minimum: 1, maximum: 600 })),
+      restSeconds: Type.Integer({ minimum: 0, maximum: 300 }),
+      cautionAcknowledgements: Type.Optional(Type.Array(NonEmptyStringSchema, { maxItems: 50 })),
+    }),
+    { minItems: 1, maxItems: 50 },
+  ),
+});
+
+export const PatchWorkoutRequestSchema = Type.Object({
+  expectedVersion: Type.Integer({ minimum: 1 }),
+  title: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
+  status: Type.Optional(Type.Union([Type.Literal('draft'), Type.Literal('active')])),
+});
+
+export type Workout = Static<typeof WorkoutSchema>;
+export type WorkoutItem = Static<typeof WorkoutItemSchema>;
+export type CreateManualWorkoutRequest = Static<typeof CreateManualWorkoutRequestSchema>;
+export type PatchWorkoutRequest = Static<typeof PatchWorkoutRequestSchema>;
 
 export const ReferenceEntrySchema = Type.Object({
   id: NonEmptyStringSchema,

@@ -82,6 +82,7 @@ pnpm openapi:check
 - `pnpm build`
 - Disposable PostgreSQL execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
+- `supabase/tests/profile_rpc.sql` atomic profile replacement and version checks
 
 The migration/seed checks currently run against a disposable local PostgreSQL
 instance because Docker is unavailable in the current environment. The equivalent
@@ -92,5 +93,6 @@ supabase db reset
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls.sql
 ```
 
-The hosted acceptance flow remains pending until the authenticated API and session
-state machine are implemented.
+The authenticated profile and workout portions of the acceptance flow are covered
+by Fastify injection tests. The tracked session, analytics, progress, and deletion
+portions remain pending until their state machine is implemented.

@@ -89,6 +89,7 @@ Create migrations through the Supabase CLI. The expected order is:
 4. Workout/session/metric tables.
 5. Indexes, grants, RLS, triggers, and atomic functions.
 6. Validation constraints and catalog-source checks.
+7. Workout idempotency fields and atomic movement-profile replacement.
 
 `supabase/seed.sql` contains only deterministic reference data, the 24 exercise catalog records, tracking rules, and local demo fixtures. It must not contain real user data, secrets, or production credentials.
 

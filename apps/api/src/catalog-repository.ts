@@ -46,6 +46,7 @@ export interface ExercisePage {
 
 export interface CatalogRepository {
   getReferenceData(): Promise<ReferenceData>;
+  listExerciseCandidates(): Promise<readonly ExerciseCandidate[]>;
   listExercises(filters: ExerciseListFilters): Promise<ExercisePage>;
   getExercise(idOrSlug: string): Promise<ExerciseSummary | null>;
   getExerciseCandidate(idOrSlug: string): Promise<ExerciseCandidate | null>;
@@ -217,6 +218,10 @@ export class MemoryCatalogRepository implements CatalogRepository, MovementProfi
     return referenceData;
   }
 
+  async listExerciseCandidates(): Promise<readonly ExerciseCandidate[]> {
+    return this.candidates;
+  }
+
   async listExercises(filters: ExerciseListFilters): Promise<ExercisePage> {
     const normalizedSearch = filters.search?.trim().toLowerCase();
     let results = this.candidates.filter((candidate) => {
@@ -377,6 +382,14 @@ const mapSupabaseSummary = (row: Row): ExerciseSummary => ({
 
 export class SupabaseCatalogRepository implements CatalogRepository {
   constructor(private readonly client: SupabaseClient) {}
+
+  async listExerciseCandidates(): Promise<readonly ExerciseCandidate[]> {
+    const page = await this.listExercises({ limit: 100 });
+    const candidates = await Promise.all(
+      page.data.map((exercise) => this.getExerciseCandidate(exercise.id)),
+    );
+    return candidates.flatMap((candidate) => (candidate === null ? [] : [candidate]));
+  }
 
   async getReferenceData(): Promise<ReferenceData> {
     const [bodyRegions, capabilities, equipment, goals, muscleGroups] = await Promise.all([

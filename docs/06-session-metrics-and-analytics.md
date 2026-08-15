@@ -98,3 +98,8 @@ history, activity totals, body coverage, and per-exercise progress routes. The S
 path uses transactional lifecycle RPCs and rebuilds affected daily rows after session
 deletion. Unknown metric fields are rejected by the request validator rather than
 silently stripped.
+
+The development-only Python prototype under `model/` calculates elbow angles locally
+and keeps an in-memory mean, minimum, maximum, and ROM span for one person/exercise
+session. Its tracker accepts derived angles only; frames and pose landmarks are not
+retained or sent to the backend.

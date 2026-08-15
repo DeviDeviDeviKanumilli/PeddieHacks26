@@ -3,6 +3,7 @@ import time
 import cv2
 import mediapipe as mp
 
+from exercise_performance import RangeOfMotionStats, RangeOfMotionTracker
 from vision_model import (
     create_pose_landmarker,
     detect_pose,
@@ -59,7 +60,14 @@ def draw_pose(frame, pose_landmarks, visibility_threshold=0.5):
     return frame
 
 
-def draw_status(frame, fps, status, status_color, arm_angle):
+def draw_status(
+    frame,
+    fps,
+    status,
+    status_color,
+    arm_angle,
+    range_of_motion_stats: RangeOfMotionStats | None,
+):
     cv2.putText(
         frame,
         f"FPS: {fps:.1f}",
@@ -97,6 +105,25 @@ def draw_status(frame, fps, status, status_color, arm_angle):
         cv2.LINE_AA,
     )
 
+    rom_text = (
+        "ROM mean/min/max: "
+        f"{range_of_motion_stats.mean_angle_degrees:.1f} / "
+        f"{range_of_motion_stats.min_angle_degrees:.1f} / "
+        f"{range_of_motion_stats.max_angle_degrees:.1f} deg"
+        if range_of_motion_stats is not None
+        else "ROM mean/min/max: --"
+    )
+    cv2.putText(
+        frame,
+        rom_text,
+        (20, 160),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (0, 255, 255),
+        2,
+        cv2.LINE_AA,
+    )
+
 
 def main():
     model_path = get_default_model_path()
@@ -116,6 +143,8 @@ def main():
 
     previous_time = time.time()
     last_timestamp_ms = 0
+    # Keep this local: each person/exercise session needs isolated measurements.
+    range_of_motion_tracker = RangeOfMotionTracker()
 
     print()
     print("MediaPipe Pose Camera started.")
@@ -153,11 +182,21 @@ def main():
                     status = "NO POSE"
                     status_color = (0, 0, 255)
 
+                range_of_motion_tracker.add_angle(arm_angle)
+                range_of_motion_stats = range_of_motion_tracker.get_stats()
+
                 current_time = time.time()
                 fps = 1 / max(current_time - previous_time, 0.0001)
                 previous_time = current_time
 
-                draw_status(frame, fps, status, status_color, arm_angle)
+                draw_status(
+                    frame,
+                    fps,
+                    status,
+                    status_color,
+                    arm_angle,
+                    range_of_motion_stats,
+                )
                 cv2.imshow("MediaPipe Live Pose Estimator", frame)
 
                 key = cv2.waitKey(1) & 0xFF
@@ -166,6 +205,21 @@ def main():
     finally:
         camera.release()
         cv2.destroyAllWindows()
+
+        range_of_motion_stats = range_of_motion_tracker.get_stats()
+        if range_of_motion_stats is not None:
+            print()
+            print("Exercise range-of-motion summary:")
+            print(f"Samples: {range_of_motion_stats.sample_count}")
+            print(
+                f"Mean angle: {range_of_motion_stats.mean_angle_degrees:.1f} deg"
+            )
+            print(f"Min angle: {range_of_motion_stats.min_angle_degrees:.1f} deg")
+            print(f"Max angle: {range_of_motion_stats.max_angle_degrees:.1f} deg")
+            print(
+                "Range of motion: "
+                f"{range_of_motion_stats.range_of_motion_degrees:.1f} deg"
+            )
 
 
 if __name__ == "__main__":

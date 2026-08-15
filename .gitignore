@@ -8,3 +8,5 @@ coverage/
 !.env.example
 supabase/.temp/
 .DS_Store
+__pycache__/
+*.py[cod]

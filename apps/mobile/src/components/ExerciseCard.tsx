@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { ChevronRight, CircleAlert } from 'lucide-react-native';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { movementMarkBackgrounds, movementMarkColors, movementMarks } from '@/lib/movementMarks';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { MovementMark } from '@/components/MovementMark';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 import type { Exercise } from '@/types';
 
@@ -22,20 +22,7 @@ export const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
     >
       {({ pressed }) => (
         <View style={[styles.card, pressed && styles.pressed]}>
-          <View
-            style={[
-              styles.markWrap,
-              { backgroundColor: movementMarkBackgrounds[exercise.category] },
-            ]}
-          >
-            <Image
-              accessibilityIgnoresInvertColors
-              accessibilityLabel={`${exercise.category} movement symbol`}
-              resizeMode="contain"
-              source={movementMarks[exercise.category]}
-              style={[styles.mark, { tintColor: movementMarkColors[exercise.category] }]}
-            />
-          </View>
+          <MovementMark category={exercise.category} />
           <View style={styles.copy}>
             <View style={styles.titleRow}>
               <Text numberOfLines={1} style={styles.name}>
@@ -78,14 +65,6 @@ const styles = StyleSheet.create({
     minHeight: 92,
     padding: spacing.sm,
   },
-  markWrap: {
-    alignItems: 'center',
-    borderRadius: radii.md,
-    height: 64,
-    justifyContent: 'center',
-    width: 64,
-  },
-  mark: { height: 44, width: 44 },
   copy: { flex: 1, gap: 4 },
   titleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
   status: {

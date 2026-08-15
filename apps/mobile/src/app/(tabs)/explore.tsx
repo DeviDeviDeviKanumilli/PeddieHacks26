@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { type Href, router } from 'expo-router';
 import { ChevronRight, Search } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ExerciseCard } from '@/components/ExerciseCard';
+import { MovementMark } from '@/components/MovementMark';
 import { Chip, Field, Screen, SectionHeading, Title } from '@/components/ui';
 import { mobileApi } from '@/lib/api';
 import { hasApiConfig } from '@/lib/config';
@@ -14,7 +15,6 @@ import {
   exercisesInCollection,
 } from '@/lib/exerciseCollections';
 import { exerciseSummaryFromApi } from '@/lib/exercises';
-import { movementMarkBackgrounds, movementMarkColors, movementMarks } from '@/lib/movementMarks';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -34,20 +34,7 @@ const CollectionRow = ({
     onPress={() => router.push(`/collection/${collection.id}` as Href)}
     style={({ pressed }) => [styles.collectionRow, pressed && styles.pressed]}
   >
-    <View
-      style={[
-        styles.collectionMarkWrap,
-        { backgroundColor: movementMarkBackgrounds[collection.tone] },
-      ]}
-    >
-      <Image
-        accessibilityIgnoresInvertColors
-        accessibilityLabel={`${collection.title} collection symbol`}
-        resizeMode="contain"
-        source={movementMarks[collection.mark]}
-        style={[styles.collectionMark, { tintColor: movementMarkColors[collection.tone] }]}
-      />
-    </View>
+    <MovementMark category={collection.mark} size={50} tone={collection.tone} />
     <View style={styles.collectionCopy}>
       <Text style={styles.collectionTitle}>{collection.title}</Text>
       <Text style={styles.collectionCount}>
@@ -247,14 +234,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  collectionMarkWrap: {
-    alignItems: 'center',
-    borderRadius: radii.md,
-    height: 50,
-    justifyContent: 'center',
-    width: 50,
-  },
-  collectionMark: { height: 34, width: 34 },
   collectionCopy: { flex: 1, gap: 2 },
   collectionTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 16 },
   collectionCount: { color: colors.muted, fontFamily: typography.body, fontSize: 13 },

@@ -26,6 +26,15 @@ Each exercise has a `visualKey`, not a unique image requirement. New exercises s
 of the existing movement-family keys through `inferVisualKey`; a new asset is justified
 only when no current family communicates the posture or equipment safely.
 
+## Movement marks
+
+Compact exercise and collection thumbnails use the code-native
+`apps/mobile/src/components/MovementMark.tsx` component. It maps the four exercise categories to
+recognizable strength, mobility, cardio, and balance glyphs and applies the category tone from one
+shared registry. Because these marks render as native vectors, list rows never depend on a bitmap
+finishing its load before the thumbnail becomes visible. Collection rows may override the tone to
+keep adjacent collections visually distinct while retaining the mark that describes their content.
+
 ## Canonical muscle attributes
 
 The native `Exercise` model includes `muscleActivations` entries with:

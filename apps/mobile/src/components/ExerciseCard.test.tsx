@@ -7,8 +7,12 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
 }));
 jest.mock('lucide-react-native', () => ({
+  Accessibility: () => null,
   ChevronRight: () => null,
   CircleAlert: () => null,
+  Dumbbell: () => null,
+  HeartPulse: () => null,
+  Scale: () => null,
 }));
 
 describe('ExerciseCard', () => {

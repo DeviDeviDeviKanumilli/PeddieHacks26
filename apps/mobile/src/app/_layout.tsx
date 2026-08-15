@@ -14,8 +14,11 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { getSupabaseClient } from '@/lib/supabase';
+import { useAppStore } from '@/state/useAppStore';
 import { colors } from '@/theme/tokens';
 
 void SplashScreen.preventAutoHideAsync();
@@ -37,6 +40,29 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) void SplashScreen.hideAsync();
   }, [loaded]);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    const syncSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      useAppStore.getState().setMode(data.session ? 'live' : 'guest');
+      useAppStore.getState().setAccountEmail(data.session?.user.email ?? null);
+    };
+    void syncSession();
+    const auth = supabase.auth.onAuthStateChange((_event, session) => {
+      useAppStore.getState().setMode(session ? 'live' : 'guest');
+      useAppStore.getState().setAccountEmail(session?.user.email ?? null);
+    });
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') supabase.auth.startAutoRefresh();
+      else supabase.auth.stopAutoRefresh();
+    });
+    return () => {
+      auth.data.subscription.unsubscribe();
+      appState.remove();
+    };
+  }, []);
 
   if (!loaded) return null;
 

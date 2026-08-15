@@ -6,22 +6,28 @@ import {
   Dumbbell,
   Goal,
   LogIn,
+  LogOut,
   PersonStanding,
   Settings2,
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
 import { Body, Button, Card, Screen, SectionHeading, Title } from '@/components/ui';
+import { getSupabaseClient } from '@/lib/supabase';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function ProfileScreen() {
   const profile = useAppStore((state) => state.profile);
   const mode = useAppStore((state) => state.mode);
+  const accountEmail = useAppStore((state) => state.accountEmail);
   const reset = useAppStore((state) => state.resetOnboarding);
   const editProfile = () => {
     reset();
     router.replace('/onboarding/goals');
+  };
+  const signOut = async () => {
+    await getSupabaseClient()?.auth.signOut();
   };
   return (
     <Screen>
@@ -39,7 +45,7 @@ export default function ProfileScreen() {
         <View style={styles.identityCopy}>
           <Text style={styles.name}>{mode === 'guest' ? 'Guest profile' : 'AdaptFit member'}</Text>
           <Text style={styles.email}>
-            {mode === 'guest' ? 'Saved only on this device' : 'Synced with your account'}
+            {mode === 'guest' ? 'Saved only on this device' : (accountEmail ?? 'Synced account')}
           </Text>
         </View>
       </Card>
@@ -47,7 +53,11 @@ export default function ProfileScreen() {
         <Button icon={LogIn} onPress={() => router.push('/auth/sign-in')}>
           Sign in to sync progress
         </Button>
-      ) : null}
+      ) : (
+        <Button icon={LogOut} onPress={() => void signOut()} variant="quiet">
+          Sign out
+        </Button>
+      )}
       <SectionHeading title="Movement profile" />
       <Card style={styles.menuCard}>
         <ProfileRow icon={Goal} label="Goals" value={`${profile.goals.length} selected`} />

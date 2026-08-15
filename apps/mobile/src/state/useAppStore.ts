@@ -15,10 +15,12 @@ const defaultProfile: MovementProfile = {
 
 type AppStore = {
   mode: AppMode;
+  accountEmail: string | null;
   profile: MovementProfile;
   recommendedWorkout: Workout;
   history: WorkoutHistory[];
   setMode: (mode: AppMode) => void;
+  setAccountEmail: (email: string | null) => void;
   setGoals: (goals: string[]) => void;
   setRegion: (id: string, state: RegionState) => void;
   setCapability: (id: string, state: RegionState) => void;
@@ -48,10 +50,12 @@ export const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
       mode: 'guest',
+      accountEmail: null,
       profile: defaultProfile,
       recommendedWorkout: buildWorkout(),
       history: [],
       setMode: (mode) => set({ mode }),
+      setAccountEmail: (accountEmail) => set({ accountEmail }),
       setGoals: (goals) => set((state) => ({ profile: { ...state.profile, goals } })),
       setRegion: (id, regionState) =>
         set((state) => ({
@@ -92,6 +96,7 @@ export const useAppStore = create<AppStore>()(
       storage: createJSONStorage(() => Storage),
       partialize: (state) => ({
         mode: state.mode,
+        accountEmail: state.accountEmail,
         profile: state.profile,
         recommendedWorkout: state.recommendedWorkout,
         history: state.history,

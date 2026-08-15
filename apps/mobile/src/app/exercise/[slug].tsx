@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft,
@@ -11,9 +12,13 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Screen, SectionHeading, Title } from '@/components/ui';
 import { exercises } from '@/data/catalog';
+import { mobileApi } from '@/lib/api';
+import { hasApiConfig } from '@/lib/config';
+import { exerciseFromApi } from '@/lib/exercises';
+import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 type Tab = 'overview' | 'how-to' | 'muscles';
@@ -21,7 +26,14 @@ type Tab = 'overview' | 'how-to' | 'muscles';
 export default function ExerciseDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const [tab, setTab] = useState<Tab>('overview');
-  const exercise = exercises.find((item) => item.slug === slug);
+  const fallback = exercises.find((item) => item.slug === slug);
+  const mode = useAppStore((state) => state.mode);
+  const liveDetail = useQuery({
+    queryKey: ['exercise', slug],
+    queryFn: () => mobileApi.getExercise(slug),
+    enabled: Boolean(slug && mode === 'live' && hasApiConfig),
+  });
+  const exercise = liveDetail.data ? exerciseFromApi(liveDetail.data, fallback) : fallback;
   if (!exercise)
     return (
       <Screen>
@@ -57,6 +69,12 @@ export default function ExerciseDetailScreen() {
         </Text>
         <Title compact>{exercise.name}</Title>
         <Body muted>{exercise.summary}</Body>
+        {liveDetail.isLoading ? (
+          <View style={styles.syncRow}>
+            <ActivityIndicator color={colors.lavenderDark} size="small" />
+            <Text style={styles.syncText}>Loading reviewed exercise details…</Text>
+          </View>
+        ) : null}
       </View>
       <View style={styles.prescription}>
         <View style={styles.prescriptionItem}>
@@ -131,6 +149,26 @@ export default function ExerciseDetailScreen() {
               <Bullet key={item} text={item} />
             ))}
           </Card>
+          {liveDetail.data ? (
+            <>
+              <SectionHeading title="Reviewed sources" />
+              <Card>
+                {liveDetail.data.sources.map((source) => (
+                  <Pressable
+                    accessibilityRole="link"
+                    key={source.url}
+                    onPress={() => void Linking.openURL(source.url)}
+                  >
+                    <Text style={styles.sourceTitle}>{source.title}</Text>
+                    <Text style={styles.sourceMeta}>
+                      {source.publisher}
+                      {source.publicationYear ? ` · ${source.publicationYear}` : ''}
+                    </Text>
+                  </Pressable>
+                ))}
+              </Card>
+            </>
+          ) : null}
         </View>
       ) : null}
       {tab === 'how-to' ? (
@@ -218,6 +256,8 @@ const styles = StyleSheet.create({
   },
   trackingText: { color: colors.ink, fontFamily: typography.semibold, fontSize: 11 },
   intro: { gap: spacing.xs },
+  syncRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
+  syncText: { color: colors.muted, fontFamily: typography.medium, fontSize: 12 },
   category: {
     color: colors.lavenderDark,
     fontFamily: typography.bold,
@@ -239,6 +279,8 @@ const styles = StyleSheet.create({
   prescriptionLabel: { color: colors.muted, fontFamily: typography.medium, fontSize: 11 },
   fitRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   fitTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
+  sourceTitle: { color: colors.lavenderDark, fontFamily: typography.semibold, fontSize: 14 },
+  sourceMeta: { color: colors.muted, fontFamily: typography.body, fontSize: 12 },
   tabs: { borderBottomColor: colors.line, borderBottomWidth: 1, flexDirection: 'row' },
   tab: { alignItems: 'center', flex: 1, minHeight: 48, justifyContent: 'center' },
   tabActive: { borderBottomColor: colors.lavenderDark, borderBottomWidth: 3 },

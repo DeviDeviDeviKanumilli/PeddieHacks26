@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "AdaptFit",
+    "slug": "adaptfit-mobile",
+    "version": "0.1.0",
+    "scheme": "adaptfit",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.peddiehacks26.adaptfit",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "AdaptFit uses the camera only on your device to provide optional movement feedback."
+      }
+    },
+    "android": {
+      "package": "com.peddiehacks26.adaptfit",
+      "predictiveBackGestureEnabled": true,
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow AdaptFit to use your camera for optional on-device movement feedback.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F7F4F0"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

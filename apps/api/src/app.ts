@@ -25,8 +25,17 @@ import {
 } from './catalog-repository.js';
 import { type AppConfig, loadConfig } from './config.js';
 import { registerErrorHandling } from './errors.js';
+import { PrismaCatalogRepository } from './prisma-catalog-repository.js';
+import { createPrismaClient } from './prisma-client.js';
+import { PrismaMovementProfileRepository } from './prisma-profile-repository.js';
+import { PrismaUserRepository } from './prisma-user-repository.js';
 import { SupabaseMovementProfileRepository } from './profile-repository.js';
-import { MemoryReadinessCheck, type ReadinessCheck, SupabaseReadinessCheck } from './readiness.js';
+import {
+  MemoryReadinessCheck,
+  PrismaReadinessCheck,
+  type ReadinessCheck,
+  SupabaseReadinessCheck,
+} from './readiness.js';
 import { registerCatalogRoutes } from './routes/catalog.js';
 import { registerProfileRoutes } from './routes/profile.js';
 import { registerSessionRoutes } from './routes/sessions.js';
@@ -69,6 +78,8 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     ? createSupabaseClientFactory(config.supabaseUrl, config.supabaseAnonKey)
     : undefined;
   const supabase = supabaseFactory?.();
+  const prisma =
+    config.databaseUrl === undefined ? undefined : createPrismaClient(config.databaseUrl);
   const serviceSupabase =
     hasSupabase && config.supabaseServiceRoleKey !== undefined
       ? createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
@@ -82,12 +93,18 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   const memoryRepository = new MemoryCatalogRepository();
   const catalog =
     options.catalog ??
-    (supabase === undefined ? memoryRepository : new SupabaseCatalogRepository(supabase));
+    (prisma !== undefined
+      ? new PrismaCatalogRepository(prisma)
+      : supabase === undefined
+        ? memoryRepository
+        : new SupabaseCatalogRepository(supabase));
   const profiles =
     options.profiles ??
-    (supabase === undefined
-      ? memoryRepository
-      : new SupabaseMovementProfileRepository(supabase, supabaseFactory));
+    (prisma !== undefined
+      ? new PrismaMovementProfileRepository(prisma)
+      : supabase === undefined
+        ? memoryRepository
+        : new SupabaseMovementProfileRepository(supabase, supabaseFactory));
   const workouts =
     options.workouts ??
     (supabase === undefined
@@ -95,9 +112,11 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
       : new SupabaseWorkoutRepository(supabase, supabaseFactory));
   const users =
     options.users ??
-    (supabase === undefined
-      ? new MemoryUserRepository()
-      : new SupabaseUserRepository(supabase, supabaseFactory));
+    (prisma !== undefined
+      ? new PrismaUserRepository(prisma)
+      : supabase === undefined
+        ? new MemoryUserRepository()
+        : new SupabaseUserRepository(supabase, supabaseFactory));
   const sessions =
     options.sessions ??
     (supabase === undefined
@@ -112,7 +131,11 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
         : new UnavailableAccountRepository());
   const readiness =
     options.readiness ??
-    (supabase === undefined ? new MemoryReadinessCheck() : new SupabaseReadinessCheck(supabase));
+    (prisma !== undefined
+      ? new PrismaReadinessCheck(prisma)
+      : supabase === undefined
+        ? new MemoryReadinessCheck()
+        : new SupabaseReadinessCheck(supabase));
   const authVerifier =
     options.authVerifier ??
     (supabase === undefined ? new RejectingAuthVerifier() : new SupabaseAuthVerifier(supabase));
@@ -121,6 +144,9 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     requestIdHeader: 'x-request-id',
     ajv: { customOptions: { removeAdditional: false } },
   });
+  if (prisma !== undefined) {
+    app.addHook('onClose', async () => prisma.$disconnect());
+  }
 
   await app.register(cors, {
     origin: config.corsOrigins,

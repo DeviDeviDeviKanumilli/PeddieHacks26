@@ -2,6 +2,7 @@ export interface AppConfig {
   readonly port: number;
   readonly host: string;
   readonly corsOrigins: true | string[];
+  readonly databaseUrl?: string;
   readonly supabaseUrl?: string;
   readonly supabaseAnonKey?: string;
   readonly supabaseServiceRoleKey?: string;
@@ -32,8 +33,9 @@ const parseCorsOrigins = (value: string | undefined): true | string[] => {
 
 export const loadConfig = (
   env: NodeJS.ProcessEnv = process.env,
-  options: { readonly requireSupabase?: boolean } = {},
+  options: { readonly requireDatabase?: boolean; readonly requireSupabase?: boolean } = {},
 ): AppConfig => {
+  const databaseUrl = env.DATABASE_URL?.trim();
   const supabaseUrl = env.SUPABASE_URL?.trim();
   const supabaseAnonKey = env.SUPABASE_ANON_KEY?.trim();
   const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -46,11 +48,15 @@ export const loadConfig = (
   if (options.requireSupabase && (!hasSupabaseUrl || !hasSupabaseAnonKey)) {
     throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY are required to start the API.');
   }
+  if (options.requireDatabase && (!databaseUrl || databaseUrl.length === 0)) {
+    throw new Error('DATABASE_URL is required to start the API.');
+  }
 
   return {
     port: parsePort(env.PORT),
     host: env.HOST?.trim() || '::',
     corsOrigins: parseCorsOrigins(env.CORS_ORIGINS),
+    ...(databaseUrl !== undefined && databaseUrl.length > 0 ? { databaseUrl } : {}),
     ...(hasSupabaseUrl ? { supabaseUrl } : {}),
     ...(hasSupabaseAnonKey ? { supabaseAnonKey } : {}),
     ...(supabaseServiceRoleKey !== undefined && supabaseServiceRoleKey.length > 0

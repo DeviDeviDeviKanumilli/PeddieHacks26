@@ -48,3 +48,8 @@ jobs:
         run: pnpm test:db
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Prisma smoke check when a database URL is configured
+        run: pnpm test:prisma
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}

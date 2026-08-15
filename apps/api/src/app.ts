@@ -28,7 +28,9 @@ import { registerErrorHandling } from './errors.js';
 import { PrismaCatalogRepository } from './prisma-catalog-repository.js';
 import { createPrismaClient } from './prisma-client.js';
 import { PrismaMovementProfileRepository } from './prisma-profile-repository.js';
+import { PrismaSessionRepository } from './prisma-session-repository.js';
 import { PrismaUserRepository } from './prisma-user-repository.js';
+import { PrismaWorkoutRepository } from './prisma-workout-repository.js';
 import { SupabaseMovementProfileRepository } from './profile-repository.js';
 import {
   MemoryReadinessCheck,
@@ -107,9 +109,11 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
         : new SupabaseMovementProfileRepository(supabase, supabaseFactory));
   const workouts =
     options.workouts ??
-    (supabase === undefined
-      ? new MemoryWorkoutRepository()
-      : new SupabaseWorkoutRepository(supabase, supabaseFactory));
+    (prisma !== undefined
+      ? new PrismaWorkoutRepository(prisma)
+      : supabase === undefined
+        ? new MemoryWorkoutRepository()
+        : new SupabaseWorkoutRepository(supabase, supabaseFactory));
   const users =
     options.users ??
     (prisma !== undefined
@@ -119,9 +123,11 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
         : new SupabaseUserRepository(supabase, supabaseFactory));
   const sessions =
     options.sessions ??
-    (supabase === undefined
-      ? new MemorySessionRepository(catalog)
-      : new SupabaseSessionRepository(supabase, supabaseFactory));
+    (prisma !== undefined && supabase !== undefined
+      ? new PrismaSessionRepository(prisma, supabase, supabaseFactory, catalog)
+      : supabase === undefined
+        ? new MemorySessionRepository(catalog)
+        : new SupabaseSessionRepository(supabase, supabaseFactory));
   const accounts =
     options.accounts ??
     (serviceSupabase !== undefined

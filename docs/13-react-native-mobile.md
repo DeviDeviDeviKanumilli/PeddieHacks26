@@ -79,6 +79,9 @@ than raw landmarks.
 The application now lives in `apps/mobile` and includes:
 
 - Expo Router stacks plus native Home, Explore, Workout, Progress, and Profile tabs.
+- A deliberately focused Home tab: one current workout, one daily tip, and two quick actions.
+  Exercise discovery remains in Explore, while history and totals remain in Progress so the
+  landing experience does not duplicate those destinations.
 - Six-step onboarding with an interactive body diagram and equivalent labeled region list.
 - A SQLite-persisted guest adapter that remains usable without hosted configuration.
 - Supabase email/password authentication using only the publishable key, persisted native

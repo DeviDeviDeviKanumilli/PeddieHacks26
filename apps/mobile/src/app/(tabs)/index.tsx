@@ -1,151 +1,200 @@
 import { router } from 'expo-router';
-import { ArrowRight, CalendarDays, Clock3, Repeat2, Sparkles } from 'lucide-react-native';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { AppHeader } from '@/components/AppHeader';
-import {
-  Body,
-  Button,
-  Card,
-  Eyebrow,
-  Metric,
-  Screen,
-  SectionHeading,
-  Title,
-} from '@/components/ui';
-import { exerciseVisuals } from '@/lib/exerciseVisuals';
+import type { LucideIcon } from 'lucide-react-native';
+import { Bell, Clock3, Dumbbell, Lightbulb, Search } from 'lucide-react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, Screen, SectionHeading } from '@/components/ui';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
+const timeOfDayGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const QuickAction = ({
+  icon: Icon,
+  label,
+  onPress,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onPress: () => void;
+}) => (
+  <Pressable
+    accessibilityLabel={label}
+    accessibilityRole="button"
+    onPress={onPress}
+    style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
+  >
+    <View style={styles.quickActionIcon}>
+      <Icon color={colors.lavenderDark} size={24} />
+    </View>
+    <Text numberOfLines={2} style={styles.quickActionLabel}>
+      {label}
+    </Text>
+  </Pressable>
+);
+
 export default function HomeScreen() {
   const workout = useAppStore((state) => state.recommendedWorkout);
-  const catalog = useAppStore((state) => state.catalog);
-  const history = useAppStore((state) => state.history);
-  const totalSeconds = history.reduce((sum, item) => sum + item.durationSeconds, 0);
-  const totalReps = history.reduce((sum, item) => sum + item.reps, 0);
-  const first = catalog.find((exercise) => exercise.slug === workout.items[0]?.exerciseSlug);
+  const hasWorkout = workout.items.length > 0;
+
   return (
-    <Screen>
-      <AppHeader />
-      <View style={styles.hero}>
-        <Eyebrow>Good to see you</Eyebrow>
-        <Title compact>What feels possible today?</Title>
-        <Body muted>Your recommendations respond to the movement profile you saved.</Body>
-      </View>
-      <Card tone="lavender" style={styles.featured}>
-        <View style={styles.featuredTop}>
-          <View style={styles.spark}>
-            <Sparkles color={colors.lavenderDark} size={22} />
-          </View>
-          <Text style={styles.recommended}>Recommended for you</Text>
+    <Screen style={styles.screen}>
+      <View style={styles.welcomeRow}>
+        <View style={styles.welcomeCopy}>
+          <Text style={styles.greeting}>{timeOfDayGreeting()},</Text>
+          <Text accessibilityRole="header" style={styles.welcomeTitle}>
+            Ready to move?
+          </Text>
         </View>
-        <Text style={styles.workoutTitle}>{workout.title}</Text>
-        <Body muted>
-          {workout.focus}. {workout.items.length} exercises designed around your current profile.
-        </Body>
-        <View style={styles.pills}>
-          <View style={styles.pill}>
-            <Clock3 color={colors.ink} size={14} />
-            <Text style={styles.pillText}>{workout.durationMinutes} min</Text>
-          </View>
-          <View style={styles.pill}>
-            <Repeat2 color={colors.ink} size={14} />
-            <Text style={styles.pillText}>{workout.items.length} movements</Text>
-          </View>
-        </View>
-        <Button
-          disabled={workout.items.length === 0}
-          icon={ArrowRight}
-          onPress={() => router.push(`/workout/${workout.id}`)}
+        <Pressable
+          accessibilityLabel="Notifications"
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.notificationButton, pressed && styles.pressed]}
         >
-          {workout.items.length === 0 ? 'Adjust your movement profile' : 'Review workout'}
+          <Bell color={colors.ink} size={22} />
+        </Pressable>
+      </View>
+
+      <Card tone="lavender" style={styles.planCard}>
+        <Text style={styles.planLabel}>Today’s plan</Text>
+        <Text style={styles.planTitle}>{workout.title}</Text>
+        <View style={styles.planMeta}>
+          <Dumbbell color={colors.muted} size={17} />
+          <Text style={styles.planMetaText}>{workout.items.length} exercises</Text>
+          <View style={styles.metaDot} />
+          <Clock3 color={colors.muted} size={17} />
+          <Text style={styles.planMetaText}>{workout.durationMinutes} min</Text>
+        </View>
+        <Button disabled={!hasWorkout} onPress={() => router.push(`/workout/${workout.id}`)}>
+          {hasWorkout ? 'Start workout' : 'No matching workout yet'}
         </Button>
       </Card>
-      <SectionHeading title="Your momentum" />
-      <Card>
-        <View style={styles.metrics}>
-          <Metric label="Total time" value={`${Math.round(totalSeconds / 60)}m`} />
-          <Metric label="Workouts" value={String(history.length)} />
-          <Metric label="Lifetime reps" value={String(totalReps)} />
+
+      <View style={styles.tipCard}>
+        <View style={styles.tipCopy}>
+          <Text style={styles.tipLabel}>Daily tip</Text>
+          <Text style={styles.tipText}>Focus on quality reps over quantity.</Text>
         </View>
-      </Card>
-      <SectionHeading title="A movement to try" />
-      {first ? (
-        <Card>
-          <Image
-            accessibilityLabel={`Cartoon movement-family illustration for ${first.name}`}
-            resizeMode="contain"
-            source={exerciseVisuals[first.visualKey]}
-            style={styles.tryArt}
-          />
-          <View style={styles.tryRow}>
-            <View style={styles.tryIcon}>
-              <CalendarDays color={colors.success} size={22} />
-            </View>
-            <View style={styles.tryCopy}>
-              <Text style={styles.tryTitle}>{first.name}</Text>
-              <Text style={styles.tryBody}>{first.summary}</Text>
-            </View>
-          </View>
-          <Button onPress={() => router.push(`/exercise/${first.slug}`)} variant="secondary">
-            View exercise
-          </Button>
-        </Card>
-      ) : null}
-      <Card tone="success">
-        <Text style={styles.tipTitle}>Today’s small win</Text>
-        <Body muted>
-          A shorter workout that respects your limits still counts. Consistency is built from
-          repeatable choices.
-        </Body>
-      </Card>
+        <View style={styles.tipIcon}>
+          <Lightbulb color={colors.lavenderDark} size={28} strokeWidth={1.8} />
+        </View>
+      </View>
+
+      <SectionHeading title="Quick actions" />
+      <View style={styles.quickActions}>
+        <QuickAction
+          icon={Dumbbell}
+          label="Build workout"
+          onPress={() => router.push('/(tabs)/workout')}
+        />
+        <QuickAction
+          icon={Search}
+          label="Explore exercises"
+          onPress={() => router.push('/(tabs)/explore')}
+        />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { gap: spacing.xs, marginTop: spacing.md },
-  featured: { overflow: 'hidden' },
-  featuredTop: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-  spark: {
+  screen: { gap: spacing.lg, paddingTop: spacing.md },
+  welcomeRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 96,
+  },
+  welcomeCopy: { flex: 1, gap: spacing.xxs, paddingRight: spacing.md },
+  greeting: { color: colors.muted, fontFamily: typography.medium, fontSize: 16 },
+  welcomeTitle: {
+    color: colors.ink,
+    fontFamily: typography.display,
+    fontSize: 34,
+    letterSpacing: -0.7,
+    lineHeight: 38,
+  },
+  notificationButton: {
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    height: 42,
-    justifyContent: 'center',
-    width: 42,
-  },
-  recommended: {
-    color: colors.lavenderDark,
-    fontFamily: typography.bold,
-    fontSize: 12,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  workoutTitle: { color: colors.ink, fontFamily: typography.display, fontSize: 30, lineHeight: 34 },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  pill: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderColor: colors.line,
     borderRadius: radii.pill,
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  pillText: { color: colors.ink, fontFamily: typography.medium, fontSize: 12 },
-  metrics: { flexDirection: 'row', gap: spacing.md },
-  tryRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
-  tryArt: { borderRadius: radii.md, height: 180, width: '100%' },
-  tryIcon: {
-    alignItems: 'center',
-    backgroundColor: colors.successSoft,
-    borderRadius: radii.md,
-    height: 50,
+    borderWidth: 1,
+    height: 46,
     justifyContent: 'center',
-    width: 50,
+    width: 46,
   },
-  tryCopy: { flex: 1, gap: 3 },
-  tryTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
-  tryBody: { color: colors.muted, fontFamily: typography.body, fontSize: 13, lineHeight: 18 },
-  tipTitle: { color: colors.success, fontFamily: typography.semibold, fontSize: 16 },
+  planCard: { gap: spacing.sm, padding: spacing.lg },
+  planLabel: { color: colors.muted, fontFamily: typography.medium, fontSize: 15 },
+  planTitle: {
+    color: colors.ink,
+    fontFamily: typography.display,
+    fontSize: 30,
+    letterSpacing: -0.4,
+    lineHeight: 34,
+  },
+  planMeta: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  planMetaText: { color: colors.muted, fontFamily: typography.medium, fontSize: 14 },
+  metaDot: { backgroundColor: colors.neutral, borderRadius: 3, height: 4, width: 4 },
+  tipCard: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.line,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
+    justifyContent: 'space-between',
+    padding: spacing.lg,
+  },
+  tipCopy: { flex: 1, gap: spacing.xxs },
+  tipLabel: { color: colors.ink, fontFamily: typography.semibold, fontSize: 16 },
+  tipText: { color: colors.muted, fontFamily: typography.body, fontSize: 15, lineHeight: 22 },
+  tipIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    height: 52,
+    justifyContent: 'center',
+    width: 52,
+  },
+  quickActions: { flexDirection: 'row', gap: spacing.sm },
+  quickAction: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    minHeight: 84,
+    padding: spacing.md,
+  },
+  quickActionIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.lavenderSoft,
+    borderRadius: radii.md,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  quickActionLabel: {
+    color: colors.ink,
+    flex: 1,
+    fontFamily: typography.semibold,
+    fontSize: 15,
+    lineHeight: 19,
+  },
+  pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
 });

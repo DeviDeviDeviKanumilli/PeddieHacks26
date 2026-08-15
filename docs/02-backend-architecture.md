@@ -8,20 +8,23 @@ apps/
     src/
       app.ts
       server.ts
-      plugins/
-        auth.ts
-        errors.ts
-        logging.ts
-        rate-limit.ts
-        supabase.ts
-      modules/
-        users/
-        movement-profile/
-        reference-data/
-        exercises/
-        workouts/
-        sessions/
-        progress/
+      auth.ts
+      config.ts
+      errors.ts
+      account-repository.ts
+      catalog-repository.ts
+      profile-repository.ts
+      user-repository.ts
+      workout-repository.ts
+      session-repository.ts
+      readiness.ts
+      supabase-client.ts
+      routes/
+        catalog.ts
+        profile.ts
+        users.ts
+        workouts.ts
+        sessions.ts
 
 packages/
   contracts/
@@ -33,6 +36,9 @@ supabase/
   seed.sql
 
 docs/
+scripts/
+  openapi-check.ts
+  test-db.sh
 ```
 
 ## Responsibilities
@@ -55,7 +61,10 @@ client
   -> Postgres/RLS
 ```
 
-The API uses a request-scoped Supabase client carrying the user's bearer token. Public catalog reads use the publishable key. The secret/service key is server-only and limited to demo-user provisioning and Auth-user deletion.
+The API verifies the bearer token once per request, then passes it into a
+request-scoped Supabase client factory for every private repository query and RPC.
+Public catalog reads use the publishable key. The secret/service key is server-only
+and is isolated to Auth-user deletion; there is no client-facing service-key path.
 
 ## Dependencies
 
@@ -73,13 +82,13 @@ Pin versions and commit the pnpm lockfile.
 
 ## Module boundaries
 
-- `users`: profile, settings, account deletion.
-- `movement-profile`: body-region, capability, equipment, and goal preferences.
-- `reference-data`: public taxonomies.
-- `exercises`: catalog, sources, compatibility preview, and alternatives.
-- `workouts`: generation, manual creation, edits, and swaps.
-- `sessions`: session state, metrics, completion, and summaries.
-- `progress`: history, daily activity, exercise trends, and body coverage.
+- `routes/users.ts`: profile, settings, and account deletion endpoints.
+- `routes/profile.ts`: body-region, capability, equipment, and goal preferences.
+- `routes/catalog.ts`: public taxonomies, exercise catalog, and compatibility preview.
+- `routes/workouts.ts`: generation, manual creation, edits, and swaps.
+- `routes/sessions.ts`: session state, metrics, completion, summaries, and progress.
+- Repository adapters: memory implementations for tests and Supabase implementations
+  for hosted RLS-backed data access.
 
 Write operations that need atomicity use reviewed Postgres functions or a single transaction-safe operation. Route handlers must not contain compatibility or analytics algorithms.
 

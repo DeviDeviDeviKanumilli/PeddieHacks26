@@ -43,6 +43,7 @@ Do not store diagnoses, free-text pain descriptions, birth dates, clinician note
 - `exercise_capability_demands`: exercise/capability pair, demand level, and required flag.
 - `exercise_equipment_options`: exercise, equipment, required/optional mode, and OR-group key.
 - `exercise_muscles`: exercise/muscle pair, role, and intensity.
+- `exercise_goals`: exercise/goal pair used for deterministic ranking and generation.
 - `exercise_tracking_profiles`: exercise, model-neutral tracking key, version, confidence floor, ROM/tempo targets, and supported metric flags.
 - `exercise_form_rules`: tracking profile, feedback code, metric comparison, threshold, severity, and message key.
 
@@ -88,5 +89,18 @@ Create migrations through the Supabase CLI. The expected order is:
 4. Workout/session/metric tables.
 5. Indexes, grants, RLS, triggers, and atomic functions.
 6. Validation constraints and catalog-source checks.
+7. Workout idempotency fields and atomic movement-profile replacement.
+8. Session lifecycle RPCs, metric-batch ingestion, completion summaries, daily-progress rebuilds, and deletion.
+9. Atomic workout-item replacement.
 
 `supabase/seed.sql` contains only deterministic reference data, the 24 exercise catalog records, tracking rules, and local demo fixtures. It must not contain real user data, secrets, or production credentials.
+
+Implementation status: the nine CLI-created migrations and deterministic seed are in
+place. A disposable PostgreSQL 16 execution applies every migration and seed row, and
+the catalog, RLS, profile-RPC, and session-lifecycle SQL tests pass. The session RPCs
+lock owner rows for transitions and completion, deduplicate metric batches and reps,
+reject unsupported metric fields, and rebuild affected daily progress rows after
+completion or deletion.
+The Docker-backed `supabase db reset` and Supabase advisors are still environment-gated
+because the current machine has no Docker daemon. `pnpm test:db` provides a repeatable
+SQL-test entrypoint whenever `SUPABASE_DB_URL` or `DATABASE_URL` is available.

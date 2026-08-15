@@ -15,9 +15,11 @@ Never store:
 ## Authentication and secrets
 
 - Supabase Auth owns authentication.
-- API validates bearer tokens and creates a request-scoped user context.
+- API validates bearer tokens and creates a request-scoped user context. Private
+  Supabase operations also carry the same bearer token into a request-scoped client so
+  Postgres RLS evaluates the authenticated identity.
 - Publishable keys may appear in clients; secret/service keys never may.
-- The secret key is limited to demo-user provisioning and Auth-user deletion.
+- The secret key is limited to server-side Auth-user deletion.
 - Secrets are environment variables, never seed data or committed files.
 
 ## RLS
@@ -63,3 +65,16 @@ Rate limits:
 - Session deletion removes metrics, summaries, events, and recomputes daily progress.
 - Account deletion removes all application rows, then the Supabase Auth identity.
 - Deletion is retry-safe and does not expose whether another user's records exist.
+## Database implementation status
+
+### Implemented database controls
+
+- Every application table is forced through RLS.
+- Public roles receive explicit `SELECT` grants only for active reference/catalog rows.
+- Authenticated private-table policies use `(select auth.uid())` owner predicates and both `USING` and `WITH CHECK` for writes.
+- Derived metrics store scores, ranges, confidence, tempo, and known feedback codes only. Raw camera frames, images, audio, landmarks, coordinates, and arbitrary text are not schema fields.
+- Account-linked rows cascade from `auth.users`; workout deletion is not exposed as physical deletion by the product contract, while account deletion removes application rows.
+- Catalog activation is blocked unless content has instructions, safety cues, adaptations, body/capability demands, and an approved source.
+
+The SQL isolation test covers two authenticated identities plus anonymous catalog
+access. Run it after a local `supabase db reset` when Docker is available.

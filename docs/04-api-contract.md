@@ -51,6 +51,29 @@ GET /v1/exercises/:exerciseId
 
 Exercise filters include search, body region, category, position, equipment, difficulty, tracking support, sort, cursor, and limit. `compatible=true` requires authentication.
 
+The public catalog and reference routes, authenticated exercise compatibility route,
+typed error envelope, OpenAPI document, request IDs, and general rate limit are now
+implemented in `apps/api`. Supabase-backed catalog/profile adapters are selected when
+the required environment variables are present; tests use an injected deterministic
+repository and auth verifier.
+
+Movement-profile reads/writes and generated/manual workout CRUD are also implemented.
+Generated requests are stored with a client request ID and SHA-256 request hash;
+replaying the same content returns the original workout, while reusing the ID with
+different content returns `409 idempotency_conflict`. Manual caution items require
+acknowledgement of every returned warning code.
+
+Profile and settings reads/patches are now backed by the same repository boundary. The
+memory adapter is used by local API tests; the Supabase adapter reads and updates only
+the authenticated user's `profiles` and `user_settings` rows. Settings patches merge
+the supported nested preference objects, while unknown fields fail the TypeBox request
+contract.
+
+Every authenticated route requires a verified bearer token. The route passes that token
+to the Supabase repository boundary, which creates a request-scoped client with the
+token's `Authorization` header so Postgres RLS evaluates the real signed-in identity.
+Token verification alone is not used as an authorization substitute.
+
 ## Profile routes
 
 ```http
@@ -67,7 +90,10 @@ PATCH  /v1/settings
 
 Movement-profile writes include `expectedVersion`. Stale writes return `409 version_conflict`.
 
-`DELETE /v1/users/me` deletes application data and then the Supabase Auth identity. The operation is retry-safe.
+`DELETE /v1/users/me` deletes the Supabase Auth identity through a server-only service
+client; the database foreign keys cascade application data. Missing identities are
+treated as success so retries remain safe. The route returns `503` when the service
+role key is not configured.
 
 ## Exercise and workout routes
 
@@ -90,6 +116,10 @@ PATCH /v1/workouts/:workoutId/items/:itemId
 `CompatibilityResult` contains status, score, engine/profile versions, stable reason/conflict codes, related IDs, explanations, and alternatives.
 
 Deleting a workout archives it. Manual workouts may contain one exercise for standalone exercise sessions.
+Workout-item alternatives are ranked by the deterministic generation engine against
+the current movement profile. Item replacement requires the current workout version,
+re-evaluates compatibility, and requires exact caution acknowledgements for a newly
+selected caution exercise.
 
 ## Session routes
 
@@ -97,10 +127,12 @@ Deleting a workout archives it. Manual workouts may contain one exercise for sta
 POST   /v1/workout-sessions
 GET    /v1/workout-sessions
 GET    /v1/workout-sessions/:sessionId
+GET    /v1/workout-sessions/:sessionId/exercise-sessions
 PATCH  /v1/workout-sessions/:sessionId
 POST   /v1/workout-sessions/:sessionId/complete
 DELETE /v1/workout-sessions/:sessionId
 
+GET    /v1/exercise-sessions/:exerciseSessionId
 PATCH  /v1/exercise-sessions/:exerciseSessionId
 POST   /v1/exercise-sessions/:exerciseSessionId/metrics
 POST   /v1/exercise-sessions/:exerciseSessionId/complete
@@ -120,6 +152,12 @@ GET /v1/progress/exercises/:exerciseId
 ```
 
 Progress supports date ranges up to 366 days. Results include totals, daily activity, body coverage, and per-exercise trend baselines.
+
+The API session repository has memory and Supabase implementations. Supabase creation,
+state transitions, metric ingestion, exercise completion, workout completion, daily
+progress rebuilds, and deletion use owner-checked PostgreSQL functions so a client
+retry cannot partially apply a lifecycle operation. The API computes the documented
+analysis from stored derived metrics and persists only the aggregate summary.
 
 ## Status codes
 

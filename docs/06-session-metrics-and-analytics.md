@@ -84,3 +84,17 @@ Progress compares the current score with the previous three completed sessions f
 ## Progress data
 
 `daily_progress` powers the activity grid, totals, and date-range summaries. Body coverage is calculated from completed exercises and muscle/body-region intensity metadata. Session deletion recomputes affected daily rows.
+
+The pure domain implementation now enforces the 100-rep/64 KB batch limits, rejects
+duplicate reps and unknown feedback codes, filters form metrics below 0.60 tracking
+confidence, renormalizes the documented score weights when metrics are missing, and
+classifies six-or-more-rep performance change as stable, mild decline, or notable
+decline. API schemas accept derived metric fields only; raw video, frames, audio,
+landmarks, coordinates, and arbitrary feedback text have no accepted fields.
+
+Implementation status: memory and Supabase session repositories now expose the session
+state machine, derived-metric batch ingestion, exercise analysis, workout completion,
+history, activity totals, body coverage, and per-exercise progress routes. The Supabase
+path uses transactional lifecycle RPCs and rebuilds affected daily rows after session
+deletion. Unknown metric fields are rejected by the request validator rather than
+silently stripped.

@@ -33,4 +33,20 @@ The project is intentionally backend-only for this checkpoint. Frontend screens,
 
 ## Current state
 
-The repository starts with only the initial README. The next implementation task is to scaffold the backend workspace and Supabase migrations from these documents.
+The backend workspace and Supabase schema are implemented and pushed. `apps/api` is a
+Fastify service with repository adapters, authenticated routes, OpenAPI output,
+readiness checks, rate limiting, and memory-backed tests. `packages/contracts` owns
+the TypeBox API boundary, while `packages/domain` owns pure compatibility, workout
+generation, session-analysis, and progress rules.
+
+The database currently has nine CLI-created migrations, deterministic catalog seed
+data, explicit grants, forced RLS, owner-scoped policies, and transactional lifecycle
+RPCs. The API's Supabase repositories create request-scoped clients carrying the
+verified bearer token for every private query/RPC; the service-role client is isolated
+to account deletion. No frontend, iOS, camera, or pose-model implementation belongs
+in this phase.
+
+Repeatable checks are available through `pnpm format`, `pnpm typecheck`, `pnpm test`,
+`pnpm build`, `pnpm openapi:check`, `pnpm test:integration`, and `pnpm test:db`.
+`pnpm test:db` is environment-gated and runs the SQL suite when
+`SUPABASE_DB_URL` or `DATABASE_URL` is set after migrations and seed data are applied.

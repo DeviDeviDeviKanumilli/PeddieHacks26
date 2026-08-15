@@ -20,10 +20,14 @@
 
 - Listen on Railway's injected `PORT`.
 - Bind to host `::`.
-- Configure `/healthz` as deployment health check.
-- Use `/readyz` for a bounded Supabase dependency check.
+- Configure `/readyz` as the deployment health check; it returns `503 degraded` when the Supabase dependency check fails.
+- Use `/healthz` as the process-only liveness check.
+- Require `SUPABASE_URL` and `SUPABASE_ANON_KEY` at API startup; the server never uses a service key for client-facing requests.
+- Expose `/openapi.json` and `/docs` for the versioned backend contract.
 - Use config-as-code for build, start, healthcheck, restart policy, and draining.
 - Deploy migrations before API code that requires them.
+- The committed `railway.toml` installs dependencies with pnpm, builds all workspaces,
+  starts only `@peddie/api`, and applies restart limits.
 
 ## Environment variables
 
@@ -32,29 +36,33 @@ NODE_ENV
 LOG_LEVEL
 CORS_ORIGINS
 SUPABASE_URL
-SUPABASE_PUBLISHABLE_KEY
-SUPABASE_SECRET_KEY
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
 RATE_LIMIT_GENERAL
 RATE_LIMIT_GENERATION
 RATE_LIMIT_METRICS
 ```
 
-Demo provisioning additionally uses:
+`SUPABASE_SERVICE_ROLE_KEY` is server-only. It is used exclusively by the account
+deletion adapter to call Supabase Auth Admin; it is never returned to a client,
+included in OpenAPI, or used by the client-facing Supabase repository.
 
-```text
-DEMO_USER_EMAIL
-DEMO_USER_PASSWORD
-```
+Demo-user provisioning is a deployment task handled through the Supabase Auth
+dashboard or an approved operator workflow; the API does not expose a provisioning
+endpoint and the database seed does not contain credentials.
 
 ## Release sequence
 
-1. Run formatting, typecheck, unit tests, integration tests, and seed validation.
-2. Run local `supabase db reset`.
+1. Run `pnpm format`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
+   `pnpm openapi:check`, and `pnpm build`.
+2. Run local `supabase db reset`, then `pnpm test:db`.
 3. Review migration diff and security/performance advisors.
 4. Apply migrations to the hosted demo.
 5. Deploy the API service.
 6. Run `/healthz` and `/readyz` smoke checks.
 7. Run the complete demo acceptance scenario.
+8. Verify `DELETE /v1/users/me` removes the Auth identity and cascaded application
+   rows, then repeat it to confirm retry-safe behavior.
 
 Never use destructive database reset commands against the hosted demo.
 

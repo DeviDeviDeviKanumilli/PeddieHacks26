@@ -63,14 +63,14 @@
 
 ```text
 pnpm install --frozen-lockfile
-pnpm biome check .
+pnpm format
 pnpm typecheck
 pnpm test
+pnpm test:integration
+pnpm openapi:check
+pnpm build
 supabase db reset
 pnpm test:db
-pnpm test:integration
-pnpm build
-pnpm openapi:check
 ```
 ## Current implementation status
 
@@ -80,6 +80,8 @@ pnpm openapi:check
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
+- `pnpm test:integration` (the API Fastify-injection suite)
+- `pnpm openapi:check` (required route/path smoke check)
 - Disposable PostgreSQL execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
 - `supabase/tests/profile_rpc.sql` atomic profile replacement and version checks
@@ -88,14 +90,15 @@ pnpm openapi:check
 - Domain tests for session transition matrices, metric limits, confidence filtering, analysis formulas, and progress baselines
 
 The migration/seed checks currently run against a disposable local PostgreSQL
-instance because Docker is unavailable in the current environment. The equivalent
-Supabase command is:
+instance because Docker is unavailable in the current environment. After migrations
+and seed data are applied, `pnpm test:db` runs each SQL test file using
+`SUPABASE_DB_URL` or `DATABASE_URL`. The equivalent Supabase command is:
 
 ```text
 supabase db reset
-psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls.sql
+pnpm test:db
 ```
 
 The authenticated profile, workout, tracked-session, analytics, and progress portions
 of the acceptance flow are covered by Fastify injection tests. Hosted deletion smoke
-tests and Docker-backed Supabase reset remain deployment-gated.
+tests, Docker-backed Supabase reset, and advisor output remain deployment-gated.

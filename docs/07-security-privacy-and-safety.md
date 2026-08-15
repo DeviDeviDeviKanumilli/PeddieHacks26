@@ -15,9 +15,11 @@ Never store:
 ## Authentication and secrets
 
 - Supabase Auth owns authentication.
-- API validates bearer tokens and creates a request-scoped user context.
+- API validates bearer tokens and creates a request-scoped user context. Private
+  Supabase operations also carry the same bearer token into a request-scoped client so
+  Postgres RLS evaluates the authenticated identity.
 - Publishable keys may appear in clients; secret/service keys never may.
-- The secret key is limited to demo-user provisioning and Auth-user deletion.
+- The secret key is limited to server-side Auth-user deletion.
 - Secrets are environment variables, never seed data or committed files.
 
 ## RLS

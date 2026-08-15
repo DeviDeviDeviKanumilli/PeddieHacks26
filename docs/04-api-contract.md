@@ -69,6 +69,11 @@ the authenticated user's `profiles` and `user_settings` rows. Settings patches m
 the supported nested preference objects, while unknown fields fail the TypeBox request
 contract.
 
+Every authenticated route requires a verified bearer token. The route passes that token
+to the Supabase repository boundary, which creates a request-scoped client with the
+token's `Authorization` header so Postgres RLS evaluates the real signed-in identity.
+Token verification alone is not used as an authorization substitute.
+
 ## Profile routes
 
 ```http

@@ -101,5 +101,6 @@ the catalog, RLS, profile-RPC, and session-lifecycle SQL tests pass. The session
 lock owner rows for transitions and completion, deduplicate metric batches and reps,
 reject unsupported metric fields, and rebuild affected daily progress rows after
 completion or deletion.
-The Docker-backed `supabase db reset` and Supabase advisors are pending because the
-current machine has no Docker daemon.
+The Docker-backed `supabase db reset` and Supabase advisors are still environment-gated
+because the current machine has no Docker daemon. `pnpm test:db` provides a repeatable
+SQL-test entrypoint whenever `SUPABASE_DB_URL` or `DATABASE_URL` is available.

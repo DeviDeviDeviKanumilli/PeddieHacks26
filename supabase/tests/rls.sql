@@ -12,6 +12,23 @@ on conflict (id) do nothing;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
 
+insert into public.workouts (
+  id,
+  user_id,
+  source,
+  title,
+  client_request_id,
+  request_hash
+)
+values (
+  '30000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  'manual',
+  'RLS isolation workout',
+  '40000000-0000-4000-8000-000000000001',
+  repeat('a', 64)
+);
+
 do $$
 declare
   visible_count integer;
@@ -45,6 +62,21 @@ begin
   end;
   if not rejected then
     raise exception 'owner transfer of profile row was not rejected';
+  end if;
+end;
+$$;
+
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000002', true);
+
+do $$
+declare
+  visible_count integer;
+begin
+  select count(*) into visible_count
+  from public.workouts
+  where id = '30000000-0000-4000-8000-000000000001';
+  if visible_count <> 0 then
+    raise exception 'owner can read another workout';
   end if;
 end;
 $$;

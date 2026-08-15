@@ -47,17 +47,15 @@ RATE_LIMIT_METRICS
 deletion adapter to call Supabase Auth Admin; it is never returned to a client,
 included in OpenAPI, or used by the client-facing Supabase repository.
 
-Demo provisioning additionally uses:
-
-```text
-DEMO_USER_EMAIL
-DEMO_USER_PASSWORD
-```
+Demo-user provisioning is a deployment task handled through the Supabase Auth
+dashboard or an approved operator workflow; the API does not expose a provisioning
+endpoint and the database seed does not contain credentials.
 
 ## Release sequence
 
-1. Run formatting, typecheck, unit tests, integration tests, and seed validation.
-2. Run local `supabase db reset`.
+1. Run `pnpm format`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
+   `pnpm openapi:check`, and `pnpm build`.
+2. Run local `supabase db reset`, then `pnpm test:db`.
 3. Review migration diff and security/performance advisors.
 4. Apply migrations to the hosted demo.
 5. Deploy the API service.

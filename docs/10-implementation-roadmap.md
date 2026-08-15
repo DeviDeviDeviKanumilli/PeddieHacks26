@@ -10,9 +10,8 @@
 Exit criteria: workspace installs, typechecks, and runs a Fastify health route.
 
 Status: complete. The pnpm workspace, strict TypeScript, Biome, Vitest, Fastify
-health route, shared contracts, deterministic domain engines, and 24-record domain
-catalog are committed and pushed. The next exit gate is the local Supabase schema
-and row-level security test suite.
+health route, shared contracts, deterministic domain engines, 24-record domain
+catalog, and GitHub CI workflow are committed and pushed.
 
 ## Phase 2 — Supabase foundation
 
@@ -28,8 +27,7 @@ Exit criteria: `supabase db reset` succeeds from an empty local database and all
 
 Status: schema, seed, RLS policies, grants, indexes, activation validation, session
 deletion, account-deletion boundary, and disposable PostgreSQL checks are complete.
-Docker-backed reset, advisor output, and hosted smoke testing are pending environment
-availability.
+Docker-backed reset, advisor output, and hosted smoke testing remain environment-gated.
 
 ## Phase 3 — API foundation
 
@@ -43,10 +41,10 @@ availability.
 Exit criteria: authenticated and anonymous access boundaries work in integration tests.
 
 Status: public catalog/reference routes, bearer-token request context, typed errors,
-request IDs, OpenAPI output, rate limiting, and compatibility lookup are complete in
-the repository-injected API. Profile and settings routes now use memory or Supabase
-repositories; readiness dependency checks and the remaining authenticated resources
-are pending.
+request IDs, OpenAPI output, rate limiting, readiness checks, compatibility lookup,
+profile/settings routes, and all scoped authenticated resources are complete in the
+repository-injected API. Supabase private repositories now receive the request bearer
+token so hosted RLS is exercised with the real user identity.
 
 ## Phase 4 — Personalization and compatibility
 
@@ -59,7 +57,7 @@ Exit criteria: full compatibility matrix and equipment behavior are covered by t
 
 Status: domain rules, persistence-backed movement/profile/settings routes,
 compatibility responses, deterministic alternatives, atomic item replacement, and API
-integration tests are in place. Broader profile workflows remain.
+integration tests are complete for the current backend scope.
 
 ## Phase 5 — Workouts
 
@@ -72,8 +70,7 @@ Exit criteria: generated workouts are duration-bounded and never contain hard co
 
 Status: generated and manual workout creation, deterministic compatibility checks,
 idempotent client request IDs, list/get, optimistic patching, archive behavior, and
-workout-session creation are implemented and covered by API tests. Session execution
-and completion are covered by the next phase.
+workout-session creation are implemented and covered by API tests.
 
 ## Phase 6 — Sessions and analytics
 

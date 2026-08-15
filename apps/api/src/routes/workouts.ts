@@ -25,6 +25,7 @@ import { type Static, Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 import { requestAuth, requireUser } from '../auth.js';
 import type { CatalogRepository, MovementProfileRepository } from '../catalog-repository.js';
+import type { RateLimitConfig } from '../config.js';
 import { ApiError } from '../errors.js';
 import {
   hashRequest,
@@ -300,11 +301,19 @@ export const registerWorkoutRoutes = async (
     readonly catalog: CatalogRepository;
     readonly profiles: MovementProfileRepository;
     readonly workouts: WorkoutRepository;
+    readonly rateLimits: RateLimitConfig;
   },
 ): Promise<void> => {
   app.post<{ Body: GenerateWorkoutRequest }>(
     '/v1/workouts/generate',
     {
+      config: {
+        rateLimit: {
+          max: dependencies.rateLimits.generation,
+          timeWindow: '1 minute',
+          groupId: 'workout-generation',
+        },
+      },
       preHandler: requireUser,
       schema: {
         body: GenerateWorkoutRequestSchema,

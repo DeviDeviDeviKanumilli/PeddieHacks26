@@ -1,7 +1,7 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 
-const config = loadConfig(process.env, { requireSupabase: true });
+const config = loadConfig(process.env, { requireDatabase: true, requireSupabase: true });
 const app = await buildApp({ config });
 
 try {

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from './app.js';
 import type { AuthVerifier } from './auth.js';
 import { MemoryCatalogRepository } from './catalog-repository.js';
+import { loadConfig } from './config.js';
 
 const testAuthVerifier: AuthVerifier = {
   async verify(accessToken) {
@@ -121,5 +122,25 @@ describe('API health', () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.json().code).toBe('invalid_limit');
+  });
+
+  it('returns the typed API envelope when a route-specific rate limit is exceeded', async () => {
+    app = await buildApp({
+      logger: false,
+      config: loadConfig({ RATE_LIMIT_CATALOG: '1', RATE_LIMIT_GENERAL: '100' }),
+    });
+    const first = await app.inject({ method: 'GET', url: '/v1/reference-data' });
+    const limited = await app.inject({ method: 'GET', url: '/v1/reference-data' });
+
+    expect(first.statusCode).toBe(200);
+    expect(limited.statusCode).toBe(429);
+    expect(limited.headers['retry-after']).toBeDefined();
+    expect(limited.json()).toMatchObject({
+      type: 'https://api.example/errors/rate_limit_exceeded',
+      title: 'Rate limit exceeded',
+      status: 429,
+      code: 'rate_limit_exceeded',
+      requestId: expect.any(String),
+    });
   });
 });

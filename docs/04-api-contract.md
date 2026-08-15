@@ -52,7 +52,7 @@ GET /v1/exercises/:exerciseId
 Exercise filters include search, body region, category, position, equipment, difficulty, tracking support, sort, cursor, and limit. `compatible=true` requires authentication.
 
 The public catalog and reference routes, authenticated exercise compatibility route,
-typed error envelope, OpenAPI document, request IDs, and general rate limit are now
+typed error envelope, OpenAPI document, request IDs, and route-specific rate limits are
 implemented in `apps/api`. Supabase-backed catalog/profile adapters are selected when
 the required environment variables are present; tests use an injected deterministic
 repository and auth verifier.
@@ -92,8 +92,9 @@ Movement-profile writes include `expectedVersion`. Stale writes return `409 vers
 
 `DELETE /v1/users/me` deletes the Supabase Auth identity through a server-only service
 client; the database foreign keys cascade application data. Missing identities are
-treated as success so retries remain safe. The route returns `503` when the service
-role key is not configured.
+treated as success inside the deletion adapter. After a successful deletion, a normal
+client retry is expected to fail authentication with `401` because the identity no
+longer exists. The route returns `503` when the service role key is not configured.
 
 ## Exercise and workout routes
 
@@ -169,3 +170,6 @@ analysis from stored derived metrics and persists only the aggregate summary.
 - `422`: valid JSON but invalid domain request/profile.
 - `429`: rate limit exceeded.
 - `503`: readiness/dependency failure.
+
+Rate-limit failures use the same typed error envelope and include `Retry-After` plus
+rate-limit response headers.

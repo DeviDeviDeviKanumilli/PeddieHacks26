@@ -13,6 +13,7 @@ import type {
   ExerciseListFilters,
   MovementProfileRepository,
 } from '../catalog-repository.js';
+import type { RateLimitConfig } from '../config.js';
 import { ApiError } from '../errors.js';
 
 const ExerciseListResponseSchema = Type.Object({
@@ -85,17 +86,29 @@ export const registerCatalogRoutes = async (
   dependencies: {
     readonly catalog: CatalogRepository;
     readonly profiles: MovementProfileRepository;
+    readonly rateLimits: RateLimitConfig;
   },
 ): Promise<void> => {
+  const publicCatalogLimit = {
+    max: dependencies.rateLimits.catalog,
+    timeWindow: '1 minute',
+    groupId: 'public-catalog',
+    keyGenerator: (request: import('fastify').FastifyRequest) => request.ip,
+  };
+
   app.get(
     '/v1/reference-data',
-    { schema: { response: { 200: ReferenceDataResponseSchema } } },
+    {
+      config: { rateLimit: publicCatalogLimit },
+      schema: { response: { 200: ReferenceDataResponseSchema } },
+    },
     async () => ({ data: await dependencies.catalog.getReferenceData() }),
   );
 
   app.get<{ Querystring: ExerciseListQuery }>(
     '/v1/exercises',
     {
+      config: { rateLimit: publicCatalogLimit },
       schema: {
         querystring: ExerciseListQuerySchema,
         response: { 200: ExerciseListResponseSchema },
@@ -107,6 +120,7 @@ export const registerCatalogRoutes = async (
   app.get<{ Params: ExerciseIdParams }>(
     '/v1/exercises/:exerciseId',
     {
+      config: { rateLimit: publicCatalogLimit },
       schema: {
         params: ExerciseIdParamsSchema,
         response: { 200: ExerciseResponseSchema },

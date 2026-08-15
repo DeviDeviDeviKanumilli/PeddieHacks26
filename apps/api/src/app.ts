@@ -4,7 +4,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { HealthResponseSchema, ReadyResponseSchema } from '@peddie/contracts';
 import { createClient } from '@supabase/supabase-js';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, LogController } from 'fastify';
 import {
   type AccountRepository,
   MemoryAccountRepository,
@@ -24,9 +24,20 @@ import {
   SupabaseCatalogRepository,
 } from './catalog-repository.js';
 import { type AppConfig, loadConfig } from './config.js';
-import { registerErrorHandling } from './errors.js';
+import { ApiError, registerErrorHandling } from './errors.js';
+import { PrismaCatalogRepository } from './prisma-catalog-repository.js';
+import { createPrismaClient } from './prisma-client.js';
+import { PrismaMovementProfileRepository } from './prisma-profile-repository.js';
+import { PrismaSessionRepository } from './prisma-session-repository.js';
+import { PrismaUserRepository } from './prisma-user-repository.js';
+import { PrismaWorkoutRepository } from './prisma-workout-repository.js';
 import { SupabaseMovementProfileRepository } from './profile-repository.js';
-import { MemoryReadinessCheck, type ReadinessCheck, SupabaseReadinessCheck } from './readiness.js';
+import {
+  MemoryReadinessCheck,
+  PrismaReadinessCheck,
+  type ReadinessCheck,
+  SupabaseReadinessCheck,
+} from './readiness.js';
 import { registerCatalogRoutes } from './routes/catalog.js';
 import { registerProfileRoutes } from './routes/profile.js';
 import { registerSessionRoutes } from './routes/sessions.js';
@@ -69,6 +80,8 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     ? createSupabaseClientFactory(config.supabaseUrl, config.supabaseAnonKey)
     : undefined;
   const supabase = supabaseFactory?.();
+  const prisma =
+    config.databaseUrl === undefined ? undefined : createPrismaClient(config.databaseUrl);
   const serviceSupabase =
     hasSupabase && config.supabaseServiceRoleKey !== undefined
       ? createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
@@ -82,27 +95,39 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   const memoryRepository = new MemoryCatalogRepository();
   const catalog =
     options.catalog ??
-    (supabase === undefined ? memoryRepository : new SupabaseCatalogRepository(supabase));
+    (prisma !== undefined
+      ? new PrismaCatalogRepository(prisma)
+      : supabase === undefined
+        ? memoryRepository
+        : new SupabaseCatalogRepository(supabase));
   const profiles =
     options.profiles ??
-    (supabase === undefined
-      ? memoryRepository
-      : new SupabaseMovementProfileRepository(supabase, supabaseFactory));
+    (prisma !== undefined
+      ? new PrismaMovementProfileRepository(prisma)
+      : supabase === undefined
+        ? memoryRepository
+        : new SupabaseMovementProfileRepository(supabase, supabaseFactory));
   const workouts =
     options.workouts ??
-    (supabase === undefined
-      ? new MemoryWorkoutRepository()
-      : new SupabaseWorkoutRepository(supabase, supabaseFactory));
+    (prisma !== undefined
+      ? new PrismaWorkoutRepository(prisma)
+      : supabase === undefined
+        ? new MemoryWorkoutRepository()
+        : new SupabaseWorkoutRepository(supabase, supabaseFactory));
   const users =
     options.users ??
-    (supabase === undefined
-      ? new MemoryUserRepository()
-      : new SupabaseUserRepository(supabase, supabaseFactory));
+    (prisma !== undefined
+      ? new PrismaUserRepository(prisma)
+      : supabase === undefined
+        ? new MemoryUserRepository()
+        : new SupabaseUserRepository(supabase, supabaseFactory));
   const sessions =
     options.sessions ??
-    (supabase === undefined
-      ? new MemorySessionRepository(catalog)
-      : new SupabaseSessionRepository(supabase, supabaseFactory));
+    (prisma !== undefined && supabase !== undefined
+      ? new PrismaSessionRepository(prisma, supabase, supabaseFactory, catalog)
+      : supabase === undefined
+        ? new MemorySessionRepository(catalog)
+        : new SupabaseSessionRepository(supabase, supabaseFactory));
   const accounts =
     options.accounts ??
     (serviceSupabase !== undefined
@@ -112,23 +137,71 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
         : new UnavailableAccountRepository());
   const readiness =
     options.readiness ??
-    (supabase === undefined ? new MemoryReadinessCheck() : new SupabaseReadinessCheck(supabase));
+    (prisma !== undefined
+      ? new PrismaReadinessCheck(prisma)
+      : supabase === undefined
+        ? new MemoryReadinessCheck()
+        : new SupabaseReadinessCheck(supabase));
   const authVerifier =
     options.authVerifier ??
     (supabase === undefined ? new RejectingAuthVerifier() : new SupabaseAuthVerifier(supabase));
   const app = Fastify({
-    logger: options.logger ?? true,
+    logger:
+      options.logger ??
+      ({
+        level: config.logLevel,
+        base: {
+          service: 'adaptive-fitness-api',
+          ...(config.deploymentId === undefined ? {} : { deploymentId: config.deploymentId }),
+        },
+        redact: {
+          paths: [
+            'req.headers.authorization',
+            'req.headers.cookie',
+            'req.headers["x-api-key"]',
+            'res.headers["set-cookie"]',
+            '*.accessToken',
+            '*.token',
+            '*.password',
+            '*.email',
+          ],
+          censor: '[Redacted]',
+        },
+      } as const),
+    logController: new LogController({ disableRequestLogging: true }),
+    trustProxy: config.trustProxy,
     requestIdHeader: 'x-request-id',
     ajv: { customOptions: { removeAdditional: false } },
   });
+  if (prisma !== undefined) {
+    app.addHook('onClose', async () => prisma.$disconnect());
+  }
 
   await app.register(cors, {
     origin: config.corsOrigins,
   });
   await app.register(rateLimit, {
-    max: 120,
+    max: config.rateLimits.general,
     timeWindow: '1 minute',
-    keyGenerator: (request) => request.ip,
+    hook: 'preHandler',
+    keyGenerator: (request) => request.userId ?? request.ip,
+    errorResponseBuilder: (_request, context) =>
+      new ApiError({
+        statusCode: 429,
+        code: 'rate_limit_exceeded',
+        title: 'Rate limit exceeded',
+        detail: `Too many requests. Retry after ${context.after}.`,
+      }),
+    onExceeded: (request) => {
+      request.log.warn(
+        {
+          requestId: request.id,
+          route: request.routeOptions.url,
+          statusCode: 429,
+        },
+        'rate limit exceeded',
+      );
+    },
   });
   await app.register(swagger, {
     openapi: {
@@ -150,6 +223,18 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   app.decorateRequest('userId', null);
   app.decorateRequest('accessToken', null);
   app.addHook('onRequest', async (request) => authenticateRequest(request, authVerifier));
+  app.addHook('onResponse', async (request, reply) => {
+    request.log.info(
+      {
+        requestId: request.id,
+        method: request.method,
+        route: request.routeOptions.url,
+        statusCode: reply.statusCode,
+        durationMs: reply.elapsedTime,
+      },
+      'request completed',
+    );
+  });
   registerErrorHandling(app);
 
   app.get(
@@ -171,8 +256,8 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
       try {
         await readiness.check();
         return { data: { service: 'api' as const, status: 'ready' as const } };
-      } catch (error) {
-        app.log.warn({ err: error }, 'readiness dependency check failed');
+      } catch {
+        app.log.warn({ code: 'readiness_dependency_failed' }, 'readiness dependency check failed');
         return reply
           .status(503)
           .send({ data: { service: 'api' as const, status: 'degraded' as const } });
@@ -180,11 +265,11 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     },
   );
 
-  await registerCatalogRoutes(app, { catalog, profiles });
+  await registerCatalogRoutes(app, { catalog, profiles, rateLimits: config.rateLimits });
   await registerProfileRoutes(app, { profiles });
-  await registerUserRoutes(app, { users, accounts });
-  await registerWorkoutRoutes(app, { catalog, profiles, workouts });
-  await registerSessionRoutes(app, { sessions, workouts });
+  await registerUserRoutes(app, { users, accounts, rateLimits: config.rateLimits });
+  await registerWorkoutRoutes(app, { catalog, profiles, workouts, rateLimits: config.rateLimits });
+  await registerSessionRoutes(app, { sessions, workouts, rateLimits: config.rateLimits });
 
   app.get('/openapi.json', async () => app.swagger());
 

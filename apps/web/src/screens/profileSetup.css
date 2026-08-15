@@ -1,0 +1,550 @@
+.setup-page {
+  --setup-gap: 1.15rem;
+}
+
+.setup-back {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.55rem 0 0.35rem;
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.setup-back:hover {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.setup-progress {
+  margin-bottom: 1.1rem;
+}
+
+.setup-progress__label {
+  margin: 0 0 0.4rem;
+  color: var(--accent-strong);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.setup-progress__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.35rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.setup-progress__track li {
+  height: 4px;
+  background: var(--surface-strong);
+  border-radius: 999px;
+  transition: background 0.25s var(--ease-out);
+}
+
+.setup-progress__track li.is-complete {
+  background: var(--accent);
+}
+
+.choice-list {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0;
+  margin: 0 0 1.4rem;
+  list-style: none;
+}
+
+.choice-list--columns {
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.choice {
+  display: grid;
+  min-height: 4.1rem;
+  align-items: center;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.85rem;
+  padding: 0.7rem 0.95rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease-out),
+    background 0.2s var(--ease-out);
+}
+
+/* No icon column on lists that omit icons, so the label stays flush left. */
+.choice:not(:has(.choice__icon)) {
+  grid-template-columns: 1fr auto;
+}
+
+.choice:hover {
+  border-color: var(--line-strong);
+}
+
+.choice.is-selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.choice:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.choice__icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--accent-strong);
+  background: var(--surface-soft);
+  border-radius: 12px;
+  place-items: center;
+}
+
+.choice.is-selected .choice__icon {
+  color: oklch(0.99 0.005 278);
+  background: var(--accent);
+}
+
+.choice__body {
+  display: grid;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
+.choice__body strong {
+  font-size: 1.02rem;
+  font-weight: 680;
+}
+
+.choice__body small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.choice__check {
+  display: grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  color: oklch(0.99 0.005 278);
+  background: transparent;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  place-items: center;
+}
+
+.choice.is-selected .choice__check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.movement-map {
+  display: grid;
+  gap: 1rem;
+  padding: 1.15rem;
+  margin-bottom: var(--setup-gap);
+}
+
+/* A fieldset for grouping semantics, so its default border and inline-size are reset. */
+.movement-map__sides {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin: 0;
+  background: var(--surface-soft);
+  border: 0;
+  border-radius: 999px;
+}
+
+.movement-map__sides button {
+  min-height: 2.6rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 680;
+}
+
+.movement-map__sides button.is-active {
+  color: var(--accent-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/*
+ * Square on purpose: markers are positioned as percentages of this box, and the SVG's
+ * 0 0 100 100 viewBox only maps 1:1 onto those percentages when the box is square.
+ * A taller box letterboxes the drawing and the markers drift off the body.
+ */
+.body-figure {
+  position: relative;
+  width: min(100%, 21rem);
+  margin-inline: auto;
+  aspect-ratio: 1 / 1;
+}
+
+.body-figure__svg {
+  width: 100%;
+  height: 100%;
+}
+
+.body-figure__outline {
+  fill: var(--surface-soft);
+  stroke: var(--line-strong);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+
+.body-figure__spine {
+  fill: none;
+  stroke-dasharray: 2 2;
+}
+
+.body-marker {
+  position: absolute;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  background: var(--surface);
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 0.18s var(--ease-out),
+    box-shadow 0.18s var(--ease-out);
+}
+
+.body-figure--interactive .body-marker {
+  cursor: pointer;
+}
+
+.body-figure--interactive .body-marker:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.body-figure--interactive .body-marker.is-active {
+  box-shadow: 0 0 0 4px oklch(0.62 0.15 276 / 0.28);
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.body-marker--focus {
+  background: var(--accent);
+  border-color: var(--accent-deep);
+}
+
+.body-marker--minor {
+  background: var(--warning);
+  border-color: oklch(0.55 0.13 56);
+}
+
+.body-marker--pain {
+  background: var(--danger);
+  border-color: oklch(0.42 0.15 22);
+}
+
+/* Legend swatches are decorative, so they drop the interactive sizing. */
+.region-legend .body-marker {
+  position: static;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-width: 1.5px;
+  transform: none;
+}
+
+.region-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.1rem;
+  padding: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  list-style: none;
+}
+
+.region-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.region-editor {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+}
+
+.region-editor__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.region-editor__prompt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.region-editor__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.region-option {
+  min-height: 2.6rem;
+  padding: 0 0.85rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.region-option:hover {
+  border-color: var(--line-strong);
+}
+
+.region-option.is-active {
+  color: oklch(0.99 0.005 278);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.region-option--minor.is-active {
+  background: var(--warning);
+  border-color: var(--warning);
+}
+
+.region-option--pain.is-active {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.region-option--none.is-active {
+  color: var(--ink);
+  background: var(--surface-strong);
+  border-color: var(--line-strong);
+}
+
+.movement-notes {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.15rem;
+  margin-bottom: var(--setup-gap);
+}
+
+.movement-notes label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 1rem;
+}
+
+.movement-notes label span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.movement-notes textarea {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.movement-notes textarea:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.movement-notes__summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.accessibility-list {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.6rem 1.15rem;
+  margin-bottom: var(--setup-gap);
+}
+
+.switch-row {
+  display: grid;
+  min-height: 4rem;
+  align-items: center;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.85rem;
+  cursor: pointer;
+}
+
+.switch-row + .switch-row {
+  box-shadow: inset 0 1px var(--line);
+}
+
+.switch-row__icon {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  color: var(--accent-strong);
+  background: var(--surface-soft);
+  border-radius: 12px;
+  place-items: center;
+}
+
+.switch-row__body {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.switch-row__body strong {
+  font-weight: 670;
+}
+
+.switch-row__body small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* The real input stays in the layer so it keeps focus and keyboard behaviour. */
+.switch-row__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch {
+  position: relative;
+  width: 3.05rem;
+  height: 1.75rem;
+  background: var(--surface-strong);
+  border-radius: 999px;
+  transition: background 0.2s var(--ease-out);
+}
+
+.switch::after {
+  position: absolute;
+  top: 0.19rem;
+  left: 0.19rem;
+  width: 1.37rem;
+  height: 1.37rem;
+  content: "";
+  background: var(--surface);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s var(--ease-out);
+}
+
+.switch-row__input:checked ~ .switch {
+  background: var(--accent);
+}
+
+.switch-row__input:checked ~ .switch::after {
+  transform: translateX(1.3rem);
+}
+
+.switch-row__input:focus-visible ~ .switch {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.setup-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.setup-actions .button {
+  width: 100%;
+  min-height: 3.5rem;
+}
+
+.setup-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .setup-actions {
+    justify-items: start;
+  }
+
+  .setup-actions .button {
+    width: auto;
+    min-width: 16rem;
+  }
+
+  .setup-hint {
+    text-align: left;
+  }
+
+  .movement-map {
+    grid-template-areas:
+      "sides figure"
+      "editor figure"
+      "legend figure";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+    align-items: start;
+    gap: 1rem 1.75rem;
+  }
+
+  .movement-map__sides {
+    grid-area: sides;
+  }
+
+  .body-figure {
+    grid-area: figure;
+    width: min(100%, 18rem);
+  }
+
+  .region-editor,
+  .region-editor__prompt {
+    grid-area: editor;
+    align-self: start;
+  }
+
+  .region-editor__prompt {
+    text-align: left;
+  }
+
+  .region-legend {
+    grid-area: legend;
+    align-self: start;
+  }
+}

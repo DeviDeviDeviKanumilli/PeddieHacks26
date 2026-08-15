@@ -1,8 +1,7 @@
-# PeddieHacks26 Backend Plan
+# PeddieHacks26 Product Plan
 
-This folder is the backend source of truth for the adaptive fitness product.
-
-The project is intentionally backend-only for this checkpoint. Frontend screens, styling, web/mobile architecture, and platform-specific camera implementation are deferred until references are provided.
+This folder is the system source of truth for AdaptFit, including the React web client,
+Fastify API, domain rules, Supabase data model, privacy posture, and deployment plan.
 
 ## Reading order
 
@@ -21,7 +20,9 @@ The project is intentionally backend-only for this checkpoint. Frontend screens,
 
 ## Locked decisions
 
-- Backend only; no frontend work in this phase.
+- React 19 and Vite power the responsive `apps/web` client.
+- The browser client runs immediately in a persistent local demo mode and can use
+  Supabase Auth plus the Fastify API when public client variables are configured.
 - Node.js 24 LTS, TypeScript, Fastify 5, and pnpm.
 - Supabase Auth and Postgres; Fastify API deployed to Railway.
 - Prisma 7 is the typed ORM for application table queries; Supabase SQL remains the source of truth for RLS, grants, triggers, and lifecycle RPCs.
@@ -30,14 +31,23 @@ The project is intentionally backend-only for this checkpoint. Frontend screens,
 - Public exercise catalog; authentication required for personalization and history.
 - Deterministic compatibility rules and scoring; no LLM in eligibility decisions.
 - Pose estimation remains on-device. The API stores derived metrics only.
+- Raw camera video and audio never leave the browser; camera use is optional.
 - Retain derived metrics until session or account deletion.
 - Seed 24 sourced exercises, with tracking rules for 6.
 - General wellness positioning for adults; no diagnosis, treatment, or rehabilitation claims.
 
 ## Current state
 
-The backend workspace, Supabase schema, and Prisma data-access layer are implemented and pushed. `apps/api` is a
-Fastify service with repository adapters, authenticated routes, OpenAPI output,
+The workspace now includes the PDF-derived AdaptFit experience in `apps/web`, with
+onboarding, discovery, exercise details and safety gates, camera permission/setup,
+active workout states, completion, dashboard, history, and analysis. Interactive demo
+state is stored locally so the complete flow works without infrastructure credentials.
+The optional live adapter uses Supabase Auth and the Fastify API for account-scoped
+profiles, compatibility, movement preferences, workouts, sessions, progress, and history,
+with explicit loading, error, and retry states.
+
+The backend workspace, Supabase schema, and Prisma data-access layer are also
+implemented. `apps/api` is a Fastify service with repository adapters, authenticated routes, OpenAPI output,
 readiness checks, route-specific rate limiting, redacted structured logging, and
 memory-backed tests. `packages/contracts` owns
 the TypeBox API boundary, while `packages/domain` owns pure compatibility, workout
@@ -47,8 +57,11 @@ The database currently has nine CLI-created migrations, deterministic catalog se
 data, explicit grants, forced RLS, owner-scoped policies, and transactional lifecycle
 RPCs. Prisma table transactions establish the matching Postgres RLS role and JWT
 subject; the request-scoped Supabase client remains for lifecycle RPCs and the
-service-role client is isolated to account deletion. No frontend, iOS, camera, or
-pose-model implementation belongs in this phase.
+service-role client is isolated to account deletion. The web client provides a real
+browser camera preview with a clearly labeled manual/demo tracking fallback. The
+development-only Python prototype under `model/` performs local MediaPipe pose and arm
+angle experiments; production on-device model integration and calibration remain
+separate work, and the backend never receives raw camera media or landmarks.
 
 Repeatable checks are available through `pnpm format`, `pnpm typecheck`, `pnpm test`,
 `pnpm build`, `pnpm openapi:check`, `pnpm test:integration`, and `pnpm test:db`.

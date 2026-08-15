@@ -7,11 +7,15 @@
     "node": ">=24 <27"
   },
   "scripts": {
-    "build": "pnpm prisma:generate && tsc -b packages/contracts packages/domain apps/api",
+    "build": "pnpm prisma:generate && tsc -b packages/contracts packages/domain apps/api && pnpm --filter @peddie/web build",
+    "build:shared": "tsc -b packages/contracts packages/domain",
     "db:test:prepare": "bash scripts/prepare-test-db.sh",
-    "dev": "pnpm --filter @peddie/api dev",
-    "format": "biome check --vcs-use-ignore-file=true biome.json package.json prisma.config.ts pnpm-workspace.yaml tsconfig.base.json AGENTS.md apps/api/package.json apps/api/tsconfig.json apps/api/src/*.ts apps/api/src/routes packages/contracts/package.json packages/contracts/tsconfig.json packages/contracts/src packages/domain/package.json packages/domain/tsconfig.json packages/domain/src scripts/*.ts scripts/tsconfig.json docs",
-    "format:write": "biome check --vcs-use-ignore-file=true --write biome.json package.json prisma.config.ts pnpm-workspace.yaml tsconfig.base.json AGENTS.md apps/api/package.json apps/api/tsconfig.json apps/api/src/*.ts apps/api/src/routes packages/contracts/package.json packages/contracts/tsconfig.json packages/contracts/src packages/domain/package.json packages/domain/tsconfig.json packages/domain/src scripts/*.ts scripts/tsconfig.json docs",
+    "dev": "pnpm --filter @peddie/web dev",
+    "dev:api": "pnpm prisma:generate && pnpm build:shared && pnpm --filter @peddie/api dev",
+    "dev:all": "pnpm prisma:generate && pnpm build:shared && pnpm --parallel --filter @peddie/api --filter @peddie/web dev",
+    "dev:web": "pnpm --filter @peddie/web dev",
+    "format": "biome check --vcs-use-ignore-file=true biome.json package.json prisma.config.ts pnpm-workspace.yaml tsconfig.base.json AGENTS.md README.md PRODUCT.md DESIGN.md .impeccable/design.json apps/api/package.json apps/api/tsconfig.json apps/api/src/*.ts apps/api/src/routes apps/web/index.html apps/web/package.json apps/web/tsconfig.json apps/web/vite.config.ts apps/web/src packages/contracts/package.json packages/contracts/tsconfig.json packages/contracts/src packages/domain/package.json packages/domain/tsconfig.json packages/domain/src scripts/*.ts scripts/tsconfig.json docs",
+    "format:write": "biome check --vcs-use-ignore-file=true --write biome.json package.json prisma.config.ts pnpm-workspace.yaml tsconfig.base.json AGENTS.md README.md PRODUCT.md DESIGN.md .impeccable/design.json apps/api/package.json apps/api/tsconfig.json apps/api/src/*.ts apps/api/src/routes apps/web/index.html apps/web/package.json apps/web/tsconfig.json apps/web/vite.config.ts apps/web/src packages/contracts/package.json packages/contracts/tsconfig.json packages/contracts/src packages/domain/package.json packages/domain/tsconfig.json packages/domain/src scripts/*.ts scripts/tsconfig.json docs",
     "openapi:check": "pnpm prisma:generate && pnpm --filter @peddie/contracts build && pnpm --filter @peddie/domain build && pnpm --filter @peddie/api build && tsx scripts/openapi-check.ts",
     "prisma:generate": "prisma generate",
     "smoke:hosted": "tsx scripts/hosted-smoke.ts",
@@ -19,7 +23,8 @@
     "test:db": "bash scripts/test-db.sh",
     "test:integration": "pnpm prisma:generate && tsc -b packages/contracts packages/domain && pnpm --filter @peddie/api test",
     "test:prisma": "tsx scripts/prisma-smoke.ts",
-    "typecheck": "pnpm prisma:generate && tsc -b packages/contracts packages/domain apps/api --pretty false && tsc -p scripts/tsconfig.json --pretty false"
+    "test:web": "pnpm --filter @peddie/web test",
+    "typecheck": "pnpm prisma:generate && tsc -b packages/contracts packages/domain apps/api --pretty false && tsc -p scripts/tsconfig.json --pretty false && pnpm --filter @peddie/web typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",

@@ -23,12 +23,12 @@ import { useApp } from '../state/AppContext';
 import type { Exercise } from '../types';
 import './exercise.css';
 
-type DetailTab = 'procedure' | 'tips' | 'video';
+type DetailTab = 'overview' | 'how-to' | 'muscles';
 
 const detailTabs: Array<{ id: DetailTab; label: string }> = [
-  { id: 'procedure', label: 'Procedure' },
-  { id: 'tips', label: 'Tips' },
-  { id: 'video', label: 'Video' },
+  { id: 'overview', label: 'Overview' },
+  { id: 'how-to', label: 'How To' },
+  { id: 'muscles', label: 'Muscles' },
 ];
 
 const formatPosition = (position: Exercise['position']): string =>
@@ -133,22 +133,13 @@ const ExerciseMedia = ({
 
 const ProcedurePanel = ({
   exercise,
-  panelId,
-  tabId,
-  hidden,
+  bare = false,
 }: {
   exercise: Exercise;
-  panelId: string;
-  tabId: string;
-  hidden: boolean;
+  /** Rendered inside a parent tabpanel, so it must not declare tab roles itself. */
+  bare?: boolean;
 }) => (
-  <section
-    className="exercise-detail_panel"
-    id={panelId}
-    role="tabpanel"
-    aria-labelledby={tabId}
-    hidden={hidden}
-  >
+  <section className="exercise-detail_panel" role={bare ? undefined : 'tabpanel'}>
     <header className="exercise-detail_section-heading">
       <span className="exercise-detail_section-icon" aria-hidden="true">
         <ListChecks size={22} />
@@ -190,22 +181,13 @@ const ProcedurePanel = ({
 
 const TipsPanel = ({
   exercise,
-  panelId,
-  tabId,
-  hidden,
+  bare = false,
 }: {
   exercise: Exercise;
-  panelId: string;
-  tabId: string;
-  hidden: boolean;
+  /** Rendered inside a parent tabpanel, so it must not declare tab roles itself. */
+  bare?: boolean;
 }) => (
-  <section
-    className="exercise-detail_panel"
-    id={panelId}
-    role="tabpanel"
-    aria-labelledby={tabId}
-    hidden={hidden}
-  >
+  <section className="exercise-detail_panel" role={bare ? undefined : 'tabpanel'}>
     <header className="exercise-detail_section-heading">
       <span className="exercise-detail_section-icon" aria-hidden="true">
         <Lightbulb size={22} />
@@ -239,22 +221,13 @@ const TipsPanel = ({
 
 const VideoPanel = ({
   exercise,
-  panelId,
-  tabId,
-  hidden,
+  bare = false,
 }: {
   exercise: Exercise;
-  panelId: string;
-  tabId: string;
-  hidden: boolean;
+  /** Rendered inside a parent tabpanel, so it must not declare tab roles itself. */
+  bare?: boolean;
 }) => (
-  <section
-    className="exercise-detail_panel"
-    id={panelId}
-    role="tabpanel"
-    aria-labelledby={tabId}
-    hidden={hidden}
-  >
+  <section className="exercise-detail_panel" role={bare ? undefined : 'tabpanel'}>
     <header className="exercise-detail_section-heading">
       <span className="exercise-detail_section-icon" aria-hidden="true">
         <Play size={21} fill="currentColor" />
@@ -274,7 +247,7 @@ const VideoPanel = ({
       <figcaption>
         <strong>Visual setup preview</strong>
         <span>
-          A video clip is not included in this demo. Use the Procedure tab for the complete movement
+          A video clip is not included in this demo. Use the How To tab for the complete movement
           sequence.
         </span>
       </figcaption>
@@ -288,7 +261,7 @@ export const ExerciseDetailScreen = () => {
   const { exercises, movementProfile, selectExercise } = useApp();
   const exercise = exercises.find((candidate) => candidate.slug === slug);
   const exerciseSlug = exercise?.slug;
-  const [activeTab, setActiveTab] = useState<DetailTab>('procedure');
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const tabsId = useId();
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -301,7 +274,7 @@ export const ExerciseDetailScreen = () => {
   useEffect(() => {
     if (exerciseSlug === undefined) return;
     selectExercise(exerciseSlug);
-    setActiveTab('procedure');
+    setActiveTab('overview');
   }, [exerciseSlug, selectExercise]);
 
   if (exercise === undefined) return <ExerciseNotFoundScreen />;
@@ -375,7 +348,13 @@ export const ExerciseDetailScreen = () => {
           />
         </div>
 
-        <article className="exercise-detail_overview">
+        <article
+          className="exercise-detail_overview"
+          id={`${tabsId}-overview-panel`}
+          role="tabpanel"
+          aria-labelledby={`${tabsId}-overview-tab`}
+          hidden={activeTab !== 'overview'}
+        >
           <header>
             <div>
               <div className="exercise-detail_status-row">
@@ -404,36 +383,38 @@ export const ExerciseDetailScreen = () => {
                 Move through a comfortable range
               </figcaption>
             </figure>
-            <aside className="exercise-detail_muscles">
-              <h3>Muscles worked</h3>
-              <MuscleMap compact />
-              <div className="exercise-detail_muscle-list">
-                {exercise.muscles.map((muscle) => (
-                  <span key={muscle}>{muscle}</span>
-                ))}
-              </div>
-            </aside>
+            <VideoPanel exercise={exercise} bare />
           </div>
         </article>
 
-        <ProcedurePanel
-          exercise={exercise}
-          panelId={`${tabsId}-procedure-panel`}
-          tabId={`${tabsId}-procedure-tab`}
-          hidden={activeTab !== 'procedure'}
-        />
-        <TipsPanel
-          exercise={exercise}
-          panelId={`${tabsId}-tips-panel`}
-          tabId={`${tabsId}-tips-tab`}
-          hidden={activeTab !== 'tips'}
-        />
-        <VideoPanel
-          exercise={exercise}
-          panelId={`${tabsId}-video-panel`}
-          tabId={`${tabsId}-video-tab`}
-          hidden={activeTab !== 'video'}
-        />
+        {/* "How To" carries the step-by-step and the coaching cues together. */}
+        <div
+          id={`${tabsId}-how-to-panel`}
+          role="tabpanel"
+          aria-labelledby={`${tabsId}-how-to-tab`}
+          hidden={activeTab !== 'how-to'}
+          className="exercise-detail_how-to"
+        >
+          <ProcedurePanel exercise={exercise} bare />
+          <TipsPanel exercise={exercise} bare />
+        </div>
+
+        <section
+          id={`${tabsId}-muscles-panel`}
+          role="tabpanel"
+          aria-labelledby={`${tabsId}-muscles-tab`}
+          hidden={activeTab !== 'muscles'}
+          className="exercise-detail_muscles-panel"
+        >
+          <h2>Muscles Worked</h2>
+          <MuscleMap />
+          <div className="exercise-detail_muscle-list">
+            {exercise.muscles.map((muscle) => (
+              <span key={muscle}>{muscle}</span>
+            ))}
+          </div>
+          <p className="exercise-detail_regions">Body regions: {exercise.bodyRegions.join(', ')}</p>
+        </section>
 
         <footer className="exercise-detail_continue">
           <p>

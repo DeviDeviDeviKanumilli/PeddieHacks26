@@ -10,7 +10,16 @@ import {
 } from './screens/camera';
 import { DiscoveryScreen, ExerciseCardScreen, ExerciseSelectionScreen } from './screens/discovery';
 import { CompatibilityWarningScreen, ExerciseDetailScreen } from './screens/exercise';
+import { HomeScreen } from './screens/home';
 import { AuthScreen, ProfileSummaryScreen, WelcomeScreen } from './screens/onboarding';
+import {
+  AccessibilityScreen,
+  EditMovementProfileScreen,
+  EquipmentScreen,
+  GoalsScreen,
+  MovementMapScreen,
+  MovementStylesScreen,
+} from './screens/profileSetup';
 import { DashboardScreen, DetailedAnalysisScreen, HistoryScreen } from './screens/progress';
 import {
   ActiveExerciseScreen,
@@ -18,6 +27,13 @@ import {
   PausedExerciseScreen,
   RestScreen,
 } from './screens/session';
+import {
+  ActivePlanScreen,
+  BuildWorkoutScreen,
+  RecommendedWorkoutScreen,
+  SwapExerciseScreen,
+  WorkoutCompleteScreen,
+} from './screens/workoutPlan';
 import { useApp } from './state/AppContext';
 import type { SessionStatus } from './types';
 
@@ -264,6 +280,18 @@ export const App = () => (
         <Route path="/" element={<Navigate to="/welcome" replace />} />
         <Route path="/welcome" element={<WelcomeScreen />} />
         <Route path="/sign-in" element={<AuthScreen />} />
+        <Route path="/onboarding" element={<Navigate to="/onboarding/goals" replace />} />
+        <Route path="/onboarding/goals" element={<GoalsScreen />} />
+        <Route path="/onboarding/movement" element={<MovementMapScreen />} />
+        <Route path="/onboarding/styles" element={<MovementStylesScreen />} />
+        <Route path="/onboarding/equipment" element={<EquipmentScreen />} />
+        <Route path="/onboarding/accessibility" element={<AccessibilityScreen />} />
+        <Route path="/profile/movement" element={<EditMovementProfileScreen />} />
+        <Route path="/build" element={<BuildWorkoutScreen />} />
+        <Route path="/workout/recommended" element={<RecommendedWorkoutScreen />} />
+        <Route path="/workout/plan" element={<ActivePlanScreen />} />
+        <Route path="/workout/plan/:itemId/swap" element={<SwapExerciseScreen />} />
+        <Route path="/workout/complete" element={<WorkoutCompleteScreen />} />
         <Route path="/discover" element={<DiscoveryScreen />} />
         <Route path="/exercises" element={<ExerciseSelectionScreen />} />
         <Route path="/exercises/:slug/card" element={<ExerciseCardScreen />} />
@@ -334,7 +362,13 @@ export const App = () => (
             </SessionRoute>
           }
         />
-        <Route path="/dashboard" element={<DashboardScreen />} />
+        {/*
+         * The PDF's Home lives at /dashboard so every existing link keeps working; the
+         * analytics dashboard the team preferred moves under the Progress tab, which the
+         * PDF's nav has but never designs a screen for.
+         */}
+        <Route path="/dashboard" element={<HomeScreen />} />
+        <Route path="/progress" element={<DashboardScreen />} />
         <Route path="/history" element={<HistoryScreen />} />
         <Route path="/analysis/:id" element={<DetailedAnalysisScreen />} />
         <Route path="*" element={<Navigate to="/exercises" replace />} />

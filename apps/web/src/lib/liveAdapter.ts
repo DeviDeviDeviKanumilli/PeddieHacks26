@@ -1,12 +1,21 @@
+import { equipmentOptions, goalOptions } from '../data/profileOptions';
 import type {
   CompatibilityStatus,
+  EquipmentId as UiEquipmentId,
   Exercise as UiExercise,
+  GoalId as UiGoalId,
   MovementProfile as UiMovementProfile,
   ProgressSummary as UiProgressSummary,
+  RegionStatus as UiRegionStatus,
   UserProfile as UiUserProfile,
+  WorkoutBuilderCriteria as UiWorkoutBuilderCriteria,
   WorkoutHistoryItem as UiWorkoutHistoryItem,
+  WorkoutPlan as UiWorkoutPlan,
 } from '../types';
 import { type ApiClient, ApiClientError } from './api';
+
+const knownGoalIds = new Set<UiGoalId>(goalOptions.map((option) => option.id));
+const knownEquipmentIds = new Set<UiEquipmentId>(equipmentOptions.map((option) => option.id));
 
 type ApiEnvelope<T> = { data: T };
 
@@ -560,10 +569,132 @@ export const mapLiveUserProfileToUi = (
   email: authenticatedEmail,
 });
 
+/**
+ * The API stores a region state per anatomical id; the movement map works in the four
+ * user-facing statuses. These two tables are the only place the two vocabularies meet.
+ */
+const liveRegionStateToStatus: Readonly<Record<LiveBodyRegionState, UiRegionStatus>> = {
+  neutral: 'none',
+  focus: 'focus',
+  limited: 'minor',
+  avoid: 'pain',
+};
+
+const statusToLiveRegionState: Readonly<Record<UiRegionStatus, LiveBodyRegionState>> = {
+  none: 'neutral',
+  focus: 'focus',
+  minor: 'limited',
+  pain: 'avoid',
+};
+
+/**
+ * Live ids use underscores, and the API models some regions both as a shared id
+ * (`upper_arms`) and as sided ids (`left_upper_arm`). A shared id appears under both
+ * sides here so marking it lights up the whole limb on the map.
+ */
+const uiRegionToLiveRegionIds: Readonly<Record<string, readonly string[]>> = {
+  neck: ['neck', 'head_neck'],
+  shoulders: ['shoulders', 'left_shoulder', 'right_shoulder'],
+  chest: ['chest'],
+  'left-arm': [
+    'upper_arms',
+    'elbows',
+    'forearms_hands',
+    'left_upper_arm',
+    'left_elbow',
+    'left_forearm_hand',
+  ],
+  'right-arm': [
+    'upper_arms',
+    'elbows',
+    'forearms_hands',
+    'right_upper_arm',
+    'right_elbow',
+    'right_forearm_hand',
+  ],
+  core: ['core', 'abdominals'],
+  hips: ['hips', 'left_hip', 'right_hip'],
+  'left-knee': ['knees', 'left_knee'],
+  'right-knee': ['knees', 'right_knee'],
+  'left-ankle': ['ankles_feet', 'left_ankle'],
+  'right-ankle': ['ankles_feet', 'right_ankle'],
+  'upper-back': ['upper_back'],
+  'lower-back': ['lower_back'],
+  glutes: ['glutes'],
+  'left-hamstring': ['hamstrings', 'left_hamstring'],
+  'right-hamstring': ['hamstrings', 'right_hamstring'],
+  'left-calf': ['calves', 'left_calf'],
+  'right-calf': ['calves', 'right_calf'],
+};
+
+/** Worst-case wins, so a single painful sub-region marks the whole map region. */
+const severityRank: Readonly<Record<UiRegionStatus, number>> = {
+  none: 0,
+  focus: 1,
+  minor: 2,
+  pain: 3,
+};
+
+const mapLiveRegionsToUi = (
+  bodyRegions: Record<string, LiveBodyRegionState>,
+): Record<string, UiRegionStatus> => {
+  const regions: Record<string, UiRegionStatus> = {};
+  for (const [uiRegion, liveIds] of Object.entries(uiRegionToLiveRegionIds)) {
+    let status: UiRegionStatus = 'none';
+    for (const liveId of liveIds) {
+      const liveState = bodyRegions[liveId];
+      if (liveState === undefined) continue;
+      const candidate = liveRegionStateToStatus[liveState];
+      if (severityRank[candidate] > severityRank[status]) status = candidate;
+    }
+    if (status !== 'none') regions[uiRegion] = status;
+  }
+  return regions;
+};
+
+/**
+ * Writes only the regions the map actually owns — a UI region absent from `regions`
+ * leaves its live ids untouched, so server state the map cannot express survives edits.
+ * Shared ids (`upper_arms`) take the worst status of the sides naming them, matching the
+ * worst-case-wins rule used when reading.
+ */
+export const mapUiRegionsToLive = (
+  regions: Record<string, UiRegionStatus>,
+  current: Record<string, LiveBodyRegionState>,
+): Record<string, LiveBodyRegionState> => {
+  const next: Record<string, LiveBodyRegionState> = { ...current };
+  const worstByLiveId = new Map<string, UiRegionStatus>();
+
+  for (const [uiRegion, status] of Object.entries(regions)) {
+    const liveIds = uiRegionToLiveRegionIds[uiRegion];
+    if (liveIds === undefined) continue;
+    for (const liveId of liveIds) {
+      const existing = worstByLiveId.get(liveId) ?? 'none';
+      if (severityRank[status] >= severityRank[existing]) worstByLiveId.set(liveId, status);
+    }
+  }
+
+  for (const [liveId, status] of worstByLiveId) {
+    next[liveId] = statusToLiveRegionState[status];
+  }
+  return next;
+};
+
 export const mapLiveMovementProfileToUi = (
   profile: LiveMovementProfile,
   references: LiveProfileReferenceMap = defaultLiveProfileReferenceMap,
 ): UiMovementProfile => ({
+  regions: mapLiveRegionsToUi(profile.bodyRegions),
+  regionNotes: '',
+  goalIds: profile.goalIds.filter((goalId): goalId is UiGoalId =>
+    knownGoalIds.has(goalId as UiGoalId),
+  ),
+  styles: [],
+  equipmentIds: profile.equipmentIds.filter((equipmentId): equipmentId is UiEquipmentId =>
+    knownEquipmentIds.has(equipmentId as UiEquipmentId),
+  ),
+  accessibility: { needs: [], notes: '' },
+  onboardingComplete: true,
   focusRegions: Object.entries(references.bodyRegions).flatMap(([uiRegion, regionIds]) => {
     const states = regionIds.map((regionId) => profile.bodyRegions[regionId]);
     return states.includes('focus') && !states.includes('avoid') ? [uiRegion] : [];
@@ -603,6 +734,14 @@ export const mapUiMovementProfileToLiveUpdate = (
     } else if (current.bodyRegions[regionId] === 'limited') bodyRegions[regionId] = 'limited';
     else bodyRegions[regionId] = 'neutral';
   }
+  /*
+   * The movement map is the more precise source: it can express `minor` and clear a
+   * region outright, which focus/avoid lists cannot. Apply it last so map edits win.
+   */
+  const mappedRegions = mapUiRegionsToLive(profile.regions, bodyRegions);
+  for (const [regionId, state] of Object.entries(mappedRegions)) {
+    bodyRegions[regionId] = state;
+  }
   const knownEquipmentIds = new Set(
     Object.values(references.equipment).flatMap((equipmentId) =>
       equipmentId === null ? [] : [equipmentId],
@@ -636,6 +775,41 @@ export const mapUiMovementProfileToLiveUpdate = (
     intensityPreference: current.intensityPreference,
   };
 };
+
+/**
+ * Turns the generator's output into the plan shape the workout screens render. The API
+ * ranks and sizes the items; the title and focus areas come from the request, which is
+ * the only place the user's own wording exists.
+ */
+export const mapLiveGeneratedWorkoutToPlan = (
+  generated: LiveGeneratedWorkout,
+  criteria: UiWorkoutBuilderCriteria,
+): UiWorkoutPlan => ({
+  id: generated.workoutId,
+  title:
+    criteria.muscleGroups.length === 1 ? `${criteria.muscleGroups[0]} Focus` : 'Custom Workout',
+  summary: 'Generated from your movement profile, equipment, and selected difficulty.',
+  difficulty: criteria.difficulty,
+  estimatedMinutes: Math.max(1, Math.round(generated.totalEstimatedSeconds / 60)),
+  focusAreas: criteria.muscleGroups.length > 0 ? [...criteria.muscleGroups] : ['Full Body'],
+  recommended: false,
+  items: generated.items
+    .slice()
+    .sort((left, right) => left.position - right.position)
+    .map((item) => ({
+      id: item.id,
+      exerciseSlug: presentationSlugForLiveExercise(item.exerciseSlug),
+      sets: item.sets,
+      reps: item.reps ?? 0,
+      restSeconds: item.restSeconds,
+    })),
+});
+
+/** Difficulty is a UI concept; the API models effort as an intensity preference. */
+export const intensityForDifficulty = (
+  difficulty: UiWorkoutBuilderCriteria['difficulty'],
+): LiveIntensityPreference =>
+  difficulty === 'beginner' ? 'low' : difficulty === 'advanced' ? 'high' : 'standard';
 
 export const mapLiveExerciseToUi = (
   exercise: LiveExerciseSummary,

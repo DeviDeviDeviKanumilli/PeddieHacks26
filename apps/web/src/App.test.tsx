@@ -62,8 +62,9 @@ describe('AdaptFit application flows', () => {
     expect(form).not.toBeNull();
     fireEvent.click(within(form as HTMLFormElement).getByRole('button', { name: 'Sign In' }));
 
+    // Signing in lands on Home, which greets the user by first name.
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument(),
+      expect(screen.getByRole('heading', { level: 1, name: 'Jordan' })).toBeInTheDocument(),
     );
     expect(getStoredState()).toMatchObject({
       authenticated: true,

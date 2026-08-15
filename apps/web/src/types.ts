@@ -25,12 +25,76 @@ export type Exercise = {
 
 export type ConstraintMode = 'focus' | 'avoid';
 
+/**
+ * The four states a body region can hold on the movement map. `none` is the implicit
+ * default and is never persisted — a region is stored only once the user marks it.
+ */
+export type RegionStatus = 'none' | 'minor' | 'pain' | 'focus';
+
+export type BodySide = 'front' | 'back';
+
+export type BodyRegion = {
+  id: string;
+  label: string;
+  side: BodySide;
+  /** Percentage coordinates of the region's centre within the body diagram. */
+  x: number;
+  y: number;
+};
+
+export type GoalId =
+  | 'build-strength'
+  | 'improve-mobility'
+  | 'increase-endurance'
+  | 'lose-weight'
+  | 'general-fitness'
+  | 'rehab-recovery';
+
+export type MovementStyleId =
+  | 'strength-training'
+  | 'yoga-mobility'
+  | 'hiit-cardio'
+  | 'pilates'
+  | 'bodyweight'
+  | 'sports-athletic';
+
+export type EquipmentId =
+  | 'dumbbells'
+  | 'kettlebells'
+  | 'resistance-bands'
+  | 'barbell'
+  | 'pull-up-bar'
+  | 'bench'
+  | 'cable-machine'
+  | 'none';
+
+export type AccessibilityNeedId =
+  | 'visual-impairment'
+  | 'hearing-impairment'
+  | 'reduced-mobility'
+  | 'one-handed-use'
+  | 'cognitive-considerations';
+
+export type AccessibilityPreferences = {
+  needs: AccessibilityNeedId[];
+  notes: string;
+};
+
 export type MovementProfile = {
   focusRegions: string[];
   avoidRegions: string[];
   equipment: string[];
   goals: string[];
   version: number;
+  /** Per-region markings from the movement map, keyed by region id. */
+  regions: Record<string, RegionStatus>;
+  regionNotes: string;
+  goalIds: GoalId[];
+  styles: MovementStyleId[];
+  equipmentIds: EquipmentId[];
+  accessibility: AccessibilityPreferences;
+  /** False until the user finishes onboarding, which gates the profile-summary route. */
+  onboardingComplete: boolean;
 };
 
 export type UserProfile = {
@@ -81,3 +145,67 @@ export type ProgressSummary = {
 };
 
 export type ApiMode = 'demo' | 'live';
+
+export type WorkoutDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+export type WorkoutItem = {
+  id: string;
+  exerciseSlug: string;
+  sets: number;
+  reps: number;
+  restSeconds: number;
+  /** Set when this item replaced another, so the plan can explain itself. */
+  swappedFromSlug?: string;
+  swapReason?: string;
+};
+
+export type WorkoutPlan = {
+  id: string;
+  title: string;
+  summary: string;
+  difficulty: WorkoutDifficulty;
+  estimatedMinutes: number;
+  focusAreas: string[];
+  items: WorkoutItem[];
+  /** True for the profile-derived recommendation rather than a user-built plan. */
+  recommended: boolean;
+};
+
+export type WorkoutBuilderCriteria = {
+  muscleGroups: string[];
+  movementPatterns: string[];
+  equipment: EquipmentId[];
+  difficulty: WorkoutDifficulty;
+};
+
+export type ExerciseAlternative = {
+  slug: string;
+  name: string;
+  reason: string;
+  image?: string;
+  compatibility: CompatibilityStatus;
+};
+
+export type WorkoutCompletionSummary = {
+  workoutId: string;
+  title: string;
+  totalSeconds: number;
+  exercisesCompleted: number;
+  totalExercises: number;
+  estimatedCalories: number;
+  averageFormScore: number;
+  completedAt: string;
+};
+
+export type ExerciseCollection = {
+  id: string;
+  title: string;
+  workoutCount: number;
+  category: Exercise['category'];
+};
+
+export type DailyTip = {
+  id: string;
+  title: string;
+  body: string;
+};

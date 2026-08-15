@@ -51,6 +51,22 @@ describe('live adapter mappings', () => {
       equipment: ['Dumbbells', 'custom-grip'],
       goals: ['strength', 'custom-goal'],
       version: 4,
+      // The movement map keeps its own per-region view of the same server state.
+      regions: {
+        shoulders: 'focus',
+        // `upper_arms` is a shared id, so one limitation marks both arms.
+        'left-arm': 'minor',
+        'right-arm': 'minor',
+        'lower-back': 'pain',
+        neck: 'minor',
+      },
+      regionNotes: '',
+      // 'strength' and 'custom-goal' are not onboarding goal ids, so neither survives.
+      goalIds: [],
+      styles: [],
+      equipmentIds: ['dumbbells'],
+      accessibility: { needs: [], notes: '' },
+      onboardingComplete: true,
     });
 
     const update = mapUiMovementProfileToLiveUpdate(
@@ -60,6 +76,13 @@ describe('live adapter mappings', () => {
         equipment: ['Bodyweight', 'Resistance Band'],
         goals: ['mobility'],
         version: 99,
+        regions: {},
+        regionNotes: '',
+        goalIds: [],
+        styles: [],
+        equipmentIds: [],
+        accessibility: { needs: [], notes: '' },
+        onboardingComplete: true,
       },
       currentMovementProfile,
     );

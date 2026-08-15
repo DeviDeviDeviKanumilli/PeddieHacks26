@@ -1,4 +1,12 @@
-import type { Exercise, ProgressSummary, WorkoutHistoryItem } from '../types';
+import type {
+  DailyTip,
+  Exercise,
+  ExerciseCollection,
+  MovementProfile,
+  ProgressSummary,
+  WorkoutHistoryItem,
+  WorkoutPlan,
+} from '../types';
 
 const curlInstructions = [
   'Sit upright on a bench or chair with back support.',
@@ -277,4 +285,91 @@ export const bodyRegions = [
   'Left Knee',
   'Right Knee',
   'Lower Body',
+];
+
+/**
+ * Demo mode ships a finished profile so every downstream screen has something to show.
+ * Live mode starts from `emptyMovementProfile` in AppContext and fills in from the API.
+ */
+export const demoMovementProfile: MovementProfile = {
+  focusRegions: ['Shoulders', 'Core'],
+  avoidRegions: ['Left Knee'],
+  equipment: ['Dumbbells', 'Resistance Bands'],
+  goals: ['Build Strength', 'Improve Mobility'],
+  version: 4,
+  regions: {
+    shoulders: 'focus',
+    core: 'focus',
+    'left-knee': 'pain',
+    'lower-back': 'minor',
+  },
+  regionNotes: 'Left knee flares up on deep flexion. Prefer supported variations.',
+  goalIds: ['build-strength', 'improve-mobility'],
+  styles: ['strength-training', 'yoga-mobility', 'bodyweight'],
+  equipmentIds: ['dumbbells', 'kettlebells', 'resistance-bands'],
+  accessibility: {
+    needs: ['reduced-mobility'],
+    notes: '',
+  },
+  onboardingComplete: true,
+};
+
+export const demoRecommendedWorkout: WorkoutPlan = {
+  id: 'plan-recommended',
+  title: 'Full Body Strength',
+  summary: 'Balanced pushing, pulling, and hinging that routes around your left knee.',
+  difficulty: 'beginner',
+  estimatedMinutes: 30,
+  focusAreas: ['Full Body', 'Strength', 'Balance'],
+  recommended: true,
+  items: [
+    { id: 'item-1', exerciseSlug: 'seated-shoulder-press', sets: 3, reps: 12, restSeconds: 45 },
+    { id: 'item-2', exerciseSlug: 'resistance-band-row', sets: 3, reps: 12, restSeconds: 45 },
+    { id: 'item-3', exerciseSlug: 'glute-bridge', sets: 3, reps: 15, restSeconds: 40 },
+    { id: 'item-4', exerciseSlug: 'seated-bicep-curl', sets: 3, reps: 12, restSeconds: 40 },
+    { id: 'item-5', exerciseSlug: 'seated-core-twist', sets: 2, reps: 16, restSeconds: 30 },
+  ],
+};
+
+export const demoTodaysPlan: WorkoutPlan = {
+  id: 'plan-today',
+  title: 'Upper Body Strength',
+  summary: 'Six movements built around your shoulder focus area.',
+  difficulty: 'intermediate',
+  estimatedMinutes: 32,
+  focusAreas: ['Shoulders', 'Arms', 'Back'],
+  recommended: false,
+  items: [
+    { id: 'today-1', exerciseSlug: 'seated-shoulder-press', sets: 3, reps: 12, restSeconds: 45 },
+    { id: 'today-2', exerciseSlug: 'resistance-band-row', sets: 3, reps: 12, restSeconds: 45 },
+    { id: 'today-3', exerciseSlug: 'seated-bicep-curl', sets: 3, reps: 12, restSeconds: 40 },
+    { id: 'today-4', exerciseSlug: 'seated-core-twist', sets: 3, reps: 16, restSeconds: 30 },
+    { id: 'today-5', exerciseSlug: 'standing-core-twist', sets: 2, reps: 14, restSeconds: 30 },
+    { id: 'today-6', exerciseSlug: 'chair-march', sets: 2, reps: 20, restSeconds: 30 },
+  ],
+};
+
+export const demoDailyTips: readonly DailyTip[] = [
+  {
+    id: 'tip-quality',
+    title: 'Daily Tip',
+    body: 'Focus on quality reps over quantity. Slow the lowering phase and the set does more work.',
+  },
+  {
+    id: 'tip-breath',
+    title: 'Daily Tip',
+    body: 'Exhale through the hardest part of each rep. It steadies your core and your tempo.',
+  },
+  {
+    id: 'tip-rest',
+    title: 'Daily Tip',
+    body: 'Rest is training too. Taking the full 45 seconds keeps form scores higher on later sets.',
+  },
+];
+
+export const demoCollections: readonly ExerciseCollection[] = [
+  { id: 'collection-upper', title: 'Upper Body', workoutCount: 6, category: 'strength' },
+  { id: 'collection-lower', title: 'Lower Body', workoutCount: 6, category: 'strength' },
+  { id: 'collection-core', title: 'Core & Abs', workoutCount: 6, category: 'strength' },
+  { id: 'collection-mobility', title: 'Mobility Flows', workoutCount: 4, category: 'mobility' },
 ];

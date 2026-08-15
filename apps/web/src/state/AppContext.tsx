@@ -8,18 +8,40 @@ import {
   useRef,
   useState,
 } from 'react';
-import { bodyRegions, demoExercises, demoHistory, demoProgress } from '../data/demo';
+import {
+  bodyRegions,
+  demoCollections,
+  demoDailyTips,
+  demoExercises,
+  demoHistory,
+  demoMovementProfile,
+  demoProgress,
+  demoRecommendedWorkout,
+  demoTodaysPlan,
+} from '../data/demo';
 import { ApiClient } from '../lib/api';
-import { LiveAdapter, mapLiveHistoryItemToUi } from '../lib/liveAdapter';
+import {
+  intensityForDifficulty,
+  LiveAdapter,
+  mapLiveGeneratedWorkoutToPlan,
+  mapLiveHistoryItemToUi,
+} from '../lib/liveAdapter';
 import { hasLiveConfiguration, supabase } from '../lib/supabase';
 import type {
   ApiMode,
   ConstraintMode,
+  DailyTip,
   Exercise,
+  ExerciseAlternative,
+  ExerciseCollection,
   MovementProfile,
   ProgressSummary,
+  RegionStatus,
   UserProfile,
+  WorkoutBuilderCriteria,
+  WorkoutCompletionSummary,
   WorkoutHistoryItem,
+  WorkoutPlan,
   WorkoutSessionState,
 } from '../types';
 
@@ -231,12 +253,20 @@ const mergeLiveProgress = (
   };
 };
 
-const initialMovementProfile: MovementProfile = {
-  focusRegions: ['Shoulders', 'Core'],
-  avoidRegions: ['Lower Back', 'Left Knee'],
-  equipment: ['Bodyweight', 'Dumbbells'],
-  goals: ['strength', 'mobility'],
-  version: 1,
+/** Live mode starts blank: nothing is shown until the account's own profile loads. */
+const emptyMovementProfile: MovementProfile = {
+  focusRegions: [],
+  avoidRegions: [],
+  equipment: [],
+  goals: [],
+  version: 0,
+  regions: {},
+  regionNotes: '',
+  goalIds: [],
+  styles: [],
+  equipmentIds: [],
+  accessibility: { needs: [], notes: '' },
+  onboardingComplete: false,
 };
 
 const initialCoveredRegions = [
@@ -345,6 +375,20 @@ type AppContextValue = {
   continueAfterRest: () => void;
   endExercise: () => void;
   resetSession: () => void;
+  todaysPlan: WorkoutPlan | null;
+  recommendedWorkout: WorkoutPlan | null;
+  activePlan: WorkoutPlan | null;
+  dailyTip: DailyTip | null;
+  collections: readonly ExerciseCollection[];
+  workoutCompletion: WorkoutCompletionSummary | null;
+  updateProfile: (patch: Partial<MovementProfile>) => void;
+  setRegionStatus: (regionId: string, status: RegionStatus) => void;
+  completeOnboarding: () => void;
+  generateWorkout: (criteria: WorkoutBuilderCriteria) => Promise<WorkoutPlan | null>;
+  startPlan: (plan: WorkoutPlan) => void;
+  alternativesFor: (itemId: string) => ExerciseAlternative[];
+  swapPlanItem: (itemId: string, slug: string, reason: string) => void;
+  completeWorkout: () => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -365,9 +409,21 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
     initialMode === 'demo' ? demoExercises : unverifiedLiveExercises,
   );
   const [movementProfile, setMovementProfile] = useState<MovementProfile>(
-    initialMode === 'demo' ? (stored.profile ?? initialMovementProfile) : initialMovementProfile,
+    initialMode === 'demo' ? { ...demoMovementProfile, ...stored.profile } : emptyMovementProfile,
   );
   const [constraintMode, setConstraintMode] = useState<ConstraintMode>('focus');
+  /*
+   * Plans are demo fixtures until the account's own plans arrive. Live mode starts empty
+   * so a signed-in user never sees another profile's workout on their home screen.
+   */
+  const [todaysPlan, setTodaysPlan] = useState<WorkoutPlan | null>(
+    initialMode === 'demo' ? demoTodaysPlan : null,
+  );
+  const [recommendedWorkout, setRecommendedWorkout] = useState<WorkoutPlan | null>(
+    initialMode === 'demo' ? demoRecommendedWorkout : null,
+  );
+  const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
+  const [workoutCompletion, setWorkoutCompletion] = useState<WorkoutCompletionSummary | null>(null);
   const [selectedExerciseSlug, setSelectedExerciseSlug] = useState('seated-bicep-curl');
   const [favorites, setFavorites] = useState(
     () => new Set(initialMode === 'demo' ? (stored.favorites ?? []) : []),
@@ -392,6 +448,8 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
   const [liveDataError, setLiveDataError] = useState<string | null>(null);
   const [liveAccountId, setLiveAccountId] = useState<string | null>(null);
   const sessionRecordedRef = useRef(false);
+  /** ISO timestamp of when the active plan was started, for the completion summary. */
+  const planStartedAtRef = useRef<string | null>(null);
   const movementSaveSequenceRef = useRef(0);
   const movementSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const modeRef = useRef<ApiMode>(initialMode);
@@ -418,13 +476,18 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
       setLiveAccountId(null);
       setAuthenticated(false);
       setUser({ displayName: 'AdaptFit member', email: '' });
-      setMovementProfile(initialMovementProfile);
+      // Must be the empty profile, not the demo one — live mode shows no seeded data.
+      setMovementProfile(emptyMovementProfile);
       setMovementProfileSync('idle');
       setExercises(unverifiedLiveExercises);
       setFavorites(new Set());
       setHistory([]);
       setProgress(emptyProgress);
       setCoveredRegions([]);
+      setTodaysPlan(null);
+      setRecommendedWorkout(null);
+      setActivePlan(null);
+      setWorkoutCompletion(null);
       setCameraStream((current) => {
         current?.getTracks().forEach((track) => {
           track.stop();
@@ -773,11 +836,16 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
       const demoState = readStoredState();
       setAuthenticated(demoState.authenticated ?? false);
       setUser(demoState.user ?? { displayName: 'Jordan Lee', email: 'jordan.lee@example.com' });
-      setMovementProfile(demoState.profile ?? initialMovementProfile);
+      setMovementProfile({ ...demoMovementProfile, ...demoState.profile });
       setFavorites(new Set(demoState.favorites ?? []));
       setHistory(demoState.history ?? demoHistory);
       setProgress(demoState.progress ?? demoProgress);
       setCoveredRegions(demoState.coveredRegions ?? initialCoveredRegions);
+      // Restore the sample plans the demo screens are built around.
+      setTodaysPlan(demoTodaysPlan);
+      setRecommendedWorkout(demoRecommendedWorkout);
+      setActivePlan(null);
+      setWorkoutCompletion(null);
     },
     [clearLiveUi, mode],
   );
@@ -1015,6 +1083,197 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
     queueLiveMovementProfileSave(nextProfile);
   }, [movementProfile, queueLiveMovementProfileSave]);
 
+  const updateProfile = useCallback(
+    (patch: Partial<MovementProfile>) => {
+      setMovementProfile((current) => {
+        const nextProfile = { ...current, ...patch, version: current.version + 1 };
+        queueLiveMovementProfileSave(nextProfile);
+        return nextProfile;
+      });
+    },
+    [queueLiveMovementProfileSave],
+  );
+
+  const setRegionStatus = useCallback(
+    (regionId: string, status: RegionStatus) => {
+      setMovementProfile((current) => {
+        /*
+         * `none` is stored rather than deleted: an absent key means "the map has never
+         * spoken for this region", which is what stops a save from clobbering server
+         * state the map cannot express. Clearing a region is a real marking.
+         */
+        const regions = { ...current.regions, [regionId]: status };
+        const nextProfile = { ...current, regions, version: current.version + 1 };
+        queueLiveMovementProfileSave(nextProfile);
+        return nextProfile;
+      });
+    },
+    [queueLiveMovementProfileSave],
+  );
+
+  const completeOnboarding = useCallback(() => {
+    updateProfile({ onboardingComplete: true });
+  }, [updateProfile]);
+
+  /**
+   * Builds a plan from the selected criteria. Live mode asks the API; demo mode filters
+   * the local catalogue so the screen behaves identically without a backend.
+   */
+  const generateWorkout = useCallback(
+    async (criteria: WorkoutBuilderCriteria): Promise<WorkoutPlan | null> => {
+      const credentials = liveAuthRef.current;
+      if (mode === 'live' && credentials !== null) {
+        try {
+          const generated = await liveAdapterForAccessToken(
+            credentials.accessToken,
+          ).generateWorkout({
+            durationMinutes: criteria.difficulty === 'beginner' ? 20 : 30,
+            equipmentIds: criteria.equipment.filter((id) => id !== 'none'),
+            goalIds: movementProfile.goalIds,
+            intensityPreference: intensityForDifficulty(criteria.difficulty),
+          });
+          const plan = mapLiveGeneratedWorkoutToPlan(generated, criteria);
+          setActivePlan(plan);
+          return plan;
+        } catch {
+          // Fall through to the local build so the user is never left without a plan.
+        }
+      }
+
+      const wanted = new Set(criteria.equipment);
+      const matches = exercises.filter((exercise) => {
+        if (exercise.compatibility === 'incompatible') return false;
+        if (criteria.muscleGroups.length > 0) {
+          const hit = exercise.bodyRegions.some((region) =>
+            criteria.muscleGroups.some((group) =>
+              region.toLocaleLowerCase().includes(group.toLocaleLowerCase()),
+            ),
+          );
+          if (!hit) return false;
+        }
+        if (wanted.size > 0 && !wanted.has('none')) {
+          const usesWanted =
+            exercise.equipment.length === 0 ||
+            exercise.equipment.some((item) =>
+              [...wanted].some((id) => item.toLocaleLowerCase().includes(id.split('-')[0])),
+            );
+          if (!usesWanted) return false;
+        }
+        return true;
+      });
+
+      const pool = matches.length > 0 ? matches : exercises;
+      const ceiling =
+        criteria.difficulty === 'beginner' ? 3 : criteria.difficulty === 'advanced' ? 5 : 4;
+      const chosen = pool.filter((exercise) => exercise.difficulty <= ceiling).slice(0, 5);
+      const items = (chosen.length > 0 ? chosen : pool.slice(0, 5)).map((exercise, index) => ({
+        id: `built-${index + 1}`,
+        exerciseSlug: exercise.slug,
+        sets: exercise.defaultSets,
+        reps: exercise.defaultReps,
+        restSeconds: exercise.restSeconds,
+      }));
+
+      const plan: WorkoutPlan = {
+        id: 'plan-built',
+        title:
+          criteria.muscleGroups.length === 1
+            ? `${criteria.muscleGroups[0]} Focus`
+            : 'Custom Workout',
+        summary: 'Built from your selected muscle groups, equipment, and difficulty.',
+        difficulty: criteria.difficulty,
+        estimatedMinutes: Math.max(10, items.length * 6),
+        focusAreas: criteria.muscleGroups.length > 0 ? criteria.muscleGroups : ['Full Body'],
+        items,
+        recommended: false,
+      };
+      setActivePlan(plan);
+      return plan;
+    },
+    [exercises, mode, movementProfile.goalIds],
+  );
+
+  const startPlan = useCallback((plan: WorkoutPlan) => {
+    setActivePlan(plan);
+    setWorkoutCompletion(null);
+    // Marks the boundary so the summary counts only this workout's history entries.
+    planStartedAtRef.current = new Date().toISOString();
+  }, []);
+
+  /**
+   * Alternatives for a plan slot: same category, compatible, and not already in the plan.
+   * Live mode replaces this with the API's own ranking once a plan id exists.
+   */
+  const alternativesFor = useCallback(
+    (itemId: string): ExerciseAlternative[] => {
+      const plan = activePlan;
+      if (plan === null) return [];
+      const item = plan.items.find((candidate) => candidate.id === itemId);
+      if (item === undefined) return [];
+      const original = exercises.find((exercise) => exercise.slug === item.exerciseSlug);
+      if (original === undefined) return [];
+      const used = new Set(plan.items.map((planItem) => planItem.exerciseSlug));
+
+      const candidates = exercises.filter(
+        (exercise) => !used.has(exercise.slug) && exercise.compatibility !== 'incompatible',
+      );
+
+      const sharedRegions = (exercise: Exercise): string[] =>
+        exercise.bodyRegions.filter((region) => original.bodyRegions.includes(region));
+
+      /*
+       * Region overlap is what makes a swap a swap — replacing a curl with a squat is
+       * the same category but a different exercise entirely. Only fall back to category
+       * when nothing in the catalogue trains the same regions.
+       */
+      const overlapping = candidates.filter((exercise) => sharedRegions(exercise).length > 0);
+      const pool =
+        overlapping.length > 0
+          ? overlapping.sort(
+              (left, right) => sharedRegions(right).length - sharedRegions(left).length,
+            )
+          : candidates.filter((exercise) => exercise.category === original.category);
+
+      return pool.slice(0, 4).map((exercise) => {
+        const shared = sharedRegions(exercise);
+        return {
+          slug: exercise.slug,
+          name: exercise.name,
+          image: exercise.image,
+          compatibility: exercise.compatibility,
+          reason:
+            shared.length > 0
+              ? `Trains ${shared.join(' and ')}${
+                  exercise.equipment.length === 0
+                    ? ' with no equipment.'
+                    : ` using ${exercise.equipment.join(' or ')}.`
+                }`
+              : `Similar ${exercise.category} movement when nothing matches the same regions.`,
+        };
+      });
+    },
+    [activePlan, exercises],
+  );
+
+  const swapPlanItem = useCallback((itemId: string, slug: string, reason: string) => {
+    setActivePlan((current) => {
+      if (current === null) return current;
+      return {
+        ...current,
+        items: current.items.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                exerciseSlug: slug,
+                swappedFromSlug: item.exerciseSlug,
+                swapReason: reason,
+              }
+            : item,
+        ),
+      };
+    });
+  }, []);
+
   const selectExercise = useCallback(
     (slug: string) => {
       if (exercises.some((exercise) => exercise.slug === slug)) setSelectedExerciseSlug(slug);
@@ -1194,6 +1453,59 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
     sessionRecordedRef.current = false;
   }, []);
 
+  /**
+   * Closes out a whole plan rather than a single exercise, producing the totals the
+   * Workout Complete screen reports. Calories are an estimate from time and intensity,
+   * labelled as such in the UI — no heart-rate data exists to do better.
+   */
+  const completeWorkout = useCallback(() => {
+    const plan = activePlan;
+    if (plan === null) return;
+    /*
+     * Count by when the entry was recorded rather than by matching titles to slugs:
+     * a plan can repeat an exercise, and title prefixes collide ("Seated ...").
+     */
+    const startedAt = planStartedAtRef.current;
+    const planHistory =
+      startedAt === null
+        ? []
+        : history.filter((item) => Date.parse(item.completedAt) >= Date.parse(startedAt));
+    const totalSeconds = planHistory.reduce((total, item) => total + item.durationSeconds, 0);
+    const trackedScores = planHistory
+      .filter((item) => item.trackingEnabled === true)
+      .map((item) => item.formScore);
+
+    setWorkoutCompletion({
+      workoutId: plan.id,
+      title: plan.title,
+      totalSeconds: totalSeconds > 0 ? totalSeconds : plan.estimatedMinutes * 60,
+      exercisesCompleted: planHistory.length > 0 ? planHistory.length : plan.items.length,
+      totalExercises: plan.items.length,
+      estimatedCalories: Math.round(
+        ((totalSeconds > 0 ? totalSeconds : plan.estimatedMinutes * 60) / 60) * 9.7,
+      ),
+      averageFormScore:
+        trackedScores.length > 0
+          ? Math.round(
+              trackedScores.reduce((total, score) => total + score, 0) / trackedScores.length,
+            )
+          : progress.averageFormScore,
+      completedAt: new Date().toISOString(),
+    });
+  }, [activePlan, history, progress.averageFormScore]);
+
+  /** Rotates through the tip list by day so the home screen is not static. */
+  const dailyTip = useMemo<DailyTip | null>(() => {
+    if (mode === 'live' && !authenticated) return null;
+    const dayIndex = Math.floor(Date.now() / 86_400_000);
+    return demoDailyTips[dayIndex % demoDailyTips.length];
+  }, [authenticated, mode]);
+
+  const collections = useMemo<readonly ExerciseCollection[]>(
+    () => (mode === 'demo' ? demoCollections : []),
+    [mode],
+  );
+
   useEffect(() => stopCamera, [stopCamera]);
 
   const value = useMemo<AppContextValue>(
@@ -1241,20 +1553,41 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
       continueAfterRest,
       endExercise,
       resetSession,
+      todaysPlan,
+      recommendedWorkout,
+      activePlan,
+      dailyTip,
+      collections,
+      workoutCompletion,
+      updateProfile,
+      setRegionStatus,
+      completeOnboarding,
+      generateWorkout,
+      startPlan,
+      alternativesFor,
+      swapPlanItem,
+      completeWorkout,
     }),
     [
+      activePlan,
       addRep,
       addRestTime,
+      alternativesFor,
       authenticated,
       beginExercise,
       buildWorkout,
       cameraError,
       cameraStream,
+      collections,
+      completeOnboarding,
+      completeWorkout,
       constraintMode,
       continueAfterRest,
+      dailyTip,
       endExercise,
       exercises,
       favorites,
+      generateWorkout,
       history,
       lastCompletedHistoryId,
       liveDataError,
@@ -1264,6 +1597,7 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
       movementProfileSync,
       pauseExercise,
       progress,
+      recommendedWorkout,
       requestCamera,
       resetRegions,
       resetSession,
@@ -1275,14 +1609,20 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
       selectedExercise,
       session,
       setMode,
+      setRegionStatus,
       signIn,
       signOut,
       signUp,
       skipRest,
+      startPlan,
       stopCamera,
+      swapPlanItem,
+      todaysPlan,
       toggleFavorite,
+      updateProfile,
       updateRegion,
       user,
+      workoutCompletion,
     ],
   );
 

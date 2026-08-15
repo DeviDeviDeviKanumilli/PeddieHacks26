@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArrowRight,
   Check,
   ChevronsRight,
   CircleCheck,
@@ -361,7 +362,6 @@ export const ActiveExerciseScreen = () => {
           <div className="session-manual-controls">
             <Button
               type="button"
-              variant="secondary"
               icon={<Plus size={21} aria-hidden="true" />}
               onClick={addRep}
               disabled={!canLogRep}
@@ -378,20 +378,21 @@ export const ActiveExerciseScreen = () => {
         <div className="session-actions">
           <Button
             type="button"
-            onClick={() => setFinishDialogOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={finishDialogOpen}
-          >
-            Finish early
-          </Button>
-          <Button
-            type="button"
             variant="secondary"
             icon={<Pause size={20} aria-hidden="true" />}
             onClick={handlePause}
             aria-keyshortcuts="P"
           >
             Pause
+          </Button>
+          <Button
+            type="button"
+            variant="tertiary"
+            onClick={() => setFinishDialogOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={finishDialogOpen}
+          >
+            Finish early
           </Button>
         </div>
       </Page>
@@ -682,7 +683,23 @@ export const RestScreen = () => {
 
 export const ExerciseCompletedScreen = () => {
   const navigate = useNavigate();
-  const { selectedExercise, session, lastCompletedHistoryId, stopCamera } = useApp();
+  const {
+    selectedExercise,
+    session,
+    lastCompletedHistoryId,
+    stopCamera,
+    activePlan,
+    selectExercise,
+    completeWorkout,
+  } = useApp();
+  /*
+   * When this exercise came from a plan, the flow continues to the next item and only
+   * reaches the workout-level summary once the last one is done.
+   */
+  const planIndex =
+    activePlan?.items.findIndex((item) => item.exerciseSlug === selectedExercise.slug) ?? -1;
+  const nextPlanItem = planIndex >= 0 ? (activePlan?.items[planIndex + 1] ?? null) : null;
+  const isLastPlanExercise = planIndex >= 0 && nextPlanItem === null;
   const totalReps = getCompletedReps(session.set, session.targetReps, session.reps);
   const hasActivity = totalReps > 0;
   const totalSets = Math.max(
@@ -785,14 +802,28 @@ export const ExerciseCompletedScreen = () => {
         <Button
           type="button"
           className="completion-continue"
-          icon={<Gauge size={21} aria-hidden="true" />}
-          onClick={() =>
+          icon={<ArrowRight size={21} aria-hidden="true" />}
+          onClick={() => {
+            if (nextPlanItem !== null) {
+              selectExercise(nextPlanItem.exerciseSlug);
+              navigate(`/exercises/${encodeURIComponent(nextPlanItem.exerciseSlug)}`);
+              return;
+            }
+            if (isLastPlanExercise) {
+              completeWorkout();
+              navigate('/workout/complete');
+              return;
+            }
             navigate(
               lastCompletedHistoryId === null ? '/history' : `/analysis/${lastCompletedHistoryId}`,
-            )
-          }
+            );
+          }}
         >
-          Continue
+          {nextPlanItem !== null
+            ? 'Next Exercise'
+            : isLastPlanExercise
+              ? 'Finish Workout'
+              : 'Continue'}
         </Button>
       </Page>
     </>

@@ -3,7 +3,6 @@ import {
   Bookmark,
   CalendarDays,
   ChartNoAxesColumnIncreasing,
-  Dumbbell,
   HeartPulse,
   History,
   Home,
@@ -238,9 +237,9 @@ export const Callout = ({
 export const BottomNav = () => {
   const links = [
     { to: '/dashboard', label: 'Home', icon: Home },
-    { to: '/exercises', label: 'Workouts', icon: Dumbbell },
-    { to: '/discover', label: 'Build', icon: Plus, featured: true },
-    { to: '/history', label: 'Progress', icon: ChartNoAxesColumnIncreasing },
+    { to: '/discover', label: 'Explore', icon: Search },
+    { to: '/build', label: 'Workout', icon: Plus, featured: true },
+    { to: '/progress', label: 'Progress', icon: ChartNoAxesColumnIncreasing },
     { to: '/profile/summary', label: 'Profile', icon: UserRound },
   ];
   return (

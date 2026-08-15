@@ -121,34 +121,41 @@ SQL security suite, API tests, and OpenAPI checks all pass.
 Status: complete for the current backend scope. The deliberate Supabase RPC boundary
 remains documented in [the Prisma migration boundary](11-prisma-migration.md).
 
-## Phase 8 - Reference-driven web client
+## Phase 8 - Legacy reference prototype
 
-- Add the React/Vite application under `apps/web`.
+- Preserve the earlier reference prototype under `apps/web` as historical implementation
+  material; it is not the product target.
 - Implement the supplied mobile-first onboarding, discovery, exercise, compatibility,
   movement-profile, camera, guided-session, history, progress, and analysis screens.
 - Provide a deterministic demo adapter that works without hosted dependencies.
 - Add optional live Supabase Auth and bearer-aware Fastify API configuration.
 - Keep camera permission optional, provide no-tracking paths, and keep raw media and pose
-  landmarks inside the browser.
-- Add route, interaction, accessibility, responsive, camera-lifecycle, and privacy tests.
-- Add root development scripts and include the web workspace in formatting, typecheck,
-  test, and build gates.
+  landmarks inside its local runtime.
+- Retain its existing tests while the native client is built.
 
-Exit criteria: the supplied reference flow is functional at mobile and desktop widths in
-demo mode, the configured live path authenticates and reaches the API, camera denial does
-not block a workout, no raw media leaves the browser, and all recursive repository gates
-pass.
+Status: complete as a legacy prototype. It does not satisfy the React Native mobile
+application requirement.
 
-Status: the React/Vite client, route structure, seeded demo adapter, browser persistence,
-optional Supabase authentication and API client, camera preview, guided-session state,
-and progress views are present in the workspace. Production pose-model integration is
-not included. Automatic demo tracking is simulated, and the backend intentionally does
-not perform pose inference.
+## Phase 9 - React Native iOS and Android application
+
+- Add the Expo/React Native application under `apps/mobile`.
+- Implement native onboarding, five-tab navigation, discovery, exercise details,
+  compatibility, workout building, camera setup, guided sessions, analysis, progress,
+  history, profile management, guest mode, and Supabase-authenticated live mode.
+- Keep camera data on-device and provide a no-camera path for every workout.
+- Add iOS and Android component, accessibility, lifecycle, privacy, and end-to-end tests.
+- Configure development, preview, and production mobile builds.
+
+Exit criteria: the complete reference flow runs as a native iOS and Android application,
+works in guest and authenticated modes, adapts recommendations to movement constraints,
+handles camera denial, and sends only allowlisted derived metrics to the API.
+
+Status: planned. See [the React Native mobile plan](13-react-native-mobile.md).
 
 ## Deferred
 
-- Native mobile applications and platform-specific clients.
-- Production on-device pose-model selection, integration, and calibration.
+- Desktop-first replacement UI or further product development in `apps/web`.
+- Training a new pose model; mobile integration and calibration are part of Phase 9.
 - Clinician workflows.
 - Admin catalog UI.
 - Redis/distributed rate limiting.

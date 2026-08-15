@@ -8,37 +8,37 @@
 - Versioned migrations and `supabase/seed.sql`.
 - `supabase db reset` must reconstruct the complete local database.
 - No real user data or secrets in local seeds.
-- Vite web client on `http://localhost:5173` through `pnpm dev` (`pnpm dev:web` is an
-  explicit alias).
+- React Native development server through Expo, with iOS simulator, Android emulator,
+  and physical-device targets.
 - Fastify API on `http://localhost:3000` through `pnpm dev:api`.
-- `pnpm dev:all` starts both development servers after the API environment is configured.
-- The Vite development server proxies `/api` to port 3000, so `VITE_API_URL` is optional
-  for the standard local setup.
+- `EXPO_PUBLIC_API_BASE_URL` must resolve from the selected simulator, emulator, or
+  physical device; a physical device cannot use the development computer's `localhost`.
 
 ### Hosted demo
 
 - One Supabase project for Auth/Postgres.
 - One Railway Fastify service.
-- One HTTPS static web deployment built from `apps/web`.
+- One Expo application with iOS and Android development/preview builds.
 - One API replica is sufficient for the demo.
 - No Redis, queue, Storage bucket, or Realtime service.
 
-The static hosting provider is not locked. The deployed web origin must be present in
-the API's `CORS_ORIGINS`, and its API and Supabase variables must be provided at build
-time. HTTPS is required for production browser camera access.
+The Expo/EAS account and store identities are deployment inputs. The API origin must be
+present in the mobile build configuration, and public API and Supabase variables must be
+provided at build time.
 
-## Web client
+## React Native mobile client
 
-- Build with `pnpm --filter @peddie/web build`; deploy the generated `apps/web/dist`
-  directory as a single-page application with route fallback to `index.html`.
-- Use `VITE_API_URL` for the public Fastify origin outside the local proxy setup.
-- Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` together to expose live mode.
-- Treat every `VITE_` value as public build output. Never expose
-  `SUPABASE_SERVICE_ROLE_KEY`, database URLs, or server credentials through Vite.
-- Keep demo mode available when live variables are absent so the screen flow can be
+- Build iOS and Android development, preview, and production profiles with Expo/EAS.
+- Use `EXPO_PUBLIC_API_BASE_URL` for the public Fastify origin.
+- Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` together to
+  expose live mode.
+- Treat every `EXPO_PUBLIC_` value as public build output. Never expose
+  `SUPABASE_SERVICE_ROLE_KEY`, database URLs, or server credentials through the app.
+- Keep guest mode available when live variables are absent so the screen flow can be
   reviewed independently of hosted services.
-- Camera use must remain optional. The client must stop its media tracks when leaving the
-  camera flow and must not upload raw frames, recordings, audio, or pose landmarks.
+- Camera use must remain optional. The client must release the native camera session when
+  leaving the flow or entering the background and must not upload raw frames,
+  recordings, audio, or pose landmarks.
 
 ## Railway service
 
@@ -85,32 +85,32 @@ Demo-user provisioning is a deployment task handled through the Supabase Auth
 dashboard or an approved operator workflow; the API does not expose a provisioning
 endpoint and the database seed does not contain credentials.
 
-## Web environment variables
+## Mobile environment variables
 
 ```text
-VITE_API_URL
-VITE_SUPABASE_URL
-VITE_SUPABASE_ANON_KEY
+EXPO_PUBLIC_API_BASE_URL
+EXPO_PUBLIC_SUPABASE_URL
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ```
 
-The web values are optional for the self-contained demo adapter. Set both Supabase values
-for live authentication. The anon key is designed to be public and remains constrained
-by RLS; it is not interchangeable with the server-only service-role key. Example values
-are listed, without secrets, in `apps/web/.env.example`.
+The mobile values are optional for the self-contained guest adapter. Set both Supabase
+values for live authentication. The publishable key is designed to be public and remains
+constrained by RLS; it is not interchangeable with the server-only service-role key.
+Example values belong in `apps/mobile/.env.example` without real credentials.
 
 ## Release sequence
 
 1. Run `pnpm format`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
-   `pnpm openapi:check`, and `pnpm build`. The recursive gates include `apps/web`.
+   `pnpm openapi:check`, and `pnpm build`. The recursive gates must include `apps/mobile`.
 2. Run local `supabase db reset`, then `pnpm test:db` and `pnpm test:prisma` with
    `DATABASE_URL` or `SUPABASE_DB_URL` set.
 3. Review migration diff and security/performance advisors.
 4. Apply migrations to the hosted demo.
 5. Deploy the API service.
-6. Build and deploy the web client with its public live configuration.
-7. Run `/healthz` and `/readyz` smoke checks from the deployed web origin.
-8. Run the complete demo-mode and live-mode browser acceptance scenarios, including the
-   no-camera path, camera denial, media-track cleanup, and raw-media network inspection.
+6. Build iOS and Android preview applications with the public live configuration.
+7. Run `/healthz` and `/readyz` smoke checks from the mobile-configured API origin.
+8. Run complete guest-mode and live-mode mobile acceptance on iOS and Android, including
+   the no-camera path, camera denial, native camera cleanup, and raw-media network inspection.
 9. Verify `DELETE /v1/users/me` removes the Auth identity and cascaded application
    rows, then verify the old token receives `401` and the client clears local state.
 

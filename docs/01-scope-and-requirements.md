@@ -3,8 +3,8 @@
 ## Product
 
 Build a general-wellness fitness product for disabled adults and people with temporary
-or chronic movement limitations, including simple knee or back pain. A mobile-first web
-client must make the complete experience accessible, while the backend adapts exercise
+or chronic movement limitations, including simple knee or back pain. A React Native
+application for iOS and Android must make the complete experience accessible, while the backend adapts exercise
 discovery and workout generation to a user's available movement, preferred body regions,
 avoided body regions, and equipment.
 
@@ -34,18 +34,18 @@ movement profile
 - Analysis includes completion, ROM, accuracy, control, stability, tempo, and a non-clinical performance-change indicator.
 - Progress supports history, activity-grid data, totals, trends, and body coverage.
 - Users can delete individual sessions and their complete account.
-- The web client covers onboarding and authentication, exercise discovery and details,
+- The mobile client covers onboarding and authentication, exercise discovery and details,
   compatibility guidance, movement-profile summary, optional camera setup, guided
   sessions, completion, history, progress, and detailed analysis.
-- The web client remains usable through a seeded demo adapter without hosted services.
+- The mobile client remains usable through a seeded guest adapter without hosted services.
   When configured, live mode uses Supabase Auth and the bearer-aware Fastify API client.
 - Every camera-assisted screen has an equally clear path that continues without tracking.
 
 ## Out of scope
 
-- Native mobile applications, iOS simulator work, or platform-specific clients.
-- Production pose-model selection, training, or calibration. The current browser tracking
-  behavior is a guided demo, and the backend does not perform pose estimation.
+- A replacement desktop-first website or expansion of the legacy `apps/web` prototype.
+- Training a new pose model. On-device model integration and calibration are mobile
+  client responsibilities; the backend does not perform pose estimation.
 - Raw video, images, audio, or pose-landmark storage.
 - Diagnosis, treatment, rehabilitation claims, or clinician workflows.
 - Admin UI, social features, notifications, subscriptions, billing, and advertising.
@@ -65,8 +65,8 @@ Seed 24 reviewed exercises. Calibrate camera-derived tracking rules for:
 - Wall push-up
 
 These are backend tracking profiles for validating derived metrics and interpreting
-exercise results. They do not give the backend access to camera frames and do not include
-a production browser pose model.
+exercise results. They do not give the backend access to camera frames. Production pose
+inference runs on-device in the React Native application.
 
 Every exercise needs source metadata, requirements, equipment behavior, safety cues, and a stable slug before it can be seeded as active.
 
@@ -81,13 +81,14 @@ Every exercise needs source metadata, requirements, equipment behavior, safety c
 - Progress query range: at most 366 days.
 - All timestamps are UTC `timestamptz` values.
 - API JSON uses camelCase; database identifiers use lowercase snake_case.
-- The local Vite client uses port 5173 and the local Fastify API uses port 3000.
-- Browser camera access is opt-in. Camera frames and pose landmarks stay in the browser;
+- The React Native development server uses Expo tooling and the local Fastify API uses
+  port 3000.
+- Mobile camera access is opt-in. Camera frames and pose landmarks stay on-device;
   only allowlisted derived metrics may cross the API boundary.
 
 ## Success criteria
 
-The web demo must let a user navigate the supplied reference screens, configure movement
+The mobile app must let a user navigate the supplied reference screens, configure movement
 constraints, choose camera tracking or continue without it, complete a guided exercise,
 and review history, progress, and detailed analysis without hosted dependencies.
 

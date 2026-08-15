@@ -37,28 +37,28 @@
 - Invalid state transitions return `409`.
 - OpenAPI matches runtime schemas.
 
-## Web client tests
+## React Native mobile client tests
 
-- Every route renders through direct navigation and unknown routes reach the designed
-  recovery screen.
+- Every Expo Router route renders through native navigation and unknown/deep links reach
+  the designed recovery screen.
 - Demo mode works without Supabase or API environment variables and persists only the
-  intended non-sensitive demo state in the browser.
+  intended non-sensitive guest state on-device.
 - Providing both public Supabase variables exposes live authentication; partial or
   invalid configuration fails safely without exposing secrets.
 - API requests attach the Supabase bearer token in live mode and preserve the typed API
   error envelope.
 - Onboarding, discovery, compatibility warning, profile, session controls, history,
-  progress, and analysis actions are keyboard operable.
+  progress, and analysis actions are screen-reader operable and use native touch targets.
 - Information conveyed by compatibility or progress colors also has text or an icon.
-- Camera permission is requested only after a user action, audio is disabled, denial and
-  unavailable-device states offer a no-tracking path, and active media tracks stop on
-  cleanup.
+- Camera permission is requested only after a user action, audio capture is disabled,
+  denial and unavailable-device states offer a no-tracking path, and the native camera
+  session stops on cleanup or app backgrounding.
 - Client requests never contain a video, image, audio, frame, blob, landmark, or raw
   coordinate payload. Only allowlisted derived metrics may reach the API client.
 - Guided-session timers, pause, resume, rest, restart, early completion, and history
   updates are deterministic under fake timers.
-- Layouts remain usable at narrow mobile widths, text zoom, reduced motion, and desktop
-  widths, with 44 by 44 CSS pixel targets where required.
+- Layouts remain usable on supported phone and tablet sizes, Dynamic Type, reduced
+  motion, and high contrast, with at least 44-point iOS and 48dp Android targets.
 
 ## Seed tests
 
@@ -69,20 +69,20 @@
 - Every tracking profile references known feedback codes.
 - All slugs and reference IDs are unique and stable.
 
-## Browser demo-mode acceptance
+## Mobile guest-mode acceptance
 
-1. Start `pnpm dev` without client environment variables and open
-   `http://localhost:5173`.
+1. Start the Expo development server without live client environment variables and open
+   the application on iOS and Android.
 2. Complete onboarding or demo sign-in and move through exercise discovery, selection,
    detail, compatibility guidance, and profile summary.
 3. Choose an exercise, deny camera permission, continue without tracking, and complete a
    guided session with pause, resume, rest, and early-completion controls.
-4. Repeat with camera permission when available and verify the preview stays local and
-   its tracks stop after the camera-assisted flow ends.
+4. Repeat with camera permission when available and verify the preview stays on-device
+   and the native camera session stops after the assisted flow ends.
 5. Review the completion view, dashboard, history, and detailed analysis, then reload and
    verify intended demo state persistence.
-6. Inspect browser network requests and confirm that no raw media, frames, audio, pose
-   landmarks, or coordinates leave the browser.
+6. Inspect mobile network requests and confirm that no raw media, frames, audio, pose
+   landmarks, or coordinates leave the device.
 
 ## Hosted live-mode acceptance
 
@@ -96,8 +96,8 @@
 8. Confirm a second user cannot access demo data.
 9. Delete a session and verify progress recomputation.
 10. Delete the account and verify application rows and Auth identity are removed.
-11. Confirm the deployed site uses HTTPS, direct navigation works for every client route,
-    and the web origin is the only configured production CORS origin.
+11. Confirm iOS and Android preview builds reach only the configured HTTPS API, deep links
+    resolve correctly, and no unapproved API origin is used.
 
 ## CI gates
 
@@ -114,16 +114,16 @@ pnpm test:db
 pnpm test:prisma
 ```
 
-The root `format`, `typecheck`, `test`, and `build` commands include `apps/web` through
-the pnpm workspace. For focused client iteration, use:
+The root `format`, `typecheck`, `test`, and `build` commands must include `apps/mobile`
+through the pnpm workspace. For focused client iteration, use:
 
 ```text
-pnpm --filter @peddie/web typecheck
-pnpm --filter @peddie/web test
-pnpm --filter @peddie/web build
+pnpm --filter @peddie/mobile typecheck
+pnpm --filter @peddie/mobile test
+pnpm --filter @peddie/mobile build
 ```
 
-Browser demo-mode acceptance remains a release gate even when hosted Supabase credentials
+Mobile guest-mode acceptance remains a release gate even when hosted Supabase credentials
 are unavailable. The hosted live-mode scenario and database tests are environment-gated.
 
 ## Current implementation status
@@ -136,7 +136,8 @@ are unavailable. The hosted live-mode scenario and database tests are environmen
 - `pnpm build`
 - `pnpm test:integration` (the API Fastify-injection suite)
 - `pnpm openapi:check` (required route/path smoke check)
-- Recursive web-client typecheck and production build through the root commands
+- Recursive React Native client typecheck and mobile build/config validation through the
+  root commands
 - `pnpm test:prisma` (RLS-scoped Prisma catalog smoke check when a database URL is set)
 - Mandatory GitHub Actions PostgreSQL 17 execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
@@ -159,7 +160,7 @@ The authenticated profile, workout, tracked-session, analytics, and progress por
 of the acceptance flow are covered by Fastify injection tests. `pnpm smoke:hosted`
 automates public and authenticated deployment checks and can run the mutating loop,
 cross-user isolation, cleanup, and disposable-account deletion when the corresponding
-tokens and safety flags are provided. Web route, interaction, camera-privacy, and
-responsive browser coverage belongs in `apps/web`. Full browser live-mode acceptance,
+tokens and safety flags are provided. Native route, interaction, camera-privacy, and
+device coverage belongs in `apps/mobile`. Full iOS/Android live-mode acceptance,
 Docker-backed Supabase reset, hosted execution, advisor output, and load targets remain
 deployment-gated.

@@ -2,12 +2,15 @@
 
 ## Scope
 
-This repository includes a backend and a reference-driven, mobile-first web client. The
-React/Vite client belongs in `apps/web`; the Fastify API and its existing contracts remain
-the source of truth for server behavior. Do not add native mobile, iOS simulator, or
-unreferenced platform work unless the user expands the scope.
+AdaptFit is a React Native mobile application for iOS and Android. The primary client
+belongs in `apps/mobile`; the Fastify API and its existing contracts remain the source of
+truth for server behavior. The existing `apps/web` code is a legacy reference prototype,
+not the product target. Do not expand or redesign it unless the user explicitly requests
+legacy-web work.
 
-Read `docs/README.md` and the relevant numbered plan before changing behavior. Keep the implementation aligned with the decisions in `docs/01-scope-and-requirements.md` through `docs/10-implementation-roadmap.md`.
+Read `docs/README.md`, `docs/13-react-native-mobile.md`, and the relevant numbered plan
+before changing behavior. Keep implementation aligned with the mobile product decisions
+across the complete `docs/` set.
 
 ## Architecture rules
 
@@ -16,9 +19,10 @@ Read `docs/README.md` and the relevant numbered plan before changing behavior. K
 - Keep compatibility, recommendation, generation, and analytics algorithms pure in `packages/domain`.
 - Keep Supabase SQL under `supabase/migrations` and deterministic fixtures under `supabase/seed.sql`.
 - Do not put business rules directly in route handlers.
-- Keep the React/Vite client in `apps/web` and preserve a usable demo adapter alongside
-  optional Supabase Auth and Fastify API live mode.
-- Keep camera access optional and browser-local. Client code may send only allowlisted
+- Build the product client with React Native and Expo for iOS and Android under
+  `apps/mobile`, with a usable guest adapter alongside optional Supabase Auth and Fastify
+  API live mode.
+- Keep camera access optional and on-device. Client code may send only allowlisted
   derived metrics, never raw media or pose landmarks.
 - Never accept or persist raw video, images, audio, pose landmarks, or arbitrary user feedback text.
 - Never use Supabase secret/service keys in client-facing code.
@@ -56,12 +60,12 @@ For database changes, also run local Supabase reset/migrations, seed validation,
 
 ## Current status
 
-- Planning documents, the backend workspace, and the reference-driven `apps/web` client
-  are present in the repository.
-- `@peddie/web` contains the React/Vite onboarding, discovery, compatibility, camera,
-  guided-session, history, progress, and analysis screens. It runs independently with
-  demo data and can enable Supabase Auth and API connectivity through public `VITE_`
-  configuration.
+- Planning documents and the backend workspace are present. The React Native mobile
+  client defined by the current product plans remains to be implemented under
+  `apps/mobile`.
+- `@peddie/web` is a legacy reference prototype containing earlier onboarding,
+  discovery, compatibility, camera, session, history, progress, and analysis work. It
+  must not be treated as the primary application architecture.
 - `@peddie/contracts` contains TypeBox schemas for movement profiles, compatibility, workout generation, errors, references, and pagination.
 - `@peddie/domain` contains the deterministic `compatibility-v1` and `generation-v1` engines plus the 24-exercise catalog and tests.
 - Supabase CLI configuration, nine ordered migrations, deterministic catalog seed, RLS isolation tests, atomic profile/item replacement RPCs, and transactional session lifecycle RPCs are now present. A disposable local PostgreSQL run passes them; Docker-backed `supabase db reset` and advisors remain to be run when the environment supports them.
@@ -70,6 +74,6 @@ For database changes, also run local Supabase reset/migrations, seed validation,
 - `@peddie/domain` now also contains session state machines, derived-metric validation, exercise analysis, performance-change classification, and progress-baseline helpers; matching API schemas are in `@peddie/contracts`.
 - The API now also exposes workout/exercise session lifecycle, derived metric batches, analysis, activity/progress, and owner-scoped session deletion through memory and Supabase repositories. Session completion and daily-progress rebuilds use transactional Supabase functions; raw pose/media fields are rejected.
 - Authenticated Supabase repositories now propagate each request's bearer token into a request-scoped client so hosted RLS evaluates the real user. Account deletion uses a server-only service-role adapter with retry-safe handling, `/readyz` performs a bounded Supabase dependency check, `railway.toml` contains backend deployment wiring, and `.github/workflows/ci.yml` runs the repeatable gates. Hosted migrations/advisors and smoke tests remain environment-gated.
-- Browser camera access is opt-in and raw media remains local. The current web experience
-  does not include a production pose-estimation model, and the backend intentionally does
-  not perform pose inference.
+- Mobile camera access is opt-in and raw media remains on-device. Production pose
+  inference belongs in the React Native client; the backend intentionally does not
+  perform pose inference.

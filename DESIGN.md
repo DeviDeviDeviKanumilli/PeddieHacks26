@@ -205,7 +205,7 @@ Depth is ambient, not theatrical. Tonal layers and one-pixel cool borders do mos
 
 ### Navigation
 
-Mobile navigation floats above the safe area as a five-part rounded rail. The active item uses Selected Lavender and Action Periwinkle; the central Build action is circular and visually stronger. At desktop widths, the same rail moves to the top center so it never covers analytics while scrolling.
+Mobile navigation floats above the native safe area as a five-part rounded rail. The active item uses Selected Lavender and Action Periwinkle; the central Build action is circular and visually stronger. The interface is designed for phone and tablet layouts rather than desktop navigation.
 
 ### Compatibility and Body Map
 
@@ -219,7 +219,7 @@ Interactive anatomy labels pair focus or avoid color with explicit words and a m
 - **Do** use Action Periwinkle for the next meaningful action and Selected Lavender for reversible selection.
 - **Do** pair every metric with its period, provenance, or plain-language meaning.
 - **Do** preserve an equally clear camera-free workout path and stop media tracks when that path is chosen.
-- **Do** let mobile screens breathe, then use wider desktop grids only when relationships become easier to compare.
+- **Do** let phone screens breathe, then use wider tablet grids only when relationships become easier to compare.
 - **Do** use full borders, tinted backgrounds, leading icons, and explicit status words for callouts.
 
 ### Don't:

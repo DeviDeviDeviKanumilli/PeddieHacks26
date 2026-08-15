@@ -1,7 +1,8 @@
 # PeddieHacks26 Product Plan
 
-This folder is the system source of truth for AdaptFit, including the React web client,
-Fastify API, domain rules, Supabase data model, privacy posture, and deployment plan.
+This folder is the system source of truth for AdaptFit, a React Native iOS and Android
+application with a Fastify API, domain rules, Supabase data model, privacy posture, and
+mobile deployment plan.
 
 ## Reading order
 
@@ -17,12 +18,13 @@ Fastify API, domain rules, Supabase data model, privacy posture, and deployment 
 10. [Implementation roadmap](10-implementation-roadmap.md)
 11. [Prisma migration boundary](11-prisma-migration.md)
 12. [Market and evidence brief](12-market-and-evidence.md)
+13. [React Native mobile application](13-react-native-mobile.md)
 
 ## Locked decisions
 
-- React 19 and Vite power the responsive `apps/web` client.
-- The browser client runs immediately in a persistent local demo mode and can use
-  Supabase Auth plus the Fastify API when public client variables are configured.
+- React Native and Expo power the iOS and Android client under `apps/mobile`.
+- The mobile client supports a persistent guest mode and can use Supabase Auth plus the
+  Fastify API when public mobile variables are configured.
 - Node.js 24 LTS, TypeScript, Fastify 5, and pnpm.
 - Supabase Auth and Postgres; Fastify API deployed to Railway.
 - Prisma 7 is the typed ORM for application table queries; Supabase SQL remains the source of truth for RLS, grants, triggers, and lifecycle RPCs.
@@ -31,20 +33,20 @@ Fastify API, domain rules, Supabase data model, privacy posture, and deployment 
 - Public exercise catalog; authentication required for personalization and history.
 - Deterministic compatibility rules and scoring; no LLM in eligibility decisions.
 - Pose estimation remains on-device. The API stores derived metrics only.
-- Raw camera video and audio never leave the browser; camera use is optional.
+- Raw camera video, images, audio, and pose landmarks never leave the device; camera use
+  is optional.
 - Retain derived metrics until session or account deletion.
 - Seed 24 sourced exercises, with tracking rules for 6.
 - General wellness positioning for adults; no diagnosis, treatment, or rehabilitation claims.
 
 ## Current state
 
-The workspace now includes the PDF-derived AdaptFit experience in `apps/web`, with
-onboarding, discovery, exercise details and safety gates, camera permission/setup,
-active workout states, completion, dashboard, history, and analysis. Interactive demo
-state is stored locally so the complete flow works without infrastructure credentials.
-The optional live adapter uses Supabase Auth and the Fastify API for account-scoped
-profiles, compatibility, movement preferences, workouts, sessions, progress, and history,
-with explicit loading, error, and retry states.
+AdaptFit's product target is the PDF-derived React Native experience under `apps/mobile`,
+including onboarding, discovery, exercise details and safety gates, native camera
+permission/setup, active workout states, completion, dashboard, history, and analysis.
+The repository still contains an earlier `apps/web` reference prototype, but it is not
+the primary application and must not define future platform decisions. The mobile client
+will provide local guest state plus optional Supabase Auth and Fastify API connectivity.
 
 The backend workspace, Supabase schema, and Prisma data-access layer are also
 implemented. `apps/api` is a Fastify service with repository adapters, authenticated routes, OpenAPI output,
@@ -57,11 +59,10 @@ The database currently has nine CLI-created migrations, deterministic catalog se
 data, explicit grants, forced RLS, owner-scoped policies, and transactional lifecycle
 RPCs. Prisma table transactions establish the matching Postgres RLS role and JWT
 subject; the request-scoped Supabase client remains for lifecycle RPCs and the
-service-role client is isolated to account deletion. The web client provides a real
-browser camera preview with a clearly labeled manual/demo tracking fallback. The
-development-only Python prototype under `model/` performs local MediaPipe pose and arm
-angle experiments; production on-device model integration and calibration remain
-separate work, and the backend never receives raw camera media or landmarks.
+service-role client is isolated to account deletion. The development-only Python
+prototype under `model/` performs local MediaPipe pose and arm-angle experiments;
+production on-device integration belongs in the React Native application, and the
+backend never receives raw camera media or landmarks.
 
 Repeatable checks are available through `pnpm format`, `pnpm typecheck`, `pnpm test`,
 `pnpm build`, `pnpm openapi:check`, `pnpm test:integration`, and `pnpm test:db`.

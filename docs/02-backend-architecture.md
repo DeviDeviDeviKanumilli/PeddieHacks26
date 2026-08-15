@@ -27,20 +27,19 @@ apps/
         users.ts
         workouts.ts
         sessions.ts
-  web/
+  mobile/
     src/
       components/
       data/
       lib/
         api.ts
         supabase.ts
-      screens/
+      app/
       state/
-      App.tsx
-      main.tsx
-    .env.example
-    index.html
-    vite.config.ts
+    app.config.ts
+    eas.json
+
+  web/ # legacy reference prototype; not the product target
 
 packages/
   contracts/
@@ -64,9 +63,10 @@ scripts/
 
 ## Responsibilities
 
-- `apps/web`: Mobile-first React routes, screen composition, accessible interactions,
-  local demo state, optional Supabase Auth, bearer-aware API requests, and browser camera
-  lifecycle.
+- `apps/mobile`: React Native/Expo routes, native screen composition, accessible
+  interactions, local guest state, optional Supabase Auth, bearer-aware API requests,
+  and device camera lifecycle.
+- `apps/web`: Legacy reference prototype retained for historical implementation context.
 - `apps/api`: HTTP routes, request authentication, validation, response serialization, rate limiting, orchestration, and safe logging.
 - `packages/contracts`: TypeBox request/response schemas and inferred TypeScript types. These schemas generate OpenAPI.
 - `packages/domain`: Pure compatibility, recommendation, generation, and analytics functions. No Fastify or Supabase imports.
@@ -75,12 +75,12 @@ scripts/
 
 ## Runtime modes
 
-The web client supports two explicit data paths:
+The React Native mobile client supports two explicit data paths:
 
 ```text
-demo mode
+guest mode
   -> seeded exercise, history, and progress data
-  -> React context and browser-local persistence
+  -> native application state and device-local persistence
   -> no hosted dependency required
 
 live mode
@@ -91,18 +91,18 @@ live mode
   -> Postgres/RLS
 ```
 
-Demo mode is the default when public Supabase client configuration is absent. Live mode
-is selected when both `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are provided. The
+Guest mode is always available. Live mode is enabled when
+`EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are provided. The
 live adapter hydrates the authenticated profile, reference catalog, compatibility,
 movement profile, progress, and workout history from the API. Curated client presentation
-content enriches API exercise summaries where the public contract does not yet expose
-instructions or imagery. Live loading and failures are isolated from demo storage and
+media is used only where reviewed assets exist; exercise instructions, safety cues,
+adaptations, muscles, and requirements come from the public API. Live loading and failures are isolated from guest storage and
 surface a recoverable boundary instead of silently showing seeded data.
 
 ## Live request flow
 
 ```text
-React client
+React Native client
   -> Supabase Auth token
   -> Fastify route
   -> TypeBox validation
@@ -122,19 +122,20 @@ and is isolated to Auth-user deletion; there is no client-facing service-key pat
 ## Camera and metrics flow
 
 ```text
-browser permission
-  -> browser-local MediaStream preview
-  -> optional future on-device pose inference
+native camera permission
+  -> on-device camera preview
+  -> optional on-device pose inference
   -> allowlisted derived metrics
   -> Fastify metrics endpoint
   -> owner-scoped Postgres rows
 ```
 
-The camera is optional and is started only after a user action. Tracks are stopped when
-the flow ends or the client unmounts. Raw video, still images, audio, frame data, and pose
+The camera is optional and is started only after a user action. The camera session is
+released when the flow ends, the app backgrounds, or the component unmounts. Raw video,
+still images, audio, frame data, and pose
 landmarks never enter an API request and are never persisted. The backend validates and
 stores derived metrics only. It intentionally has no pose-estimation implementation. The
-current automatic rep and score movement in demo mode is simulated client behavior, not
+automatic rep and score movement in guest demo mode is simulated client behavior, not
 model output.
 
 ## Dependencies
@@ -149,20 +150,20 @@ model output.
 - Pino logging.
 - Vitest.
 - Biome.
-- React 19 and React DOM 19.
-- React Router 7.
-- Vite 8 and its React plugin.
-- Testing Library with Vitest and jsdom for client behavior.
+- React Native and Expo.
+- Expo Router for native stack, tab, modal, and deep-link navigation.
+- React Native Testing Library for component behavior.
+- Maestro for iOS and Android end-to-end acceptance.
 
 Pin versions and commit the pnpm lockfile.
 
 ## Module boundaries
 
-- `apps/web/src/screens`: route-level onboarding, discovery, compatibility, camera,
+- `apps/mobile/app`: route-level onboarding, discovery, compatibility, camera,
   session, progress, and analysis UI.
-- `apps/web/src/state`: demo/live mode selection, browser persistence, camera lifecycle,
+- `apps/mobile/src/state`: guest/live mode selection, device persistence, camera lifecycle,
   and UI session orchestration. Server business rules still belong in `packages/domain`.
-- `apps/web/src/lib`: Supabase Auth configuration and the typed bearer-aware API client.
+- `apps/mobile/src/lib`: Supabase Auth configuration and the typed bearer-aware API client.
 - `routes/users.ts`: profile, settings, and account deletion endpoints.
 - `routes/profile.ts`: body-region, capability, equipment, and goal preferences.
 - `routes/catalog.ts`: public taxonomies, exercise catalog, and compatibility preview.
@@ -176,9 +177,9 @@ Write operations that need atomicity use reviewed Postgres functions or a single
 
 ## Authentication boundary
 
-The web client calls Supabase Auth directly for signup, login, logout, and token refresh
+The mobile client calls Supabase Auth directly for signup, login, logout, and token refresh
 when live configuration is present. It sends the resulting access token to the Fastify
 API in the `Authorization` header. The API exposes only application profile and data
 routes. Missing or invalid tokens return `401`; valid tokens never grant access outside
-the owner-scoped RLS policies. Demo authentication is local UI state and must never be
+the owner-scoped RLS policies. Guest authentication is local UI state and must never be
 treated as a production security boundary.

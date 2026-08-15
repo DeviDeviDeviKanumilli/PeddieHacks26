@@ -1,13 +1,14 @@
 # PeddieHacks26
 
-AdaptFit is a mobile-first adaptive fitness experience for disabled adults and people
-with temporary or chronic movement limitations. The repository contains a React/Vite
-web client, a Fastify API, shared TypeBox contracts, pure domain rules, and a
-Prisma/Supabase/Postgres data layer.
+AdaptFit is a React Native adaptive fitness application for iOS and Android, designed for
+disabled adults and people with temporary or chronic movement limitations. The
+repository contains its Fastify API, shared TypeBox contracts, pure domain rules,
+Prisma/Supabase/Postgres data layer, and an earlier web reference prototype.
 
 ## Workspace
 
-- `apps/web`: React 19 and Vite client implementing the supplied screen references.
+- `apps/mobile`: primary React Native/Expo iOS and Android application target.
+- `apps/web`: legacy reference prototype; it is not the primary product client.
 - `apps/api`: Fastify service for profiles, compatibility, workouts, sessions, and
   progress.
 - `packages/contracts`: public validation schemas and inferred TypeScript types.
@@ -17,19 +18,16 @@ Prisma/Supabase/Postgres data layer.
 - `model`: development-only local MediaPipe pose and arm-angle prototype.
 - `docs`: product scope, architecture, API, privacy, deployment, testing, and roadmap.
 
-## Run locally
+## Mobile development status
 
-Requirements are Node.js 24 through 26, pnpm 11.5.1, and Supabase credentials only when
-running the API or using live authentication.
+Requirements are Node.js 24 through 26, pnpm 11.5.1, Expo-compatible iOS/Android tooling,
+and Supabase credentials only when running the API or using live authentication.
 
-```bash
-pnpm install
-pnpm dev
-```
-
-The web client runs at `http://localhost:5173`. Without client environment variables it
-uses the demo adapter, seeded data, and local browser persistence, so the reference flow
-can be explored without a backend.
+The React Native workspace under `apps/mobile` is the primary application target and the
+next implementation phase. Once scaffolded, it will run through Expo on an iOS simulator,
+Android emulator, or physical device. Guest mode will use seeded data and device-local
+persistence so the core flow remains usable without hosted credentials. Do not use the
+legacy `apps/web` prototype as the product runtime.
 
 To run the API, provide the server values shown in `.env.example` through your shell or
 deployment environment, then run:
@@ -38,24 +36,22 @@ deployment environment, then run:
 pnpm dev:api
 ```
 
-The API runs at `http://localhost:3000`. `pnpm dev:web` is an explicit alias for the web
-client, while `pnpm dev:all` starts both workspace dev
-servers once the API environment is configured. In local development, Vite proxies
-`/api` requests to port 3000 by default.
+The API runs at `http://localhost:3000`. The mobile client uses
+`EXPO_PUBLIC_API_BASE_URL` to reach it; physical devices must use a host address reachable
+from the device rather than `localhost`.
 
-For live mode, copy `apps/web/.env.example` to `apps/web/.env.local` and set the public
-Supabase URL and anon key. `VITE_API_URL` is optional locally because of the proxy. Never
-put a Supabase service-role key or another server secret in a `VITE_` variable.
+For live mode, configure `EXPO_PUBLIC_SUPABASE_URL`,
+`EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `EXPO_PUBLIC_API_BASE_URL`. Never put a
+Supabase service-role key, database URL, or another server secret in an `EXPO_PUBLIC_`
+variable.
 
 ## Camera and pose privacy
 
-Camera permission is optional and requested by the browser only when the user chooses
-the demo tracking preview. Live mode uses manual counting until a production on-device
-pose model is available. The camera stream stays in the browser. Raw video, images, audio, and pose
+Camera permission is optional and requested by the native app only when the user chooses
+tracking. The camera stream and pose processing stay on-device. Raw video, images, audio, and pose
 landmarks are not sent to or stored by the API; only allowlisted derived metrics may be
-uploaded. The current client provides the camera and guided-session experience but does
-not ship a production pose-estimation model. Demo feedback is explicitly labeled as
-simulated. Pose inference is intentionally not a backend responsibility.
+uploaded. Guest feedback is explicitly labeled when simulated. Pose inference is a
+mobile-client responsibility and is intentionally not a backend responsibility.
 
 ## Verification
 

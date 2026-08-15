@@ -5,12 +5,14 @@ from math import isfinite
 import cv2
 import mediapipe as mp
 
-from exercise_performance import (
+from exercise_analyzer import (
     ExercisePhase,
     ExerciseSetTracker,
     MoveState,
     RangeOfMotionTracker,
     RepCounter,
+    analyze_exercise,
+    format_exercise_stats,
 )
 from vision_model import (
     create_pose_landmarker,
@@ -19,6 +21,9 @@ from vision_model import (
     get_angle,
     get_default_model_path,
 )
+
+# Set this to True to draw pose lines and dots by default.
+SHOW_POSE = False
 
 
 def draw_pose(frame, pose_landmarks, visibility_threshold=0.5):
@@ -127,6 +132,7 @@ def draw_status(frame, exercise_tracker: ExerciseSetTracker, now_seconds: float)
 
 
 def main(
+    exercise_name="seated-biceps-curl",
     total_sets=2,
     reps_per_set=2,
     rest_seconds=2.0,
@@ -135,6 +141,7 @@ def main(
     right_landmarks=(12, 14, 16),
     target_angle_degrees=50.0,
     return_angle_degrees=160.0,
+    show_pose=SHOW_POSE,
 ):
     completion_duration = float(completion_display_seconds)
     if not isfinite(completion_duration) or completion_duration < 0.0:
@@ -180,6 +187,7 @@ def main(
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     last_timestamp_ms = 0
+    exercise_started_at_seconds = time.monotonic()
 
     print()
     print("MediaPipe Pose Camera started.")
@@ -188,6 +196,7 @@ def main(
 
     try:
         with create_pose_landmarker(model_path) as landmarker:
+            exercise_started_at_seconds = time.monotonic()
             while True:
                 success, frame = camera.read()
                 if not success:
@@ -205,7 +214,8 @@ def main(
                 joint_angles = {limb_name: None for limb_name in limb_counters}
                 if result.pose_landmarks:
                     for pose_landmarks in result.pose_landmarks:
-                        draw_pose(frame, pose_landmarks)
+                        if show_pose:
+                            draw_pose(frame, pose_landmarks)
                         for limb_name, counter in limb_counters.items():
                             joint_angles[limb_name] = get_angle(
                                 pose_landmarks,
@@ -235,8 +245,24 @@ def main(
                 ):
                     break
     finally:
+        completed_at_seconds = exercise_tracker.completed_at_seconds
+        exercise_ended_at_seconds = (
+            completed_at_seconds
+            if completed_at_seconds is not None
+            else time.monotonic()
+        )
         camera.release()
         cv2.destroyAllWindows()
+        stats = analyze_exercise(
+            exercise_name=exercise_name,
+            exercise_time_seconds=(
+                exercise_ended_at_seconds - exercise_started_at_seconds
+            ),
+            exercise_tracker=exercise_tracker,
+            motion_trackers=range_of_motion_trackers,
+        )
+        print()
+        print(format_exercise_stats(stats))
 
 
 def positive_int(value):
@@ -255,6 +281,7 @@ def non_negative_float(value):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Track a bilateral exercise")
+    parser.add_argument("--exercise", default="seated-biceps-curl")
     parser.add_argument("--sets", type=positive_int, default=2)
     parser.add_argument("--reps-per-set", type=positive_int, default=2)
     parser.add_argument("--rest-seconds", type=non_negative_float, default=2.0)
@@ -267,12 +294,19 @@ def parse_args():
     parser.add_argument("--right-points", type=int, nargs=3, default=(12, 14, 16))
     parser.add_argument("--target-angle", type=float, default=40.0)
     parser.add_argument("--return-angle", type=float, default=160.0)
+    parser.add_argument(
+        "--show-pose",
+        action=argparse.BooleanOptionalAction,
+        default=SHOW_POSE,
+        help="draw pose lines and dots (default: hidden)",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     arguments = parse_args()
     main(
+        exercise_name=arguments.exercise,
         total_sets=arguments.sets,
         reps_per_set=arguments.reps_per_set,
         rest_seconds=arguments.rest_seconds,
@@ -281,4 +315,6 @@ if __name__ == "__main__":
         right_landmarks=tuple(arguments.right_points),
         target_angle_degrees=arguments.target_angle,
         return_angle_degrees=arguments.return_angle,
+        show_pose=arguments.show_pose
+        # show_pose=True
     )

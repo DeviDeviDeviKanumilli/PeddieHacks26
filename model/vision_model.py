@@ -54,11 +54,27 @@ def get_angle(
     frame_width,
     frame_height,
     visibility_threshold=0.5,
+    landmark_indices=(11, 13, 15),
 ):
-    """Return the angle between vectors 11->13 and 13->15 in degrees."""
-    point_1 = pose_landmarks[11]
-    vertex = pose_landmarks[13]
-    point_2 = pose_landmarks[15]
+    """Return the angle formed by point 1, the vertex, and point 2."""
+    if (
+        len(landmark_indices) != 3
+        or any(
+            isinstance(index, bool) or not isinstance(index, int) or index < 0
+            for index in landmark_indices
+        )
+        or len(set(landmark_indices)) != 3
+    ):
+        raise ValueError(
+            "landmark_indices must contain three distinct non-negative integers"
+        )
+
+    try:
+        point_1, vertex, point_2 = (
+            pose_landmarks[index] for index in landmark_indices
+        )
+    except IndexError as error:
+        raise ValueError("landmark index is outside the detected pose") from error
 
     if any(
         landmark.visibility < visibility_threshold

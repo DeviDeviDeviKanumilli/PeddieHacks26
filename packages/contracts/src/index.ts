@@ -336,6 +336,7 @@ export const WorkoutSessionStateSchema = Type.Union([
   Type.Literal('completed'),
   Type.Literal('cancelled'),
 ]);
+export type WorkoutSessionState = Static<typeof WorkoutSessionStateSchema>;
 
 export const ExerciseSessionStateSchema = Type.Union([
   Type.Literal('pending'),
@@ -346,6 +347,7 @@ export const ExerciseSessionStateSchema = Type.Union([
   Type.Literal('cancelled'),
   Type.Literal('skipped'),
 ]);
+export type ExerciseSessionState = Static<typeof ExerciseSessionStateSchema>;
 
 export const FeedbackCodeSchema = Type.Union([
   Type.Literal('low_tracking_confidence'),
@@ -356,27 +358,35 @@ export const FeedbackCodeSchema = Type.Union([
   Type.Literal('stability_left'),
   Type.Literal('stability_right'),
 ]);
+export type FeedbackCode = Static<typeof FeedbackCodeSchema>;
 
-export const RepMetricSchema = Type.Object({
-  setNumber: Type.Integer({ minimum: 1, maximum: 5 }),
-  repNumber: Type.Integer({ minimum: 1, maximum: 50 }),
-  counted: Type.Boolean(),
-  durationMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 3600000 })),
-  rangeOfMotionDeg: Type.Optional(Type.Number({ minimum: 0, maximum: 360 })),
-  targetPositionReached: Type.Optional(Type.Boolean()),
-  accuracyScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
-  controlScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
-  stabilityScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
-  formScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
-  trackingConfidence: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
-  feedbackCodes: Type.Array(FeedbackCodeSchema, { maxItems: 7, uniqueItems: true }),
-  recordedOffsetMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 86400000 })),
-});
+export const RepMetricSchema = Type.Object(
+  {
+    setNumber: Type.Integer({ minimum: 1, maximum: 5 }),
+    repNumber: Type.Integer({ minimum: 1, maximum: 50 }),
+    counted: Type.Boolean(),
+    durationMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 3600000 })),
+    rangeOfMotionDeg: Type.Optional(Type.Number({ minimum: 0, maximum: 360 })),
+    targetPositionReached: Type.Optional(Type.Boolean()),
+    accuracyScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+    controlScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+    stabilityScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+    formScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+    trackingConfidence: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+    feedbackCodes: Type.Array(FeedbackCodeSchema, { maxItems: 7, uniqueItems: true }),
+    recordedOffsetMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 86400000 })),
+  },
+  { additionalProperties: false },
+);
+export type RepMetric = Static<typeof RepMetricSchema>;
 
-export const MetricBatchRequestSchema = Type.Object({
-  batchId: UuidSchema,
-  metrics: Type.Array(RepMetricSchema, { maxItems: 100 }),
-});
+export const MetricBatchRequestSchema = Type.Object(
+  {
+    batchId: UuidSchema,
+    metrics: Type.Array(RepMetricSchema, { maxItems: 100 }),
+  },
+  { additionalProperties: false },
+);
 
 export type MetricBatchRequest = Static<typeof MetricBatchRequestSchema>;
 
@@ -387,6 +397,7 @@ export const MetricBatchResponseSchema = Type.Object({
     rejectedCount: Type.Integer({ minimum: 0 }),
   }),
 });
+export type MetricBatchResponse = Static<typeof MetricBatchResponseSchema>;
 
 export const RomAnalysisSchema = Type.Object({
   averageDeg: Type.Union([Type.Number(), Type.Null()]),
@@ -428,6 +439,7 @@ export const ExerciseAnalysisSchema = Type.Object({
 });
 
 export const ExerciseAnalysisResponseSchema = Type.Object({ data: ExerciseAnalysisSchema });
+export type ExerciseAnalysis = Static<typeof ExerciseAnalysisSchema>;
 
 export const WorkoutSessionSchema = Type.Object({
   id: UuidSchema,
@@ -438,6 +450,7 @@ export const WorkoutSessionSchema = Type.Object({
   durationSeconds: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
   version: Type.Integer({ minimum: 1 }),
 });
+export type WorkoutSession = Static<typeof WorkoutSessionSchema>;
 
 export const ExerciseSessionSchema = Type.Object({
   id: UuidSchema,
@@ -453,6 +466,7 @@ export const ExerciseSessionSchema = Type.Object({
   endedAt: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
   version: Type.Integer({ minimum: 1 }),
 });
+export type ExerciseSession = Static<typeof ExerciseSessionSchema>;
 
 export const WorkoutSessionResponseSchema = Type.Object({ data: WorkoutSessionSchema });
 export const WorkoutSessionListResponseSchema = Type.Object({
@@ -460,22 +474,34 @@ export const WorkoutSessionListResponseSchema = Type.Object({
   page: PageSchema,
 });
 export const ExerciseSessionResponseSchema = Type.Object({ data: ExerciseSessionSchema });
+export const ExerciseSessionListResponseSchema = Type.Object({
+  data: Type.Array(ExerciseSessionSchema),
+});
 
 export const CreateWorkoutSessionRequestSchema = Type.Object({
   clientRequestId: UuidSchema,
   workoutId: UuidSchema,
 });
+export type CreateWorkoutSessionRequest = Static<typeof CreateWorkoutSessionRequestSchema>;
 
 export const PatchWorkoutSessionRequestSchema = Type.Object({
   expectedVersion: Type.Integer({ minimum: 1 }),
   state: Type.Optional(WorkoutSessionStateSchema),
   endReason: Type.Optional(Type.String({ maxLength: 80 })),
 });
+export type PatchWorkoutSessionRequest = Static<typeof PatchWorkoutSessionRequestSchema>;
 
 export const PatchExerciseSessionRequestSchema = Type.Object({
   expectedVersion: Type.Integer({ minimum: 1 }),
   state: Type.Optional(ExerciseSessionStateSchema),
 });
+export type PatchExerciseSessionRequest = Static<typeof PatchExerciseSessionRequestSchema>;
+
+export const CompleteSessionRequestSchema = Type.Object({
+  expectedVersion: Type.Integer({ minimum: 1 }),
+  endReason: Type.Optional(Type.String({ maxLength: 80 })),
+});
+export type CompleteSessionRequest = Static<typeof CompleteSessionRequestSchema>;
 
 export const ProgressSummarySchema = Type.Object({
   totalActiveSeconds: Type.Integer({ minimum: 0 }),
@@ -490,6 +516,7 @@ export const ProgressSummarySchema = Type.Object({
     }),
   ),
 });
+export type ProgressSummary = Static<typeof ProgressSummarySchema>;
 
 export const ProgressSummaryResponseSchema = Type.Object({ data: ProgressSummarySchema });
 export const ProgressActivityResponseSchema = Type.Object({
@@ -516,6 +543,7 @@ export const ExerciseProgressResponseSchema = Type.Object({
     relativePercentage: Type.Union([Type.Number(), Type.Null()]),
   }),
 });
+export type ExerciseProgressResponse = Static<typeof ExerciseProgressResponseSchema>;
 
 export const ReferenceEntrySchema = Type.Object({
   id: NonEmptyStringSchema,

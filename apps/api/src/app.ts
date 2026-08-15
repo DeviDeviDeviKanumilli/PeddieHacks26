@@ -22,8 +22,14 @@ import { registerErrorHandling } from './errors.js';
 import { SupabaseMovementProfileRepository } from './profile-repository.js';
 import { registerCatalogRoutes } from './routes/catalog.js';
 import { registerProfileRoutes } from './routes/profile.js';
+import { registerSessionRoutes } from './routes/sessions.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerWorkoutRoutes } from './routes/workouts.js';
+import {
+  MemorySessionRepository,
+  type SessionRepository,
+  SupabaseSessionRepository,
+} from './session-repository.js';
 import {
   MemoryUserRepository,
   SupabaseUserRepository,
@@ -42,6 +48,7 @@ export type AppOptions = {
   profiles?: MovementProfileRepository;
   workouts?: WorkoutRepository;
   users?: UserRepository;
+  sessions?: SessionRepository;
   authVerifier?: AuthVerifier;
 };
 
@@ -66,12 +73,18 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   const users =
     options.users ??
     (supabase === undefined ? new MemoryUserRepository() : new SupabaseUserRepository(supabase));
+  const sessions =
+    options.sessions ??
+    (supabase === undefined
+      ? new MemorySessionRepository(catalog)
+      : new SupabaseSessionRepository(supabase));
   const authVerifier =
     options.authVerifier ??
     (supabase === undefined ? new RejectingAuthVerifier() : new SupabaseAuthVerifier(supabase));
   const app = Fastify({
     logger: options.logger ?? true,
     requestIdHeader: 'x-request-id',
+    ajv: { customOptions: { removeAdditional: false } },
   });
 
   await app.register(cors, {
@@ -94,6 +107,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
         { name: 'system', description: 'Health and readiness checks.' },
         { name: 'catalog', description: 'Public references and reviewed exercises.' },
         { name: 'users', description: 'Authenticated profile and settings.' },
+        { name: 'sessions', description: 'Workout execution, derived metrics, and progress.' },
       ],
     },
   });
@@ -122,6 +136,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   await registerProfileRoutes(app, { profiles });
   await registerUserRoutes(app, { users });
   await registerWorkoutRoutes(app, { catalog, profiles, workouts });
+  await registerSessionRoutes(app, { sessions, workouts });
 
   app.get('/openapi.json', async () => app.swagger());
 

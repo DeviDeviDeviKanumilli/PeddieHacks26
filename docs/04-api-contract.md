@@ -115,10 +115,12 @@ Deleting a workout archives it. Manual workouts may contain one exercise for sta
 POST   /v1/workout-sessions
 GET    /v1/workout-sessions
 GET    /v1/workout-sessions/:sessionId
+GET    /v1/workout-sessions/:sessionId/exercise-sessions
 PATCH  /v1/workout-sessions/:sessionId
 POST   /v1/workout-sessions/:sessionId/complete
 DELETE /v1/workout-sessions/:sessionId
 
+GET    /v1/exercise-sessions/:exerciseSessionId
 PATCH  /v1/exercise-sessions/:exerciseSessionId
 POST   /v1/exercise-sessions/:exerciseSessionId/metrics
 POST   /v1/exercise-sessions/:exerciseSessionId/complete
@@ -138,6 +140,12 @@ GET /v1/progress/exercises/:exerciseId
 ```
 
 Progress supports date ranges up to 366 days. Results include totals, daily activity, body coverage, and per-exercise trend baselines.
+
+The API session repository has memory and Supabase implementations. Supabase creation,
+state transitions, metric ingestion, exercise completion, workout completion, daily
+progress rebuilds, and deletion use owner-checked PostgreSQL functions so a client
+retry cannot partially apply a lifecycle operation. The API computes the documented
+analysis from stored derived metrics and persists only the aggregate summary.
 
 ## Status codes
 

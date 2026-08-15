@@ -83,6 +83,7 @@ pnpm openapi:check
 - Disposable PostgreSQL execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
 - `supabase/tests/profile_rpc.sql` atomic profile replacement and version checks
+- `supabase/tests/session_lifecycle.sql` transactional session, metric, summary, and daily-progress checks
 - Domain tests for session transition matrices, metric limits, confidence filtering, analysis formulas, and progress baselines
 
 The migration/seed checks currently run against a disposable local PostgreSQL
@@ -94,6 +95,6 @@ supabase db reset
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls.sql
 ```
 
-The authenticated profile and workout portions of the acceptance flow are covered
-by Fastify injection tests. The tracked session, analytics, progress, and deletion
-portions remain pending until their state machine is implemented.
+The authenticated profile, workout, tracked-session, analytics, and progress portions
+of the acceptance flow are covered by Fastify injection tests. Hosted deletion smoke
+tests and Docker-backed Supabase reset remain deployment-gated.

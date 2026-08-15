@@ -91,3 +91,10 @@ confidence, renormalizes the documented score weights when metrics are missing, 
 classifies six-or-more-rep performance change as stable, mild decline, or notable
 decline. API schemas accept derived metric fields only; raw video, frames, audio,
 landmarks, coordinates, and arbitrary feedback text have no accepted fields.
+
+Implementation status: memory and Supabase session repositories now expose the session
+state machine, derived-metric batch ingestion, exercise analysis, workout completion,
+history, activity totals, body coverage, and per-exercise progress routes. The Supabase
+path uses transactional lifecycle RPCs and rebuilds affected daily rows after session
+deletion. Unknown metric fields are rejected by the request validator rather than
+silently stripped.

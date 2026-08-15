@@ -70,8 +70,9 @@ and broader profile workflows remain.
 Exit criteria: generated workouts are duration-bounded and never contain hard conflicts.
 
 Status: generated and manual workout creation, deterministic compatibility checks,
-idempotent client request IDs, list/get, optimistic patching, and archive behavior
-are implemented and covered by API tests. Workout-session execution remains.
+idempotent client request IDs, list/get, optimistic patching, archive behavior, and
+workout-session creation are implemented and covered by API tests. Session execution
+and completion are covered by the next phase.
 
 ## Phase 6 — Sessions and analytics
 
@@ -84,8 +85,10 @@ are implemented and covered by API tests. Workout-session execution remains.
 Exit criteria: hosted demo acceptance passes with a complete tracked session.
 
 Status: pure state-machine, metric-validation, analytics, and progress-baseline
-helpers plus contract schemas are complete. Supabase persistence, ingestion
-idempotency, completion transactions, and API routes remain.
+helpers, contract schemas, memory/Supabase repositories, transactional lifecycle
+functions, derived metric ingestion, completion summaries, history, and progress API
+routes are complete. Hosted verification, deletion smoke tests, and readiness wiring
+remain.
 
 ## Phase 7 — Deletion, security, and deployment
 

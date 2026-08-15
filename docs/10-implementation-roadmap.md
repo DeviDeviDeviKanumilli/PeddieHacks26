@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-## Phase 1 — Documentation and scaffold
+## Phase 1 - Documentation and scaffold
 
 - Create this `docs/` set.
 - Initialize pnpm workspace.
@@ -13,7 +13,7 @@ Status: complete. The pnpm workspace, strict TypeScript, Biome, Vitest, Fastify
 health route, shared contracts, deterministic domain engines, 24-record domain
 catalog, and GitHub CI workflow are committed and pushed.
 
-## Phase 2 — Supabase foundation
+## Phase 2 - Supabase foundation
 
 - Initialize local Supabase configuration.
 - Create ordered migrations.
@@ -29,7 +29,7 @@ Status: schema, seed, RLS policies, grants, indexes, activation validation, sess
 deletion, account-deletion boundary, and disposable PostgreSQL checks are complete.
 Docker-backed reset, advisor output, and hosted smoke testing remain environment-gated.
 
-## Phase 3 — API foundation
+## Phase 3 - API foundation
 
 - Implement environment validation.
 - Implement auth/request context.
@@ -46,7 +46,7 @@ profile/settings routes, and all scoped authenticated resources are complete in 
 repository-injected API. Supabase private repositories now receive the request bearer
 token so hosted RLS is exercised with the real user identity.
 
-## Phase 4 — Personalization and compatibility
+## Phase 4 - Personalization and compatibility
 
 - Implement profile/settings routes.
 - Implement pure compatibility rules.
@@ -59,7 +59,7 @@ Status: domain rules, persistence-backed movement/profile/settings routes,
 compatibility responses, deterministic alternatives, atomic item replacement, and API
 integration tests are complete for the current backend scope.
 
-## Phase 5 — Workouts
+## Phase 5 - Workouts
 
 - Implement workout generation.
 - Implement manual workouts.
@@ -72,7 +72,7 @@ Status: generated and manual workout creation, deterministic compatibility check
 idempotent client request IDs, list/get, optimistic patching, archive behavior, and
 workout-session creation are implemented and covered by API tests.
 
-## Phase 6 — Sessions and analytics
+## Phase 6 - Sessions and analytics
 
 - Implement workout and exercise state machines.
 - Implement metric batch ingestion and deduplication.
@@ -87,7 +87,7 @@ helpers, contract schemas, memory/Supabase repositories, transactional lifecycle
 functions, derived metric ingestion, completion summaries, history, and progress API
 routes are complete. Hosted verification and deletion smoke tests remain.
 
-## Phase 7 — Deletion, security, and deployment
+## Phase 7 - Deletion, security, and deployment
 
 - Implement session deletion and account deletion.
 - Run Supabase advisors and resolve high-severity findings.
@@ -101,10 +101,34 @@ Status: retry-safe account deletion, dependency-aware readiness, environment gui
 and Railway config-as-code are implemented. Hosted migration, advisor, and smoke-test
 verification remain deployment-gated.
 
+## Phase 8 - Reference-driven web client
+
+- Add the React/Vite application under `apps/web`.
+- Implement the supplied mobile-first onboarding, discovery, exercise, compatibility,
+  movement-profile, camera, guided-session, history, progress, and analysis screens.
+- Provide a deterministic demo adapter that works without hosted dependencies.
+- Add optional live Supabase Auth and bearer-aware Fastify API configuration.
+- Keep camera permission optional, provide no-tracking paths, and keep raw media and pose
+  landmarks inside the browser.
+- Add route, interaction, accessibility, responsive, camera-lifecycle, and privacy tests.
+- Add root development scripts and include the web workspace in formatting, typecheck,
+  test, and build gates.
+
+Exit criteria: the supplied reference flow is functional at mobile and desktop widths in
+demo mode, the configured live path authenticates and reaches the API, camera denial does
+not block a workout, no raw media leaves the browser, and all recursive repository gates
+pass.
+
+Status: the React/Vite client, route structure, seeded demo adapter, browser persistence,
+optional Supabase authentication and API client, camera preview, guided-session state,
+and progress views are present in the workspace. Production pose-model integration is
+not included. Automatic demo tracking is simulated, and the backend intentionally does
+not perform pose inference.
+
 ## Deferred
 
-- Frontend implementation and design references.
-- Platform-specific pose models.
+- Native mobile applications and platform-specific clients.
+- Production on-device pose-model selection, integration, and calibration.
 - Clinician workflows.
 - Admin catalog UI.
 - Redis/distributed rate limiting.

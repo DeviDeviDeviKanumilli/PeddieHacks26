@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-15T14:00:18Z",
+  "title": "Design System: AdaptFit",
+  "extensions": {
+    "colorMeta": {
+      "cloud-canvas": {
+        "role": "neutral",
+        "displayName": "Cloud Canvas",
+        "canonical": "oklch(0.985 0.008 278)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 278)",
+          "oklch(0.27 0.008 278)",
+          "oklch(0.39 0.008 278)",
+          "oklch(0.51 0.008 278)",
+          "oklch(0.63 0.008 278)",
+          "oklch(0.75 0.008 278)",
+          "oklch(0.87 0.008 278)",
+          "oklch(0.95 0.008 278)"
+        ]
+      },
+      "clear-surface": {
+        "role": "neutral",
+        "displayName": "Clear Surface",
+        "canonical": "oklch(0.995 0.004 278)",
+        "tonalRamp": [
+          "oklch(0.15 0.004 278)",
+          "oklch(0.27 0.004 278)",
+          "oklch(0.39 0.004 278)",
+          "oklch(0.51 0.004 278)",
+          "oklch(0.63 0.004 278)",
+          "oklch(0.75 0.004 278)",
+          "oklch(0.87 0.004 278)",
+          "oklch(0.95 0.004 278)"
+        ]
+      },
+      "lavender-mist": {
+        "role": "neutral",
+        "displayName": "Lavender Mist",
+        "canonical": "oklch(0.965 0.022 278)",
+        "tonalRamp": [
+          "oklch(0.15 0.022 278)",
+          "oklch(0.27 0.022 278)",
+          "oklch(0.39 0.022 278)",
+          "oklch(0.51 0.022 278)",
+          "oklch(0.63 0.022 278)",
+          "oklch(0.75 0.022 278)",
+          "oklch(0.87 0.022 278)",
+          "oklch(0.95 0.022 278)"
+        ]
+      },
+      "lavender-layer": {
+        "role": "neutral",
+        "displayName": "Lavender Layer",
+        "canonical": "oklch(0.936 0.039 278)",
+        "tonalRamp": [
+          "oklch(0.15 0.039 278)",
+          "oklch(0.27 0.039 278)",
+          "oklch(0.39 0.039 278)",
+          "oklch(0.51 0.039 278)",
+          "oklch(0.63 0.039 278)",
+          "oklch(0.75 0.039 278)",
+          "oklch(0.87 0.039 278)",
+          "oklch(0.95 0.039 278)"
+        ]
+      },
+      "grounded-ink": {
+        "role": "neutral",
+        "displayName": "Grounded Ink",
+        "canonical": "oklch(0.235 0.028 278)",
+        "tonalRamp": [
+          "oklch(0.15 0.028 278)",
+          "oklch(0.27 0.028 278)",
+          "oklch(0.39 0.028 278)",
+          "oklch(0.51 0.028 278)",
+          "oklch(0.63 0.028 278)",
+          "oklch(0.75 0.028 278)",
+          "oklch(0.87 0.028 278)",
+          "oklch(0.95 0.028 278)"
+        ]
+      },
+      "steady-muted": {
+        "role": "neutral",
+        "displayName": "Steady Muted",
+        "canonical": "oklch(0.55 0.026 278)",
+        "tonalRamp": [
+          "oklch(0.15 0.026 278)",
+          "oklch(0.27 0.026 278)",
+          "oklch(0.39 0.026 278)",
+          "oklch(0.51 0.026 278)",
+          "oklch(0.63 0.026 278)",
+          "oklch(0.75 0.026 278)",
+          "oklch(0.87 0.026 278)",
+          "oklch(0.95 0.026 278)"
+        ]
+      },
+      "quiet-line": {
+        "role": "neutral",
+        "displayName": "Quiet Line",
+        "canonical": "oklch(0.9 0.018 278)",
+        "tonalRamp": [
+          "oklch(0.15 0.018 278)",
+          "oklch(0.27 0.018 278)",
+          "oklch(0.39 0.018 278)",
+          "oklch(0.51 0.018 278)",
+          "oklch(0.63 0.018 278)",
+          "oklch(0.75 0.018 278)",
+          "oklch(0.87 0.018 278)",
+          "oklch(0.95 0.018 278)"
+        ]
+      },
+      "strong-line": {
+        "role": "neutral",
+        "displayName": "Strong Line",
+        "canonical": "oklch(0.65 0.038 278)",
+        "tonalRamp": [
+          "oklch(0.15 0.038 278)",
+          "oklch(0.27 0.038 278)",
+          "oklch(0.39 0.038 278)",
+          "oklch(0.51 0.038 278)",
+          "oklch(0.63 0.038 278)",
+          "oklch(0.75 0.038 278)",
+          "oklch(0.87 0.038 278)",
+          "oklch(0.95 0.038 278)"
+        ]
+      },
+      "active-periwinkle": {
+        "role": "primary",
+        "displayName": "Active Periwinkle",
+        "canonical": "oklch(0.62 0.12 276)",
+        "tonalRamp": [
+          "oklch(0.15 0.06 276)",
+          "oklch(0.27 0.09 276)",
+          "oklch(0.39 0.12 276)",
+          "oklch(0.51 0.12 276)",
+          "oklch(0.63 0.12 276)",
+          "oklch(0.75 0.1 276)",
+          "oklch(0.87 0.07 276)",
+          "oklch(0.95 0.04 276)"
+        ]
+      },
+      "action-periwinkle": {
+        "role": "primary",
+        "displayName": "Action Periwinkle",
+        "canonical": "oklch(0.52 0.15 276)",
+        "tonalRamp": [
+          "oklch(0.15 0.07 276)",
+          "oklch(0.27 0.11 276)",
+          "oklch(0.39 0.15 276)",
+          "oklch(0.51 0.15 276)",
+          "oklch(0.63 0.14 276)",
+          "oklch(0.75 0.11 276)",
+          "oklch(0.87 0.07 276)",
+          "oklch(0.95 0.04 276)"
+        ]
+      },
+      "pressed-periwinkle": {
+        "role": "primary",
+        "displayName": "Pressed Periwinkle",
+        "canonical": "oklch(0.47 0.14 276)",
+        "tonalRamp": [
+          "oklch(0.15 0.07 276)",
+          "oklch(0.27 0.11 276)",
+          "oklch(0.39 0.14 276)",
+          "oklch(0.51 0.14 276)",
+          "oklch(0.63 0.13 276)",
+          "oklch(0.75 0.1 276)",
+          "oklch(0.87 0.07 276)",
+          "oklch(0.95 0.04 276)"
+        ]
+      },
+      "selected-lavender": {
+        "role": "primary",
+        "displayName": "Selected Lavender",
+        "canonical": "oklch(0.93 0.05 276)",
+        "tonalRamp": [
+          "oklch(0.15 0.04 276)",
+          "oklch(0.27 0.05 276)",
+          "oklch(0.39 0.05 276)",
+          "oklch(0.51 0.05 276)",
+          "oklch(0.63 0.05 276)",
+          "oklch(0.75 0.05 276)",
+          "oklch(0.87 0.05 276)",
+          "oklch(0.95 0.04 276)"
+        ]
+      },
+      "capable-green": {
+        "role": "success",
+        "displayName": "Capable Green",
+        "canonical": "oklch(0.68 0.12 153)",
+        "tonalRamp": [
+          "oklch(0.15 0.06 153)",
+          "oklch(0.27 0.09 153)",
+          "oklch(0.39 0.12 153)",
+          "oklch(0.51 0.12 153)",
+          "oklch(0.63 0.12 153)",
+          "oklch(0.75 0.1 153)",
+          "oklch(0.87 0.07 153)",
+          "oklch(0.95 0.04 153)"
+        ]
+      },
+      "attentive-amber": {
+        "role": "warning",
+        "displayName": "Attentive Amber",
+        "canonical": "oklch(0.7 0.13 56)",
+        "tonalRamp": [
+          "oklch(0.15 0.06 56)",
+          "oklch(0.27 0.1 56)",
+          "oklch(0.39 0.13 56)",
+          "oklch(0.51 0.13 56)",
+          "oklch(0.63 0.13 56)",
+          "oklch(0.75 0.11 56)",
+          "oklch(0.87 0.07 56)",
+          "oklch(0.95 0.04 56)"
+        ]
+      },
+      "clear-danger": {
+        "role": "danger",
+        "displayName": "Clear Danger",
+        "canonical": "oklch(0.53 0.15 22)",
+        "tonalRamp": [
+          "oklch(0.15 0.07 22)",
+          "oklch(0.27 0.11 22)",
+          "oklch(0.39 0.15 22)",
+          "oklch(0.51 0.15 22)",
+          "oklch(0.63 0.14 22)",
+          "oklch(0.75 0.11 22)",
+          "oklch(0.87 0.07 22)",
+          "oklch(0.95 0.04 22)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Primary page and completion headings." },
+      "headline": { "displayName": "Headline", "purpose": "Workflow stages and analytics groups." },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Exercise names and local component headings."
+      },
+      "body": { "displayName": "Body", "purpose": "Instructions and explanatory copy." },
+      "label": { "displayName": "Label", "purpose": "Short uppercase eyebrows only." }
+    },
+    "shadows": [
+      {
+        "name": "ambient-low",
+        "value": "0 2px 10px oklch(0.31 0.03 278 / 0.06)",
+        "purpose": "Default cards, fields, and compact surfaces."
+      },
+      {
+        "name": "ambient-raised",
+        "value": "0 14px 35px oklch(0.31 0.04 278 / 0.09)",
+        "purpose": "Persistent navigation and floating controls."
+      },
+      {
+        "name": "action-lift",
+        "value": "0 9px 20px oklch(0.58 0.13 276 / 0.22)",
+        "purpose": "Primary actions only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-ease",
+        "value": "180ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Hover, press, selection, and control feedback."
+      }
+    ],
+    "breakpoints": [
+      { "name": "compact", "value": "380px" },
+      { "name": "mobile", "value": "540px" },
+      { "name": "desktop", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single decisive next action in a task.",
+      "html": "<button class=\"ds-button-primary\">Continue</button>",
+      "css": ".ds-button-primary { min-height: 52px; padding: 12px 20px; color: var(--surface); background: var(--accent-strong); border: 1px solid transparent; border-radius: 14px; font: 720 16px/1.2 Avenir, sans-serif; transition: transform 180ms var(--ease-out), background-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out); box-shadow: 0 9px 20px oklch(0.58 0.13 276 / 0.22); } .ds-button-primary:hover { background: var(--accent-deep); transform: translateY(-1px); } .ds-button-primary:active { transform: scale(0.99); } .ds-button-primary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A clear alternative that never competes with the primary action.",
+      "html": "<button class=\"ds-button-secondary\">Not now</button>",
+      "css": ".ds-button-secondary { min-height: 52px; padding: 12px 20px; color: var(--accent-strong); background: var(--surface); border: 1px solid var(--accent); border-radius: 14px; font: 720 16px/1.2 Avenir, sans-serif; transition: background-color 180ms var(--ease-out), transform 180ms var(--ease-out); } .ds-button-secondary:hover { background: var(--accent-soft); transform: translateY(-1px); } .ds-button-secondary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "A spacious, high-contrast field for movement and history search.",
+      "html": "<label class=\"ds-search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"m16 16 4 4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><input placeholder=\"Search exercises\" /></label>",
+      "css": ".ds-search { display: flex; min-height: 54px; align-items: center; gap: 12px; padding: 0 16px; color: var(--muted); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 16px; box-shadow: var(--shadow-sm); } .ds-search svg { width: 20px; } .ds-search input { width: 100%; color: var(--ink); background: transparent; border: 0; outline: 0; font: 400 16px/1.4 Avenir, sans-serif; } .ds-search:focus-within { color: var(--accent-strong); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }"
+    },
+    {
+      "name": "Selection Chip",
+      "kind": "chip",
+      "refersTo": "selection-chip",
+      "description": "A forgiving toggle for filters and movement preferences.",
+      "html": "<button class=\"ds-chip\" aria-pressed=\"true\">Shoulders</button>",
+      "css": ".ds-chip { min-height: 44px; padding: 8px 14px; color: var(--muted); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px; font: 650 14px/1.2 Avenir, sans-serif; transition: color 180ms var(--ease-out), background-color 180ms var(--ease-out), border-color 180ms var(--ease-out); } .ds-chip:hover, .ds-chip[aria-pressed=\"true\"] { color: var(--accent-strong); background: var(--accent-soft); border-color: var(--accent); } .ds-chip:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "surface-card",
+      "description": "A quiet boundary for one coherent task or comparison.",
+      "html": "<article class=\"ds-surface\"><strong>Seated Bicep Curl</strong><p>Supported strength at your pace.</p></article>",
+      "css": ".ds-surface { padding: 20px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); font: 400 16px/1.55 Avenir, sans-serif; } .ds-surface strong { display: block; margin-bottom: 6px; font-size: 18px; } .ds-surface p { margin: 0; color: var(--muted); } .ds-surface:hover { border-color: var(--line-strong); } .ds-surface:focus-within { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "bottom-navigation",
+      "description": "Five stable destinations with a stronger central Build action.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary\"><a class=\"active\" href=\"#\">Home</a><a href=\"#\">Workouts</a><a class=\"build\" href=\"#\">+</a><a href=\"#\">Progress</a><a href=\"#\">Profile</a></nav>",
+      "css": ".ds-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-md); } .ds-nav a { display: grid; min-height: 52px; color: var(--muted); border-radius: 14px; font: 650 12px/1.2 Avenir, sans-serif; text-decoration: none; place-items: center; } .ds-nav a:hover, .ds-nav a.active { color: var(--accent-strong); background: var(--accent-soft); } .ds-nav a.build { width: 52px; min-height: 52px; justify-self: center; color: var(--surface); background: var(--accent); border-radius: 50%; font-size: 26px; } .ds-nav a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }"
+    },
+    {
+      "name": "Compatibility Callout",
+      "kind": "custom",
+      "description": "A full-boundary status block that explains compatibility in words.",
+      "html": "<aside class=\"ds-callout\"><span class=\"ds-callout-icon\">!</span><div><strong>Review this movement</strong><p>This exercise overlaps an area you prefer to limit.</p></div></aside>",
+      "css": ".ds-callout { display: flex; gap: 14px; padding: 16px; color: var(--ink); background: var(--warning-soft); border: 1px solid oklch(0.87 0.08 56); border-radius: 18px; font: 400 15px/1.45 Avenir, sans-serif; } .ds-callout-icon { display: grid; width: 42px; min-width: 42px; height: 42px; color: var(--ink); background: oklch(0.9 0.08 56); border-radius: 50%; font-weight: 750; place-items: center; } .ds-callout strong { display: block; margin-bottom: 4px; } .ds-callout p { margin: 0; color: var(--muted); } .ds-callout:focus-within { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Capable Companion",
+    "overview": "The Capable Companion treats every screen like a clear spotter standing beside the user: composed, attentive, and never intrusive. A pale violet atmosphere and grounded ink create calm without slipping into clinical white or generic wellness pastels. The geometry is softly engineered, with generous breathing room, compact controls, crisp line art, and one decisive periwinkle action voice.\n\nThe system is task-first and quietly adaptive. A focused mobile column expands into purposeful analytics arrangements; critical choices remain obvious at 320px, and keyboard focus remains unmistakable. Motion confirms state and then gets out of the way. Compatibility is explained with language and iconography, never color alone.",
+    "keyCharacteristics": [
+      "Restrained periwinkle, tinted neutrals, and plain-language semantic colors.",
+      "Strong, geometric hierarchy with calm body copy and generous line spacing.",
+      "Mobile-first layouts that become wider compositions without changing the task model.",
+      "Forgiving 44px or larger controls, visible focus, and equally clear camera-free paths.",
+      "Purposeful illustration, anatomy, and activity visuals with honest data provenance."
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Periwinkle is reserved for primary actions, selection, and progress state. It must never become decorative wallpaper.",
+        "section": "colors"
+      },
+      {
+        "name": "The Grounded Type Rule",
+        "body": "Lead with a bold task, then one calm sentence. Never stack multiple display treatments or let analytics labels shrink below 0.75rem.",
+        "section": "typography"
+      },
+      {
+        "name": "The Ambient Depth Rule",
+        "body": "If the shadow is the first thing noticed, it is too dark. Borders and tonal change establish structure before elevation does.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep primary controls at least 44px high with a three-pixel visible focus outline.",
+      "Do use Action Periwinkle for the next meaningful action and Selected Lavender for reversible selection.",
+      "Do pair every metric with its period, provenance, or plain-language meaning.",
+      "Do preserve an equally clear camera-free workout path and stop media tracks when that path is chosen.",
+      "Do let mobile screens breathe, then use wider desktop grids only when relationships become easier to compare.",
+      "Do use full borders, tinted backgrounds, leading icons, and explicit status words for callouts."
+    ],
+    "donts": [
+      "Don't create hospital and rehabilitation-software aesthetics; the product is supportive general wellness, not a clinical chart.",
+      "Don't use macho or punishment-oriented fitness language or visuals.",
+      "Don't fall into generic pastel SaaS dashboards; every lavender surface must communicate state or structure.",
+      "Don't show dense analytics without plain-language meaning, time scope, and provenance.",
+      "Don't build interfaces that assume every body moves the same way.",
+      "Don't present camera tracking as mandatory or compatibility guidance as a diagnosis.",
+      "Don't use colored side-stripe borders, gradient text, decorative glassmorphism, or a generic hero-metric template.",
+      "Don't animate layout, add bounce, or choreograph page loads; motion must explain state."
+    ]
+  }
+}

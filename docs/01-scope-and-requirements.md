@@ -2,7 +2,11 @@
 
 ## Product
 
-Build a general-wellness fitness backend for disabled adults and people with temporary or chronic movement limitations, including simple knee or back pain. The backend must adapt exercise discovery and workout generation to a user's available movement, preferred body regions, avoided body regions, and equipment.
+Build a general-wellness fitness product for disabled adults and people with temporary
+or chronic movement limitations, including simple knee or back pain. A mobile-first web
+client must make the complete experience accessible, while the backend adapts exercise
+discovery and workout generation to a user's available movement, preferred body regions,
+avoided body regions, and equipment.
 
 The system must support this complete core loop:
 
@@ -30,11 +34,18 @@ movement profile
 - Analysis includes completion, ROM, accuracy, control, stability, tempo, and a non-clinical performance-change indicator.
 - Progress supports history, activity-grid data, totals, trends, and body coverage.
 - Users can delete individual sessions and their complete account.
+- The web client covers onboarding and authentication, exercise discovery and details,
+  compatibility guidance, movement-profile summary, optional camera setup, guided
+  sessions, completion, history, progress, and detailed analysis.
+- The web client remains usable through a seeded demo adapter without hosted services.
+  When configured, live mode uses Supabase Auth and the bearer-aware Fastify API client.
+- Every camera-assisted screen has an equally clear path that continues without tracking.
 
 ## Out of scope
 
-- Frontend implementation, UI design, styling, or screen architecture.
-- Choosing a web/mobile pose library.
+- Native mobile applications, iOS simulator work, or platform-specific clients.
+- Production pose-model selection, training, or calibration. The current browser tracking
+  behavior is a guided demo, and the backend does not perform pose estimation.
 - Raw video, images, audio, or pose-landmark storage.
 - Diagnosis, treatment, rehabilitation claims, or clinician workflows.
 - Admin UI, social features, notifications, subscriptions, billing, and advertising.
@@ -53,6 +64,10 @@ Seed 24 reviewed exercises. Calibrate camera-derived tracking rules for:
 - Sit-to-stand
 - Wall push-up
 
+These are backend tracking profiles for validating derived metrics and interpreting
+exercise results. They do not give the backend access to camera frames and do not include
+a production browser pose model.
+
 Every exercise needs source metadata, requirements, equipment behavior, safety cues, and a stable slug before it can be seeded as active.
 
 ## Constraints
@@ -66,7 +81,17 @@ Every exercise needs source metadata, requirements, equipment behavior, safety c
 - Progress query range: at most 366 days.
 - All timestamps are UTC `timestamptz` values.
 - API JSON uses camelCase; database identifiers use lowercase snake_case.
+- The local Vite client uses port 5173 and the local Fastify API uses port 3000.
+- Browser camera access is opt-in. Camera frames and pose landmarks stay in the browser;
+  only allowlisted derived metrics may cross the API boundary.
 
 ## Success criteria
 
-The hosted demo must allow a demo user to configure constraints, generate a compatible workout, swap an exercise, upload a tracked session, complete it, retrieve analysis, see progress, delete a session, and delete the account. A second user must be unable to read or modify the demo user's data.
+The web demo must let a user navigate the supplied reference screens, configure movement
+constraints, choose camera tracking or continue without it, complete a guided exercise,
+and review history, progress, and detailed analysis without hosted dependencies.
+
+The hosted live acceptance flow must additionally allow a demo user to generate a
+compatible workout, swap an exercise, upload only derived metrics for a tracked session,
+complete it, retrieve analysis, see progress, delete a session, and delete the account. A
+second user must be unable to read or modify the demo user's data.

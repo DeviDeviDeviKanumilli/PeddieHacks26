@@ -175,6 +175,9 @@ automates public and authenticated deployment checks and can run the mutating lo
 cross-user isolation, cleanup, and disposable-account deletion when the corresponding
 tokens and safety flags are provided. Native route, interaction, and camera-privacy
 coverage now belongs to `apps/mobile`; an iOS simulator launch and terminate/relaunch
-lifecycle pass has been completed. Full iOS/Android live-mode acceptance,
+lifecycle pass has been completed. On-device pose acceptance requires an Android
+development build, not Expo Go: permission deny still completes a workout, granted
+camera tracking stays on-device, backgrounding stops the camera, and inspected traffic
+contains no frames, landmarks, or coordinates. Full iOS/Android live-mode acceptance,
 Docker-backed Supabase reset, hosted execution, advisor output, and load targets remain
 deployment-gated.

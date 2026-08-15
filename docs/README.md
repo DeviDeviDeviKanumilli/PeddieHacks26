@@ -36,6 +36,11 @@ Last updated: 2026-08-15.
 - Public exercise catalog; authentication required for personalization and history.
 - Deterministic compatibility rules and scoring; no LLM in eligibility decisions.
 - Pose estimation remains on-device. The API stores derived metrics only.
+- Production pose uses a native module inside an Expo development build; Expo Go cannot
+  load MediaPipe. Improve detection by calibrating per-exercise recipes, not by training
+  a new pose network.
+- The Python tree under `model/` is a desktop calibration lab. It is not the mobile
+  runtime and must not replace `compatibility-v1`.
 - Raw camera video, images, audio, and pose landmarks never leave the device; camera use
   is optional.
 - Retain derived metrics until session or account deletion.
@@ -91,7 +96,10 @@ subject; the request-scoped Supabase client remains for lifecycle RPCs and the
 service-role client is isolated to account deletion. The development-only Python
 prototype under `model/` performs local MediaPipe pose and arm-angle experiments;
 production on-device integration belongs in the React Native application, and the
-backend never receives raw camera media or landmarks.
+backend never receives raw camera media or landmarks. See
+[session metrics](06-session-metrics-and-analytics.md) for the prototype inventory and
+[the React Native mobile plan](13-react-native-mobile.md) for the Android-first native
+module path.
 
 Repeatable checks are available through `pnpm format`, `pnpm typecheck`, `pnpm test`,
 `pnpm build`, `pnpm openapi:check`, `pnpm test:integration`, and `pnpm test:db`.

@@ -171,10 +171,27 @@ emulator acceptance, hosted credentials, hosted migration/advisor execution, and
 network inspection remain environment- or model-delivery-gated. See
 [the React Native mobile plan](13-react-native-mobile.md).
 
+Remaining on-device pose work, in the order imposed by the current Android test phone:
+
+1. Mac-side prep that does not need the device: add `expo-dev-client`, port
+   `exercise_analyzer.py` to TypeScript with tests, write the biceps-curl recipe,
+   scaffold an Android MediaPipe native module that emits angles or `RepMetric`s
+   (never landmarks), bundle `pose_landmarker_lite.task`, and compile a development
+   APK.
+2. Install that development build on the Android phone. Confirm the existing camera
+   preview and no-camera session still work. Use a LAN IP or hosted API URL, not
+   `localhost`. Expo Go is not a valid runtime for this step.
+3. Turn on biceps-curl tracking on that phone, then calibrate detection with
+   per-exercise recipes. If lite is too weak, try a larger off-the-shelf MediaPipe
+   model. Do not train a custom pose network. Repeat for the other five tracking
+   keys, then prove iOS parity before release.
+
 ## Deferred
 
 - Desktop-first replacement UI or further product development in `apps/web`.
-- Training a new pose model; mobile integration and calibration are part of Phase 10.
+- Training a new pose model. Mobile integration uses an off-the-shelf on-device model
+  plus calibrated recipes; that work is part of Phase 10, not a separate training
+  project.
 - Clinician workflows.
 - Admin catalog UI.
 - Redis/distributed rate limiting.

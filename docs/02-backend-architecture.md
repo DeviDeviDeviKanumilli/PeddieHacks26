@@ -154,7 +154,9 @@ still images, audio, frame data, and pose
 landmarks never enter an API request and are never persisted. The backend validates and
 stores derived metrics only. It intentionally has no pose-estimation implementation. The
 automatic rep and score movement in guest demo mode is simulated client behavior, not
-model output.
+model output. The Python prototype under `model/` is a desktop calibration lab; the
+mobile runtime must use a native module in a development build. See
+[the on-device pose plan](13-react-native-mobile.md#on-device-pose-integration).
 
 ## Dependencies
 

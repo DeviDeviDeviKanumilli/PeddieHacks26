@@ -53,6 +53,57 @@ Authenticated mode must not persist simulated form measurements. Production trac
 implemented behind a native module that emits rep metrics and known feedback codes rather
 than raw landmarks.
 
+## On-device pose integration
+
+The shipped client shows an `expo-camera` preview and a no-camera path. Guest tracking
+still increments reps on a timer labeled **Simulated guest tracking**. Live mode uploads
+counted-rep records only through `buildCountedRepMetrics`. Neither path runs pose
+inference. The desktop Python lab under `model/` is already merged to `main`; it does
+not run inside the app.
+
+Expo Go cannot load MediaPipe or a bundled `.task` model. Production tracking requires
+`expo-dev-client` and an EAS **development** build. The module must own a single camera
+session for setup and the active workout, bundle `pose_landmarker_lite.task` in the app
+(do not download it at runtime), and stop inference on unmount, navigation away, or
+backgrounding.
+
+Keep this split:
+
+- Native: camera frames, MediaPipe Pose Landmarker, joint visibility, and joint angles.
+- TypeScript: the `exercise_analyzer.py` state machine (target then return angle,
+  bilateral reps, sets/rest, ROM). Port it with the existing Python tests as the oracle.
+- JavaScript/API: allowlisted `RepMetric` fields and known `feedbackCodes` only.
+
+Never emit landmark coordinates, frames, images, or audio to JavaScript for persistence
+or to the API. If the native module is absent, keep the labeled guest simulation; live
+mode must not persist simulated form, ROM, or fatigue values. Skip the pose module when
+the exercise has no tracking profile.
+
+Calibrate six client recipes rather than training a new pose model. Seed data currently
+reuses one ROM window (`30–140°`) and tempo (`2–6s`) for every tracked exercise, and the
+Python camera loop defaults to elbow landmarks. Each tracking key needs its own joints,
+target/return angles, and limb rule:
+
+| Tracking key | Starting joint recipe |
+| --- | --- |
+| `seated-biceps-curl-v1` | elbows `11-13-15` / `12-14-16` (already in `model/main.py`) |
+| `seated-resistance-band-row-v1` | elbows or shoulders |
+| `seated-march-v1` | hips `23-25-27` / `24-26-28` |
+| `seated-knee-extension-v1` | knees |
+| `sit-to-stand-v1` | hip and knee |
+| `wall-push-up-v1` | elbows or shoulders |
+
+The first physical test device is Android, so ship Android first: development build on
+that phone, then biceps-curl tracking, then calibrate detection. iOS remains required
+for release, but it is not the first hardware gate. Work that does not need the phone
+includes adding `expo-dev-client`, porting the analyzer and tests, writing the curl
+recipe, scaffolding the Android MediaPipe module, and compiling the APK on a machine
+that has the Android SDK. The phone is for install, camera permission, framing, and
+calibration. Physical devices must use a LAN IP or hosted API origin, not `localhost`.
+
+If lite detection is weak, try a larger off-the-shelf MediaPipe pose model. Do not train
+a custom pose network for this milestone.
+
 ## Accessibility
 
 - Meet or exceed 44-point iOS and 48dp Android touch targets.
@@ -130,7 +181,8 @@ pnpm --filter @peddie/mobile build
 ```
 
 The iOS and Android export gate succeeds without private environment variables. Physical
-devices must use a reachable API URL rather than `localhost`. The production pose model,
-signed app-store artifacts, hosted live-mode acceptance, Android device pass, and traffic
-inspection remain release gates because they require external credentials, model assets,
-or platform tooling not stored in this repository.
+devices must use a reachable API URL rather than `localhost`. The production pose native
+module, signed app-store artifacts, hosted live-mode acceptance, Android device camera
+pass, and traffic inspection remain release gates because they require a development
+build, a physical Android device, hosted credentials, or platform tooling not
+fully exercised in Expo Go.

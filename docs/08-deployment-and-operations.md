@@ -10,9 +10,15 @@
 - No real user data or secrets in local seeds.
 - React Native development server through Expo, with iOS simulator, Android emulator,
   and physical-device targets.
-- Fastify API on `http://localhost:3000` through `pnpm dev:api`.
+- Fastify API on `http://localhost:3000` through `pnpm dev:api`. Bind `HOST=0.0.0.0`
+  when a physical phone on the same network must reach the laptop API.
 - `EXPO_PUBLIC_API_BASE_URL` must resolve from the selected simulator, emulator, or
   physical device; a physical device cannot use the development computer's `localhost`.
+  Use the laptop LAN IP or a hosted API origin.
+- Pose inference needs an Expo development build with `expo-dev-client`. Expo Go cannot
+  load MediaPipe. The first hardware pass is an Android development APK on a physical
+  phone; compile that APK on a machine that has the Android SDK, then install with
+  `adb`.
 
 ### Hosted demo
 
@@ -29,6 +35,7 @@ provided at build time.
 ## React Native mobile client
 
 - Build iOS and Android development, preview, and production profiles with Expo/EAS.
+  The committed `development` profile already sets `developmentClient: true`.
 - Use `EXPO_PUBLIC_API_BASE_URL` for the public Fastify origin.
 - Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` together to
   expose live mode.

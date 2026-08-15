@@ -58,8 +58,8 @@ state with an icon and **Tracking off** text.
 ## Out of scope
 
 - A replacement desktop-first website or expansion of the legacy `apps/web` prototype.
-- Training a new pose model. On-device model integration and calibration are mobile
-  client responsibilities; the backend does not perform pose estimation.
+- Training a new pose model. On-device integration uses an off-the-shelf MediaPipe pose
+  model plus per-exercise calibration; the backend does not perform pose estimation.
 - Raw video, images, audio, or pose-landmark storage.
 - Diagnosis, treatment, rehabilitation claims, or clinician workflows.
 - Admin UI, social features, notifications, subscriptions, billing, and advertising.

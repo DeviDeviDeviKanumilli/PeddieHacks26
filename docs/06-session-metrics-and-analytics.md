@@ -111,7 +111,37 @@ path uses transactional lifecycle RPCs and rebuilds affected daily rows after se
 deletion. Unknown metric fields are rejected by the request validator rather than
 silently stripped.
 
-The development-only Python prototype under `model/` calculates elbow angles locally
-and keeps an in-memory mean, minimum, maximum, and ROM span for one person/exercise
-session. Its tracker accepts derived angles only; frames and pose landmarks are not
-retained or sent to the backend.
+## Local MediaPipe prototype
+
+The development-only Python tree lives under `model/` (not `models/`). The `model` git
+branch that added it is merged to `main`. It is a desktop OpenCV webcam lab, not the
+React Native tracker.
+
+| File | Role |
+| --- | --- |
+| `vision_model.py` | Downloads MediaPipe Pose Landmarker lite, detects one person, computes a 3-point joint angle |
+| `exercise_analyzer.py` | ROM stats, two-state rep machine, bilateral set/rest tracker, terminal summary |
+| `exercise_selector.py` | Bitmask eligibility over the 24 catalog slugs |
+| `main.py` | Webcam loop; default label is seated biceps curl |
+| `test_analyzer.py` / `test_selector.py` | unittest coverage for analyzer and selector |
+
+The analyzer is the reusable part: a rep needs a target angle then a return angle; both
+limbs must finish a cycle; rest then next set; missing detections are ignored. Frames and
+landmarks stay in process memory and are not sent to the API.
+
+It is not production-ready as-is:
+
+- `main.py` does not call the selector. `--exercise` is a summary label, not a joint
+  recipe. The loop defaults to elbow landmarks `(11, 13, 15)` / `(12, 14, 16)`.
+- The selector is a simplified bitwise filter. It has no capabilities, equipment,
+  intensity, `limited` versus `avoid`, caution states, or ranking, and it must not
+  replace `compatibility-v1`.
+- Output is a terminal ROM span. It does not emit `RepMetric` fields (`counted`,
+  `durationMs`, scores, `trackingConfidence`, known `feedbackCodes`).
+- There is no `requirements.txt` or `pyproject.toml`. CI does not run the Python tests.
+  `pose_landmarker_lite.task` is downloaded at runtime and is not gitignored. `main()`
+  defaults `target_angle` to `50` while argparse defaults to `40`.
+
+Use this folder to calibrate angles on a laptop webcam. Port the analyzer into the
+mobile client and run MediaPipe inside an Android development build. See
+[the on-device pose plan](13-react-native-mobile.md#on-device-pose-integration).

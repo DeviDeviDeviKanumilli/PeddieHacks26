@@ -5,9 +5,9 @@ import { AppHeader } from '@/components/AppHeader';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { Body, Chip, Field, Screen, Title } from '@/components/ui';
 import { exercises } from '@/data/catalog';
+import { discoverExercises } from '@/lib/discovery';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
-import type { Exercise } from '@/types';
 
 const categories = ['All', 'Strength', 'Mobility', 'Cardio', 'Balance'];
 
@@ -16,36 +16,10 @@ export default function ExploreScreen() {
   const [category, setCategory] = useState('All');
   const [personalized, setPersonalized] = useState(true);
   const regions = useAppStore((state) => state.profile.regions);
-  const results = useMemo(() => {
-    const kneeAvoid = regions['left-knee'] === 'avoid' || regions['right-knee'] === 'avoid';
-    return exercises
-      .map((exercise): Exercise => {
-        if (kneeAvoid && exercise.slug === 'sit-to-stand') {
-          return {
-            ...exercise,
-            compatibility: 'incompatible',
-            compatibilityReason:
-              'This movement asks both knees to bear weight. Seated alternatives are available.',
-          };
-        }
-        if (kneeAvoid && exercise.slug === 'seated-knee-extension') {
-          return {
-            ...exercise,
-            compatibility: 'caution',
-            compatibilityReason:
-              'You marked a knee to avoid. Review the range or choose a different movement.',
-          };
-        }
-        return exercise;
-      })
-      .filter((exercise) => !personalized || exercise.compatibility !== 'incompatible')
-      .filter((exercise) => category === 'All' || exercise.category === category.toLowerCase())
-      .filter((exercise) =>
-        `${exercise.name} ${exercise.muscles.join(' ')}`
-          .toLowerCase()
-          .includes(query.toLowerCase()),
-      );
-  }, [category, personalized, query, regions]);
+  const results = useMemo(
+    () => discoverExercises({ catalog: exercises, regions, personalized, category, query }),
+    [category, personalized, query, regions],
+  );
   return (
     <Screen>
       <AppHeader />

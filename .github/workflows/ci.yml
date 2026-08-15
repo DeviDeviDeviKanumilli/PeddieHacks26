@@ -1,4 +1,4 @@
-name: Backend CI
+name: Product CI
 
 on:
   push:
@@ -51,6 +51,9 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Validate native app configuration
+        run: pnpm --filter @peddie/mobile config:check
 
       - name: Unit and API tests
         run: pnpm test

@@ -1,0 +1,38 @@
+appId: com.peddiehacks26.adaptfit
+name: Guest onboarding and camera-optional workout
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Fitness that starts with what you can do."
+- tapOn: "Build my movement profile"
+- assertVisible: "What would you like movement to support?"
+- tapOn: "General fitness"
+- tapOn: "Continue"
+- assertVisible: "Tell us what feels available today."
+- tapOn: "Left knee: neutral"
+- tapOn: "Left knee: focus"
+- tapOn: "Left knee: limited"
+- tapOn: "Continue"
+- assertVisible: "Which movement patterns feel available?"
+- tapOn: "Seated posture"
+- tapOn: "Continue"
+- assertVisible: "What equipment is actually available?"
+- tapOn: "Continue"
+- assertVisible: "How should AdaptFit communicate?"
+- tapOn: "Haptic feedback"
+- tapOn: "Continue"
+- assertVisible: "A profile built around today—not forever."
+- tapOn: "Show my recommendations"
+- assertVisible: "What feels possible today?"
+- tapOn: "Review workout"
+- scrollUntilVisible:
+    element: "Start workout"
+    direction: DOWN
+- tapOn: "Start workout"
+- assertVisible: "Seated biceps curl"
+- tapOn: "Continue without"
+- tapOn: "Continue to workout"
+- assertVisible: "Count rep"
+- tapOn: "Count rep"
+- tapOn: "End exercise"
+- assertVisible: "You showed up for your movement."

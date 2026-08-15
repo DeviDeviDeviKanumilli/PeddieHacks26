@@ -132,7 +132,7 @@ def draw_status(frame, exercise_tracker: ExerciseSetTracker, now_seconds: float)
 
 
 def main(
-    exercise_name="seated-biceps-curl",
+    exercise_name="biceps-curl",
     total_sets=2,
     reps_per_set=2,
     rest_seconds=2.0,
@@ -281,7 +281,7 @@ def non_negative_float(value):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Track a bilateral exercise")
-    parser.add_argument("--exercise", default="seated-biceps-curl")
+    parser.add_argument("--exercise", default="biceps-curl")
     parser.add_argument("--sets", type=positive_int, default=2)
     parser.add_argument("--reps-per-set", type=positive_int, default=2)
     parser.add_argument("--rest-seconds", type=non_negative_float, default=2.0)

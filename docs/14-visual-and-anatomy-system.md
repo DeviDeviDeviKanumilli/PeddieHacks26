@@ -44,7 +44,10 @@ score. UI copy must preserve that distinction.
 ## Reusable anatomy component
 
 `apps/mobile/src/components/AnatomyMap.tsx` draws front and back figures entirely with
-React Native SVG paths. The component supports two data modes:
+React Native SVG paths. Its silhouette uses organic human proportions and visible muscle
+divisions for the chest, abdomen, upper and lower back, glutes, arms, thighs, and calves;
+it must not regress to a jointed mannequin or generic body-area blocks. The component
+supports two data modes:
 
 1. Movement-profile mode colors each tappable region as focus, limited, avoid, or neutral.
 2. Muscle-emphasis mode colors canonical muscles by role and changes opacity by intensity.

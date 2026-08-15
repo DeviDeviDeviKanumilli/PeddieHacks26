@@ -83,6 +83,7 @@ pnpm openapi:check
 - Disposable PostgreSQL execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
 - `supabase/tests/profile_rpc.sql` atomic profile replacement and version checks
+- Domain tests for session transition matrices, metric limits, confidence filtering, analysis formulas, and progress baselines
 
 The migration/seed checks currently run against a disposable local PostgreSQL
 instance because Docker is unavailable in the current environment. The equivalent

@@ -327,6 +327,194 @@ export type WorkoutItem = Static<typeof WorkoutItemSchema>;
 export type CreateManualWorkoutRequest = Static<typeof CreateManualWorkoutRequestSchema>;
 export type PatchWorkoutRequest = Static<typeof PatchWorkoutRequestSchema>;
 
+export const WorkoutSessionStateSchema = Type.Union([
+  Type.Literal('active'),
+  Type.Literal('paused'),
+  Type.Literal('resting'),
+  Type.Literal('completed'),
+  Type.Literal('cancelled'),
+]);
+
+export const ExerciseSessionStateSchema = Type.Union([
+  Type.Literal('pending'),
+  Type.Literal('active'),
+  Type.Literal('paused'),
+  Type.Literal('resting'),
+  Type.Literal('completed'),
+  Type.Literal('cancelled'),
+  Type.Literal('skipped'),
+]);
+
+export const FeedbackCodeSchema = Type.Union([
+  Type.Literal('low_tracking_confidence'),
+  Type.Literal('tempo_too_slow'),
+  Type.Literal('range_of_motion_short'),
+  Type.Literal('target_position_missed'),
+  Type.Literal('movement_jerky'),
+  Type.Literal('stability_left'),
+  Type.Literal('stability_right'),
+]);
+
+export const RepMetricSchema = Type.Object({
+  setNumber: Type.Integer({ minimum: 1, maximum: 5 }),
+  repNumber: Type.Integer({ minimum: 1, maximum: 50 }),
+  counted: Type.Boolean(),
+  durationMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 3600000 })),
+  rangeOfMotionDeg: Type.Optional(Type.Number({ minimum: 0, maximum: 360 })),
+  targetPositionReached: Type.Optional(Type.Boolean()),
+  accuracyScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+  controlScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+  stabilityScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+  formScore: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+  trackingConfidence: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+  feedbackCodes: Type.Array(FeedbackCodeSchema, { maxItems: 7, uniqueItems: true }),
+  recordedOffsetMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 86400000 })),
+});
+
+export const MetricBatchRequestSchema = Type.Object({
+  batchId: UuidSchema,
+  metrics: Type.Array(RepMetricSchema, { maxItems: 100 }),
+});
+
+export type MetricBatchRequest = Static<typeof MetricBatchRequestSchema>;
+
+export const MetricBatchResponseSchema = Type.Object({
+  data: Type.Object({
+    acceptedCount: Type.Integer({ minimum: 0 }),
+    duplicateCount: Type.Integer({ minimum: 0 }),
+    rejectedCount: Type.Integer({ minimum: 0 }),
+  }),
+});
+
+export const RomAnalysisSchema = Type.Object({
+  averageDeg: Type.Union([Type.Number(), Type.Null()]),
+  minimumDeg: Type.Union([Type.Number(), Type.Null()]),
+  maximumDeg: Type.Union([Type.Number(), Type.Null()]),
+  percentageInTarget: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+});
+
+export const TempoAnalysisSchema = Type.Object({
+  meanSeconds: Type.Union([Type.Number({ minimum: 0 }), Type.Null()]),
+  medianSeconds: Type.Union([Type.Number({ minimum: 0 }), Type.Null()]),
+  standardDeviationSeconds: Type.Union([Type.Number({ minimum: 0 }), Type.Null()]),
+  targetAdherence: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+});
+
+export const ExerciseAnalysisSchema = Type.Object({
+  completion: Type.Object({
+    countedReps: Type.Integer({ minimum: 0 }),
+    targetReps: Type.Integer({ minimum: 0 }),
+    percentage: Type.Number({ minimum: 0, maximum: 100 }),
+  }),
+  rangeOfMotion: RomAnalysisSchema,
+  movementAccuracy: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+  movementControl: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+  stability: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+  tempo: TempoAnalysisSchema,
+  overallScore: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+  performanceChange: Type.Union([
+    Type.Object({
+      classification: Type.Union([
+        Type.Literal('stable'),
+        Type.Literal('mild_decline'),
+        Type.Literal('notable_decline'),
+      ]),
+      delta: Type.Number(),
+    }),
+    Type.Null(),
+  ]),
+});
+
+export const ExerciseAnalysisResponseSchema = Type.Object({ data: ExerciseAnalysisSchema });
+
+export const WorkoutSessionSchema = Type.Object({
+  id: UuidSchema,
+  workoutId: UuidSchema,
+  state: WorkoutSessionStateSchema,
+  startedAt: Type.String({ minLength: 1 }),
+  endedAt: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  durationSeconds: Type.Union([Type.Integer({ minimum: 0 }), Type.Null()]),
+  version: Type.Integer({ minimum: 1 }),
+});
+
+export const ExerciseSessionSchema = Type.Object({
+  id: UuidSchema,
+  workoutSessionId: UuidSchema,
+  workoutItemId: Type.Union([UuidSchema, Type.Null()]),
+  exerciseId: UuidSchema,
+  state: ExerciseSessionStateSchema,
+  targetReps: Type.Integer({ minimum: 0 }),
+  targetSets: Type.Integer({ minimum: 1, maximum: 5 }),
+  completedReps: Type.Integer({ minimum: 0 }),
+  completedSets: Type.Integer({ minimum: 0 }),
+  startedAt: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  endedAt: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  version: Type.Integer({ minimum: 1 }),
+});
+
+export const WorkoutSessionResponseSchema = Type.Object({ data: WorkoutSessionSchema });
+export const WorkoutSessionListResponseSchema = Type.Object({
+  data: Type.Array(WorkoutSessionSchema),
+  page: PageSchema,
+});
+export const ExerciseSessionResponseSchema = Type.Object({ data: ExerciseSessionSchema });
+
+export const CreateWorkoutSessionRequestSchema = Type.Object({
+  clientRequestId: UuidSchema,
+  workoutId: UuidSchema,
+});
+
+export const PatchWorkoutSessionRequestSchema = Type.Object({
+  expectedVersion: Type.Integer({ minimum: 1 }),
+  state: Type.Optional(WorkoutSessionStateSchema),
+  endReason: Type.Optional(Type.String({ maxLength: 80 })),
+});
+
+export const PatchExerciseSessionRequestSchema = Type.Object({
+  expectedVersion: Type.Integer({ minimum: 1 }),
+  state: Type.Optional(ExerciseSessionStateSchema),
+});
+
+export const ProgressSummarySchema = Type.Object({
+  totalActiveSeconds: Type.Integer({ minimum: 0 }),
+  totalExercises: Type.Integer({ minimum: 0 }),
+  totalSets: Type.Integer({ minimum: 0 }),
+  totalReps: Type.Integer({ minimum: 0 }),
+  averageScore: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+  bodyCoverage: Type.Array(
+    Type.Object({
+      bodyRegionId: NonEmptyStringSchema,
+      intensity: Type.Number({ minimum: 0, maximum: 100 }),
+    }),
+  ),
+});
+
+export const ProgressSummaryResponseSchema = Type.Object({ data: ProgressSummarySchema });
+export const ProgressActivityResponseSchema = Type.Object({
+  data: Type.Array(
+    Type.Object({
+      activityDate: Type.String({ minLength: 1 }),
+      sessionCount: Type.Integer({ minimum: 0 }),
+      exerciseCount: Type.Integer({ minimum: 0 }),
+      setCount: Type.Integer({ minimum: 0 }),
+      repCount: Type.Integer({ minimum: 0 }),
+      activeSeconds: Type.Integer({ minimum: 0 }),
+      averageScore: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+    }),
+  ),
+  page: PageSchema,
+});
+
+export const ExerciseProgressResponseSchema = Type.Object({
+  data: Type.Object({
+    exerciseId: UuidSchema,
+    currentScore: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+    baselineScore: Type.Union([Type.Number({ minimum: 0, maximum: 100 }), Type.Null()]),
+    scoreDelta: Type.Union([Type.Number(), Type.Null()]),
+    relativePercentage: Type.Union([Type.Number(), Type.Null()]),
+  }),
+});
+
 export const ReferenceEntrySchema = Type.Object({
   id: NonEmptyStringSchema,
   label: NonEmptyStringSchema,

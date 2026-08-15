@@ -82,6 +82,10 @@ are implemented and covered by API tests. Workout-session execution remains.
 
 Exit criteria: hosted demo acceptance passes with a complete tracked session.
 
+Status: pure state-machine, metric-validation, analytics, and progress-baseline
+helpers plus contract schemas are complete. Supabase persistence, ingestion
+idempotency, completion transactions, and API routes remain.
+
 ## Phase 7 — Deletion, security, and deployment
 
 - Implement session deletion and account deletion.

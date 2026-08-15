@@ -2,6 +2,7 @@ import type { MovementProfile } from '@peddie/domain';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { MovementProfileRepository } from './catalog-repository.js';
 import { ApiError } from './errors.js';
+import type { SupabaseClientFactory } from './supabase-client.js';
 
 type Row = Record<string, unknown>;
 const rowRecord = (value: unknown): Row =>
@@ -32,21 +33,21 @@ const dependencyError = (detail: string): ApiError =>
   });
 
 export class SupabaseMovementProfileRepository implements MovementProfileRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly clientFactory?: SupabaseClientFactory,
+  ) {}
 
-  async getMovementProfile(userId: string): Promise<MovementProfile> {
+  async getMovementProfile(userId: string, accessToken?: string): Promise<MovementProfile> {
+    const client = this.clientFactory?.(accessToken) ?? this.client;
     const [movementProfile, profile, bodyRegions, capabilities, equipment, goals] =
       await Promise.all([
-        this.client.from('movement_profiles').select('version').eq('user_id', userId).maybeSingle(),
-        this.client
-          .from('profiles')
-          .select('intensity_preference')
-          .eq('user_id', userId)
-          .maybeSingle(),
-        this.client.from('user_body_regions').select('body_region_id,state').eq('user_id', userId),
-        this.client.from('user_capabilities').select('capability_id,state').eq('user_id', userId),
-        this.client.from('user_equipment').select('equipment_id').eq('user_id', userId),
-        this.client.from('user_goals').select('goal_id').eq('user_id', userId).order('priority'),
+        client.from('movement_profiles').select('version').eq('user_id', userId).maybeSingle(),
+        client.from('profiles').select('intensity_preference').eq('user_id', userId).maybeSingle(),
+        client.from('user_body_regions').select('body_region_id,state').eq('user_id', userId),
+        client.from('user_capabilities').select('capability_id,state').eq('user_id', userId),
+        client.from('user_equipment').select('equipment_id').eq('user_id', userId),
+        client.from('user_goals').select('goal_id').eq('user_id', userId).order('priority'),
       ]);
     const failed = [movementProfile, profile, bodyRegions, capabilities, equipment, goals].find(
       (result) => result.error,
@@ -85,8 +86,10 @@ export class SupabaseMovementProfileRepository implements MovementProfileReposit
     userId: string,
     expectedVersion: number,
     profile: Omit<MovementProfile, 'version'>,
+    accessToken?: string,
   ): Promise<MovementProfile> {
-    const result = await this.client.rpc('replace_movement_profile', {
+    const client = this.clientFactory?.(accessToken) ?? this.client;
+    const result = await client.rpc('replace_movement_profile', {
       p_user_id: userId,
       p_expected_version: expectedVersion,
       p_body_regions: profile.bodyRegions,

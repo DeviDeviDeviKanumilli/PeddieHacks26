@@ -37,6 +37,7 @@ import {
   type SessionRepository,
   SupabaseSessionRepository,
 } from './session-repository.js';
+import { createSupabaseClientFactory } from './supabase-client.js';
 import {
   MemoryUserRepository,
   SupabaseUserRepository,
@@ -64,9 +65,10 @@ export type AppOptions = {
 export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstance> => {
   const config = options.config ?? loadConfig();
   const hasSupabase = config.supabaseUrl !== undefined && config.supabaseAnonKey !== undefined;
-  const supabase = hasSupabase
-    ? createClient(config.supabaseUrl, config.supabaseAnonKey)
+  const supabaseFactory = hasSupabase
+    ? createSupabaseClientFactory(config.supabaseUrl, config.supabaseAnonKey)
     : undefined;
+  const supabase = supabaseFactory?.();
   const serviceSupabase =
     hasSupabase && config.supabaseServiceRoleKey !== undefined
       ? createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
@@ -83,20 +85,24 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     (supabase === undefined ? memoryRepository : new SupabaseCatalogRepository(supabase));
   const profiles =
     options.profiles ??
-    (supabase === undefined ? memoryRepository : new SupabaseMovementProfileRepository(supabase));
+    (supabase === undefined
+      ? memoryRepository
+      : new SupabaseMovementProfileRepository(supabase, supabaseFactory));
   const workouts =
     options.workouts ??
     (supabase === undefined
       ? new MemoryWorkoutRepository()
-      : new SupabaseWorkoutRepository(supabase));
+      : new SupabaseWorkoutRepository(supabase, supabaseFactory));
   const users =
     options.users ??
-    (supabase === undefined ? new MemoryUserRepository() : new SupabaseUserRepository(supabase));
+    (supabase === undefined
+      ? new MemoryUserRepository()
+      : new SupabaseUserRepository(supabase, supabaseFactory));
   const sessions =
     options.sessions ??
     (supabase === undefined
       ? new MemorySessionRepository(catalog)
-      : new SupabaseSessionRepository(supabase));
+      : new SupabaseSessionRepository(supabase, supabaseFactory));
   const accounts =
     options.accounts ??
     (serviceSupabase !== undefined
@@ -142,6 +148,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   });
   await app.register(swaggerUi, { routePrefix: '/docs' });
   app.decorateRequest('userId', null);
+  app.decorateRequest('accessToken', null);
   app.addHook('onRequest', async (request) => authenticateRequest(request, authVerifier));
   registerErrorHandling(app);
 

@@ -29,6 +29,7 @@ export const authenticateRequest = async (
   verifier: AuthVerifier,
 ): Promise<void> => {
   request.userId = null;
+  request.accessToken = null;
   const authorization = request.headers.authorization;
   if (authorization === undefined) {
     return;
@@ -63,6 +64,7 @@ export const authenticateRequest = async (
     });
   }
   request.userId = userId;
+  request.accessToken = accessToken;
 };
 
 export const requireUser = async (request: FastifyRequest): Promise<void> => {
@@ -76,8 +78,23 @@ export const requireUser = async (request: FastifyRequest): Promise<void> => {
   }
 };
 
+export const requestAuth = (
+  request: FastifyRequest,
+): { readonly userId: string; readonly accessToken: string } => {
+  if (request.userId === null || request.accessToken === null) {
+    throw new ApiError({
+      statusCode: 401,
+      code: 'authentication_required',
+      title: 'Authentication required',
+      detail: 'Sign in before accessing this resource.',
+    });
+  }
+  return { userId: request.userId, accessToken: request.accessToken };
+};
+
 declare module 'fastify' {
   interface FastifyRequest {
     userId: string | null;
+    accessToken: string | null;
   }
 }

@@ -25,6 +25,7 @@ import {
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CatalogRepository } from './catalog-repository.js';
 import { ApiError } from './errors.js';
+import type { SupabaseClientFactory } from './supabase-client.js';
 import { hashRequest } from './workout-repository.js';
 
 export interface SessionListResult {
@@ -47,49 +48,74 @@ export interface SessionRepository {
     readonly userId: string;
     readonly workout: Workout;
     readonly clientRequestId: string;
+    readonly accessToken?: string;
   }): Promise<WorkoutSession>;
-  listWorkoutSessions(userId: string, limit: number, cursor?: string): Promise<SessionListResult>;
-  getWorkoutSession(userId: string, sessionId: string): Promise<WorkoutSession | null>;
+  listWorkoutSessions(
+    userId: string,
+    limit: number,
+    cursor?: string,
+    accessToken?: string,
+  ): Promise<SessionListResult>;
+  getWorkoutSession(
+    userId: string,
+    sessionId: string,
+    accessToken?: string,
+  ): Promise<WorkoutSession | null>;
   patchWorkoutSession(
     userId: string,
     sessionId: string,
     request: PatchWorkoutSessionRequest,
+    accessToken?: string,
   ): Promise<WorkoutSession>;
   completeWorkoutSession(
     userId: string,
     sessionId: string,
     expectedVersion: number,
     endReason?: string,
+    accessToken?: string,
   ): Promise<WorkoutSession>;
-  deleteWorkoutSession(userId: string, sessionId: string): Promise<void>;
+  deleteWorkoutSession(userId: string, sessionId: string, accessToken?: string): Promise<void>;
   listExerciseSessions(
     userId: string,
     workoutSessionId: string,
+    accessToken?: string,
   ): Promise<readonly ExerciseSession[]>;
-  getExerciseSession(userId: string, sessionId: string): Promise<ExerciseSession | null>;
+  getExerciseSession(
+    userId: string,
+    sessionId: string,
+    accessToken?: string,
+  ): Promise<ExerciseSession | null>;
   patchExerciseSession(
     userId: string,
     sessionId: string,
     request: PatchExerciseSessionRequest,
+    accessToken?: string,
   ): Promise<ExerciseSession>;
   ingestMetricBatch(
     userId: string,
     sessionId: string,
     batch: MetricBatchRequest,
+    accessToken?: string,
   ): Promise<MetricBatchResponse['data']>;
   completeExerciseSession(
     userId: string,
     sessionId: string,
     expectedVersion: number,
+    accessToken?: string,
   ): Promise<ExerciseAnalysis>;
-  getExerciseAnalysis(userId: string, sessionId: string): Promise<ExerciseAnalysis>;
-  getProgressSummary(userId: string): Promise<ProgressSummary>;
+  getExerciseAnalysis(
+    userId: string,
+    sessionId: string,
+    accessToken?: string,
+  ): Promise<ExerciseAnalysis>;
+  getProgressSummary(userId: string, accessToken?: string): Promise<ProgressSummary>;
   listProgressActivity(
     userId: string,
     startDate: string,
     endDate: string,
     limit: number,
     cursor?: string,
+    accessToken?: string,
   ): Promise<{
     readonly data: readonly ProgressActivityRow[];
     readonly page: { readonly nextCursor: string | null; readonly hasMore: boolean };
@@ -97,6 +123,7 @@ export interface SessionRepository {
   getExerciseProgress(
     userId: string,
     exerciseId: string,
+    accessToken?: string,
   ): Promise<ExerciseProgressResponse['data']>;
 }
 
@@ -211,6 +238,7 @@ export class MemorySessionRepository implements SessionRepository {
     readonly userId: string;
     readonly workout: Workout;
     readonly clientRequestId: string;
+    readonly accessToken?: string;
   }): Promise<WorkoutSession> {
     const clientKey = `${input.userId}:${input.clientRequestId}`;
     const existingId = this.sessionClientIds.get(clientKey);
@@ -873,14 +901,22 @@ const rpcError = (
 };
 
 export class SupabaseSessionRepository implements SessionRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly clientFactory?: SupabaseClientFactory,
+  ) {}
+
+  private clientFor(accessToken?: string): SupabaseClient {
+    return this.clientFactory?.(accessToken) ?? this.client;
+  }
 
   private async rpc<T>(
     functionName: string,
     parameters: Record<string, unknown>,
     resource: string,
+    accessToken?: string,
   ): Promise<T> {
-    const result = await this.client.rpc(functionName, parameters);
+    const result = await this.clientFor(accessToken).rpc(functionName, parameters);
     if (result.error) throw rpcError(result.error, resource);
     return result.data as T;
   }
@@ -889,6 +925,7 @@ export class SupabaseSessionRepository implements SessionRepository {
     readonly userId: string;
     readonly workout: Workout;
     readonly clientRequestId: string;
+    readonly accessToken?: string;
   }): Promise<WorkoutSession> {
     const data = await this.rpc<unknown>(
       'create_workout_session',
@@ -898,9 +935,10 @@ export class SupabaseSessionRepository implements SessionRepository {
         p_client_request_id: input.clientRequestId,
       },
       'workout_session',
+      input.accessToken,
     );
     const sessionId = typeof data === 'string' ? data : rowString(rowRecord(data), 'id');
-    const session = await this.getWorkoutSession(input.userId, sessionId);
+    const session = await this.getWorkoutSession(input.userId, sessionId, input.accessToken);
     if (session === null) throw dependencyError('The created workout session could not be loaded.');
     return session;
   }
@@ -909,8 +947,9 @@ export class SupabaseSessionRepository implements SessionRepository {
     userId: string,
     limit: number,
     cursor?: string,
+    accessToken?: string,
   ): Promise<SessionListResult> {
-    let query = this.client
+    let query = this.clientFor(accessToken)
       .from('workout_sessions')
       .select('id,workout_id,state,started_at,ended_at,duration_seconds,version')
       .eq('user_id', userId)
@@ -941,8 +980,12 @@ export class SupabaseSessionRepository implements SessionRepository {
     };
   }
 
-  async getWorkoutSession(userId: string, sessionId: string): Promise<WorkoutSession | null> {
-    const result = await this.client
+  async getWorkoutSession(
+    userId: string,
+    sessionId: string,
+    accessToken?: string,
+  ): Promise<WorkoutSession | null> {
+    const result = await this.clientFor(accessToken)
       .from('workout_sessions')
       .select('id,workout_id,state,started_at,ended_at,duration_seconds,version')
       .eq('user_id', userId)
@@ -956,9 +999,10 @@ export class SupabaseSessionRepository implements SessionRepository {
     userId: string,
     sessionId: string,
     request: PatchWorkoutSessionRequest,
+    accessToken?: string,
   ): Promise<WorkoutSession> {
     if (request.state === undefined) {
-      const existing = await this.getWorkoutSession(userId, sessionId);
+      const existing = await this.getWorkoutSession(userId, sessionId, accessToken);
       if (existing === null) throw notFound('workout_session');
       if (existing.version !== request.expectedVersion) {
         throw conflict(
@@ -982,8 +1026,9 @@ export class SupabaseSessionRepository implements SessionRepository {
         p_end_reason: request.endReason ?? null,
       },
       'workout_session',
+      accessToken,
     );
-    const updated = await this.getWorkoutSession(userId, sessionId);
+    const updated = await this.getWorkoutSession(userId, sessionId, accessToken);
     if (updated === null) throw dependencyError('The updated workout session could not be loaded.');
     return updated;
   }
@@ -993,6 +1038,7 @@ export class SupabaseSessionRepository implements SessionRepository {
     sessionId: string,
     expectedVersion: number,
     endReason?: string,
+    accessToken?: string,
   ): Promise<WorkoutSession> {
     await this.rpc<unknown>(
       'complete_workout_session',
@@ -1003,28 +1049,35 @@ export class SupabaseSessionRepository implements SessionRepository {
         p_end_reason: endReason ?? null,
       },
       'workout_session',
+      accessToken,
     );
-    const updated = await this.getWorkoutSession(userId, sessionId);
+    const updated = await this.getWorkoutSession(userId, sessionId, accessToken);
     if (updated === null)
       throw dependencyError('The completed workout session could not be loaded.');
     return updated;
   }
 
-  async deleteWorkoutSession(userId: string, sessionId: string): Promise<void> {
+  async deleteWorkoutSession(
+    userId: string,
+    sessionId: string,
+    accessToken?: string,
+  ): Promise<void> {
     await this.rpc<boolean>(
       'delete_workout_session',
       { p_user_id: userId, p_session_id: sessionId },
       'workout_session',
+      accessToken,
     );
   }
 
   async listExerciseSessions(
     userId: string,
     workoutSessionId: string,
+    accessToken?: string,
   ): Promise<readonly ExerciseSession[]> {
-    const parent = await this.getWorkoutSession(userId, workoutSessionId);
+    const parent = await this.getWorkoutSession(userId, workoutSessionId, accessToken);
     if (parent === null) throw notFound('workout_session');
-    const result = await this.client
+    const result = await this.clientFor(accessToken)
       .from('exercise_sessions')
       .select(
         'id,workout_session_id,workout_item_id,exercise_id,state,target_snapshot,completed_reps,completed_sets,started_at,ended_at,version',
@@ -1036,8 +1089,12 @@ export class SupabaseSessionRepository implements SessionRepository {
     return rowArray(result.data).map((row) => mapExerciseSession(row).session);
   }
 
-  async getExerciseSession(userId: string, sessionId: string): Promise<ExerciseSession | null> {
-    const result = await this.client
+  async getExerciseSession(
+    userId: string,
+    sessionId: string,
+    accessToken?: string,
+  ): Promise<ExerciseSession | null> {
+    const result = await this.clientFor(accessToken)
       .from('exercise_sessions')
       .select(
         'id,workout_session_id,workout_item_id,exercise_id,state,target_snapshot,completed_reps,completed_sets,started_at,ended_at,version',
@@ -1052,8 +1109,9 @@ export class SupabaseSessionRepository implements SessionRepository {
   private async getExerciseRecord(
     userId: string,
     sessionId: string,
+    accessToken?: string,
   ): Promise<{ readonly session: ExerciseSession; readonly target: SessionTarget }> {
-    const result = await this.client
+    const result = await this.clientFor(accessToken)
       .from('exercise_sessions')
       .select(
         'id,workout_session_id,workout_item_id,exercise_id,state,target_snapshot,completed_reps,completed_sets,started_at,ended_at,version',
@@ -1070,9 +1128,10 @@ export class SupabaseSessionRepository implements SessionRepository {
     userId: string,
     sessionId: string,
     request: PatchExerciseSessionRequest,
+    accessToken?: string,
   ): Promise<ExerciseSession> {
     if (request.state === undefined) {
-      const existing = await this.getExerciseSession(userId, sessionId);
+      const existing = await this.getExerciseSession(userId, sessionId, accessToken);
       if (existing === null) throw notFound('exercise_session');
       if (existing.version !== request.expectedVersion) {
         throw conflict(
@@ -1095,8 +1154,9 @@ export class SupabaseSessionRepository implements SessionRepository {
         p_next_state: request.state,
       },
       'exercise_session',
+      accessToken,
     );
-    const updated = await this.getExerciseSession(userId, sessionId);
+    const updated = await this.getExerciseSession(userId, sessionId, accessToken);
     if (updated === null)
       throw dependencyError('The updated exercise session could not be loaded.');
     return updated;
@@ -1106,6 +1166,7 @@ export class SupabaseSessionRepository implements SessionRepository {
     userId: string,
     sessionId: string,
     batch: MetricBatchRequest,
+    accessToken?: string,
   ): Promise<MetricBatchResponse['data']> {
     validateBatch(batch);
     const data = await this.rpc<unknown>(
@@ -1118,6 +1179,7 @@ export class SupabaseSessionRepository implements SessionRepository {
         p_metrics: batch.metrics,
       },
       'exercise_session',
+      accessToken,
     );
     const row = rowRecord(data);
     return {
@@ -1127,8 +1189,12 @@ export class SupabaseSessionRepository implements SessionRepository {
     };
   }
 
-  private async listMetrics(userId: string, sessionId: string): Promise<readonly RepMetric[]> {
-    const result = await this.client
+  private async listMetrics(
+    userId: string,
+    sessionId: string,
+    accessToken?: string,
+  ): Promise<readonly RepMetric[]> {
+    const result = await this.clientFor(accessToken)
       .from('rep_metrics')
       .select(
         'set_number,rep_number,counted,duration_ms,range_of_motion_deg,target_position_reached,accuracy_score,control_score,stability_score,form_score,tracking_confidence,feedback_codes,recorded_offset_ms',
@@ -1146,10 +1212,12 @@ export class SupabaseSessionRepository implements SessionRepository {
     userId: string,
     sessionId: string,
     expectedVersion: number,
+    accessToken?: string,
   ): Promise<ExerciseAnalysis> {
-    const record = await this.getExerciseRecord(userId, sessionId);
-    if (record.session.state === 'completed') return this.getExerciseAnalysis(userId, sessionId);
-    const metrics = await this.listMetrics(userId, sessionId);
+    const record = await this.getExerciseRecord(userId, sessionId, accessToken);
+    if (record.session.state === 'completed')
+      return this.getExerciseAnalysis(userId, sessionId, accessToken);
+    const metrics = await this.listMetrics(userId, sessionId, accessToken);
     const analysis = analyzeExerciseSession({
       targetReps: record.session.targetReps,
       metrics: domainMetrics(metrics),
@@ -1176,6 +1244,7 @@ export class SupabaseSessionRepository implements SessionRepository {
         p_overall_score: analysis.overallScore,
       },
       'exercise_session',
+      accessToken,
     );
     const returned = rowRecord(result).analysis;
     return (
@@ -1183,10 +1252,14 @@ export class SupabaseSessionRepository implements SessionRepository {
     ) as ExerciseAnalysis;
   }
 
-  async getExerciseAnalysis(userId: string, sessionId: string): Promise<ExerciseAnalysis> {
-    const session = await this.getExerciseSession(userId, sessionId);
+  async getExerciseAnalysis(
+    userId: string,
+    sessionId: string,
+    accessToken?: string,
+  ): Promise<ExerciseAnalysis> {
+    const session = await this.getExerciseSession(userId, sessionId, accessToken);
     if (session === null) throw notFound('exercise_session');
-    const result = await this.client
+    const result = await this.clientFor(accessToken)
       .from('exercise_session_summaries')
       .select('analysis')
       .eq('user_id', userId)
@@ -1203,14 +1276,14 @@ export class SupabaseSessionRepository implements SessionRepository {
     return rowRecord(result.data).analysis as ExerciseAnalysis;
   }
 
-  async getProgressSummary(userId: string): Promise<ProgressSummary> {
-    const dailyResult = await this.client
+  async getProgressSummary(userId: string, accessToken?: string): Promise<ProgressSummary> {
+    const dailyResult = await this.clientFor(accessToken)
       .from('daily_progress')
       .select('session_count,exercise_count,set_count,rep_count,active_seconds')
       .eq('user_id', userId);
     if (dailyResult.error) throw dependencyError('Progress totals could not be loaded.');
     const daily = rowArray(dailyResult.data);
-    const summaryResult = await this.client
+    const summaryResult = await this.clientFor(accessToken)
       .from('exercise_session_summaries')
       .select('overall_score')
       .eq('user_id', userId);
@@ -1218,7 +1291,7 @@ export class SupabaseSessionRepository implements SessionRepository {
     const scores = rowArray(summaryResult.data)
       .map((row) => rowNumber(row, 'overall_score'))
       .filter((score): score is number => score !== null);
-    const exerciseResult = await this.client
+    const exerciseResult = await this.clientFor(accessToken)
       .from('exercise_sessions')
       .select('exercise_id')
       .eq('user_id', userId)
@@ -1233,7 +1306,7 @@ export class SupabaseSessionRepository implements SessionRepository {
     ];
     const coverage = new Map<string, number>();
     if (exerciseIds.length > 0) {
-      const demandResult = await this.client
+      const demandResult = await this.clientFor(accessToken)
         .from('exercise_body_demands')
         .select('body_region_id,demand')
         .in('exercise_id', exerciseIds);
@@ -1268,11 +1341,12 @@ export class SupabaseSessionRepository implements SessionRepository {
     endDate: string,
     limit: number,
     cursor?: string,
+    accessToken?: string,
   ): Promise<{
     readonly data: readonly ProgressActivityRow[];
     readonly page: { readonly nextCursor: string | null; readonly hasMore: boolean };
   }> {
-    let query = this.client
+    let query = this.clientFor(accessToken)
       .from('daily_progress')
       .select(
         'activity_date,session_count,exercise_count,set_count,rep_count,active_seconds,average_score',
@@ -1308,8 +1382,9 @@ export class SupabaseSessionRepository implements SessionRepository {
   async getExerciseProgress(
     userId: string,
     exerciseId: string,
+    accessToken?: string,
   ): Promise<ExerciseProgressResponse['data']> {
-    const sessionResult = await this.client
+    const sessionResult = await this.clientFor(accessToken)
       .from('exercise_sessions')
       .select('id,ended_at')
       .eq('user_id', userId)
@@ -1328,7 +1403,7 @@ export class SupabaseSessionRepository implements SessionRepository {
         relativePercentage: null,
       };
     }
-    const summaryResult = await this.client
+    const summaryResult = await this.clientFor(accessToken)
       .from('exercise_session_summaries')
       .select('exercise_session_id,overall_score')
       .eq('user_id', userId)

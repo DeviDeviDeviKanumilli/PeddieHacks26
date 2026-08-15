@@ -15,8 +15,8 @@ import {
   WorkoutSessionResponseSchema,
 } from '@peddie/contracts';
 import { type Static, Type } from '@sinclair/typebox';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { requireUser } from '../auth.js';
+import type { FastifyInstance } from 'fastify';
+import { requestAuth, requireUser } from '../auth.js';
 import { ApiError } from '../errors.js';
 import type { SessionRepository } from '../session-repository.js';
 import type { WorkoutRepository } from '../workout-repository.js';
@@ -46,18 +46,6 @@ type ExerciseSessionIdParams = Static<typeof ExerciseSessionIdParamsSchema>;
 type ExerciseIdParams = Static<typeof ExerciseIdParamsSchema>;
 type SessionListQuery = Static<typeof SessionListQuerySchema>;
 type ActivityQuery = Static<typeof ActivityQuerySchema>;
-
-const userIdForRequest = (request: FastifyRequest): string => {
-  if (request.userId === null) {
-    throw new ApiError({
-      statusCode: 401,
-      code: 'authentication_required',
-      title: 'Authentication required',
-      detail: 'Sign in before accessing this resource.',
-    });
-  }
-  return request.userId;
-};
 
 const parseLimit = (value: string | undefined): number => {
   const limit = Number.parseInt(value ?? '20', 10);
@@ -124,9 +112,13 @@ export const registerSessionRoutes = async (
       },
     },
     async (request, reply) => {
-      const userId = userIdForRequest(request);
+      const auth = requestAuth(request);
       const body = request.body as Static<typeof CreateWorkoutSessionRequestSchema>;
-      const workout = await dependencies.workouts.get(userId, body.workoutId);
+      const workout = await dependencies.workouts.get(
+        auth.userId,
+        body.workoutId,
+        auth.accessToken,
+      );
       if (workout === null) {
         throw missingResource(
           'workout_not_found',
@@ -135,9 +127,10 @@ export const registerSessionRoutes = async (
         );
       }
       const session = await dependencies.sessions.createWorkoutSession({
-        userId,
+        userId: auth.userId,
         workout,
         clientRequestId: body.clientRequestId,
+        accessToken: auth.accessToken,
       });
       return reply.status(201).send({ data: session });
     },
@@ -152,12 +145,15 @@ export const registerSessionRoutes = async (
         response: { 200: WorkoutSessionListResponseSchema },
       },
     },
-    async (request) =>
-      dependencies.sessions.listWorkoutSessions(
-        userIdForRequest(request),
+    async (request) => {
+      const auth = requestAuth(request);
+      return dependencies.sessions.listWorkoutSessions(
+        auth.userId,
         parseLimit(request.query.limit),
         request.query.cursor,
-      ),
+        auth.accessToken,
+      );
+    },
   );
 
   app.get<{ Params: SessionIdParams }>(
@@ -169,12 +165,16 @@ export const registerSessionRoutes = async (
         response: { 200: ExerciseSessionListResponseSchema },
       },
     },
-    async (request) => ({
-      data: await dependencies.sessions.listExerciseSessions(
-        userIdForRequest(request),
-        request.params.sessionId,
-      ),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.sessions.listExerciseSessions(
+          auth.userId,
+          request.params.sessionId,
+          auth.accessToken,
+        ),
+      };
+    },
   );
 
   app.get<{ Params: SessionIdParams }>(
@@ -184,9 +184,11 @@ export const registerSessionRoutes = async (
       schema: { params: SessionIdParamsSchema, response: { 200: WorkoutSessionResponseSchema } },
     },
     async (request) => {
+      const auth = requestAuth(request);
       const session = await dependencies.sessions.getWorkoutSession(
-        userIdForRequest(request),
+        auth.userId,
         request.params.sessionId,
+        auth.accessToken,
       );
       if (session === null) {
         throw missingResource(
@@ -209,13 +211,17 @@ export const registerSessionRoutes = async (
         response: { 200: WorkoutSessionResponseSchema },
       },
     },
-    async (request) => ({
-      data: await dependencies.sessions.patchWorkoutSession(
-        userIdForRequest(request),
-        request.params.sessionId,
-        request.body as Static<typeof PatchWorkoutSessionRequestSchema>,
-      ),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.sessions.patchWorkoutSession(
+          auth.userId,
+          request.params.sessionId,
+          request.body as Static<typeof PatchWorkoutSessionRequestSchema>,
+          auth.accessToken,
+        ),
+      };
+    },
   );
 
   app.post<{ Params: SessionIdParams }>(
@@ -229,13 +235,15 @@ export const registerSessionRoutes = async (
       },
     },
     async (request) => {
+      const auth = requestAuth(request);
       const body = request.body as Static<typeof CompleteSessionRequestSchema>;
       return {
         data: await dependencies.sessions.completeWorkoutSession(
-          userIdForRequest(request),
+          auth.userId,
           request.params.sessionId,
           body.expectedVersion,
           body.endReason,
+          auth.accessToken,
         ),
       };
     },
@@ -248,9 +256,11 @@ export const registerSessionRoutes = async (
       schema: { params: SessionIdParamsSchema },
     },
     async (request, reply) => {
+      const auth = requestAuth(request);
       await dependencies.sessions.deleteWorkoutSession(
-        userIdForRequest(request),
+        auth.userId,
         request.params.sessionId,
+        auth.accessToken,
       );
       return reply.status(204).send();
     },
@@ -266,9 +276,11 @@ export const registerSessionRoutes = async (
       },
     },
     async (request) => {
+      const auth = requestAuth(request);
       const session = await dependencies.sessions.getExerciseSession(
-        userIdForRequest(request),
+        auth.userId,
         request.params.exerciseSessionId,
+        auth.accessToken,
       );
       if (session === null) {
         throw missingResource(
@@ -291,13 +303,17 @@ export const registerSessionRoutes = async (
         response: { 200: ExerciseSessionResponseSchema },
       },
     },
-    async (request) => ({
-      data: await dependencies.sessions.patchExerciseSession(
-        userIdForRequest(request),
-        request.params.exerciseSessionId,
-        request.body as Static<typeof PatchExerciseSessionRequestSchema>,
-      ),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.sessions.patchExerciseSession(
+          auth.userId,
+          request.params.exerciseSessionId,
+          request.body as Static<typeof PatchExerciseSessionRequestSchema>,
+          auth.accessToken,
+        ),
+      };
+    },
   );
 
   app.post<{ Params: ExerciseSessionIdParams }>(
@@ -310,13 +326,17 @@ export const registerSessionRoutes = async (
         response: { 200: MetricBatchResponseSchema },
       },
     },
-    async (request) => ({
-      data: await dependencies.sessions.ingestMetricBatch(
-        userIdForRequest(request),
-        request.params.exerciseSessionId,
-        request.body as Static<typeof MetricBatchRequestSchema>,
-      ),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.sessions.ingestMetricBatch(
+          auth.userId,
+          request.params.exerciseSessionId,
+          request.body as Static<typeof MetricBatchRequestSchema>,
+          auth.accessToken,
+        ),
+      };
+    },
   );
 
   app.post<{ Params: ExerciseSessionIdParams }>(
@@ -330,12 +350,14 @@ export const registerSessionRoutes = async (
       },
     },
     async (request) => {
+      const auth = requestAuth(request);
       const body = request.body as Static<typeof CompleteSessionRequestSchema>;
       return {
         data: await dependencies.sessions.completeExerciseSession(
-          userIdForRequest(request),
+          auth.userId,
           request.params.exerciseSessionId,
           body.expectedVersion,
+          auth.accessToken,
         ),
       };
     },
@@ -350,12 +372,16 @@ export const registerSessionRoutes = async (
         response: { 200: ExerciseAnalysisResponseSchema },
       },
     },
-    async (request) => ({
-      data: await dependencies.sessions.getExerciseAnalysis(
-        userIdForRequest(request),
-        request.params.exerciseSessionId,
-      ),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.sessions.getExerciseAnalysis(
+          auth.userId,
+          request.params.exerciseSessionId,
+          auth.accessToken,
+        ),
+      };
+    },
   );
 
   app.get(
@@ -364,9 +390,12 @@ export const registerSessionRoutes = async (
       preHandler: requireUser,
       schema: { response: { 200: ProgressSummaryResponseSchema } },
     },
-    async (request) => ({
-      data: await dependencies.sessions.getProgressSummary(userIdForRequest(request)),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.sessions.getProgressSummary(auth.userId, auth.accessToken),
+      };
+    },
   );
 
   app.get<{ Querystring: ActivityQuery }>(
@@ -379,13 +408,15 @@ export const registerSessionRoutes = async (
       },
     },
     async (request) => {
+      const auth = requestAuth(request);
       const range = activityRange(request.query);
       return dependencies.sessions.listProgressActivity(
-        userIdForRequest(request),
+        auth.userId,
         range.startDate,
         range.endDate,
         range.limit,
         request.query.cursor,
+        auth.accessToken,
       );
     },
   );
@@ -399,11 +430,15 @@ export const registerSessionRoutes = async (
         response: { 200: ExerciseProgressResponseSchema },
       },
     },
-    async (request) => ({
-      data: await dependencies.sessions.getExerciseProgress(
-        userIdForRequest(request),
-        request.params.exerciseId,
-      ),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.sessions.getExerciseProgress(
+          auth.userId,
+          request.params.exerciseId,
+          auth.accessToken,
+        ),
+      };
+    },
   );
 };

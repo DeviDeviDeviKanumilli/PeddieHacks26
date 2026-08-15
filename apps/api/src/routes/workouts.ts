@@ -22,8 +22,8 @@ import {
   rankExercises,
 } from '@peddie/domain';
 import { type Static, Type } from '@sinclair/typebox';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { requireUser } from '../auth.js';
+import type { FastifyInstance } from 'fastify';
+import { requestAuth, requireUser } from '../auth.js';
 import type { CatalogRepository, MovementProfileRepository } from '../catalog-repository.js';
 import { ApiError } from '../errors.js';
 import {
@@ -46,18 +46,6 @@ const WorkoutListQuerySchema = Type.Object({
 type WorkoutIdParams = Static<typeof WorkoutIdParamsSchema>;
 type WorkoutItemParams = Static<typeof WorkoutItemParamsSchema>;
 type WorkoutListQuery = Static<typeof WorkoutListQuerySchema>;
-
-const requestUserId = (request: FastifyRequest): string => {
-  if (request.userId === null) {
-    throw new ApiError({
-      statusCode: 401,
-      code: 'authentication_required',
-      title: 'Authentication required',
-      detail: 'Sign in before accessing this resource.',
-    });
-  }
-  return request.userId;
-};
 
 const parseLimit = (value: string | undefined): number => {
   const limit = Number.parseInt(value ?? '20', 10);
@@ -109,12 +97,13 @@ const validatePrescription = (item: CreateManualWorkoutRequest['items'][number])
 const manualDraftFor = async (
   userId: string,
   request: CreateManualWorkoutRequest,
+  accessToken: string,
   dependencies: {
     readonly catalog: CatalogRepository;
     readonly profiles: MovementProfileRepository;
   },
 ): Promise<readonly ManualWorkoutItemDraft[]> => {
-  const profile = await dependencies.profiles.getMovementProfile(userId);
+  const profile = await dependencies.profiles.getMovementProfile(userId, accessToken);
   const drafts: ManualWorkoutItemDraft[] = [];
   for (const item of request.items) {
     validatePrescription(item);
@@ -224,6 +213,7 @@ const patchPrescription = (
 
 const patchedItemFor = async (
   userId: string,
+  accessToken: string,
   workout: Awaited<ReturnType<WorkoutRepository['get']>>,
   itemId: string,
   request: PatchWorkoutItemRequest,
@@ -262,7 +252,7 @@ const patchedItemFor = async (
   }
   const compatibility = evaluateCompatibility(
     candidate,
-    await dependencies.profiles.getMovementProfile(userId),
+    await dependencies.profiles.getMovementProfile(userId, accessToken),
   );
   if (compatibility.status === 'incompatible') {
     throw new ApiError({
@@ -322,8 +312,9 @@ export const registerWorkoutRoutes = async (
       },
     },
     async (request, reply) => {
-      const userId = requestUserId(request);
-      const profile = await dependencies.profiles.getMovementProfile(userId);
+      const auth = requestAuth(request);
+      const userId = auth.userId;
+      const profile = await dependencies.profiles.getMovementProfile(userId, auth.accessToken);
       const candidates = await dependencies.catalog.listExerciseCandidates();
       let generated: GeneratedWorkout;
       try {
@@ -351,6 +342,7 @@ export const registerWorkoutRoutes = async (
         profileVersion: profile.version,
         requestSnapshot: request.body,
         generated,
+        accessToken: auth.accessToken,
       });
       const items = generated.items.map((item, index) => {
         const storedItem = workout.items[index];
@@ -391,13 +383,15 @@ export const registerWorkoutRoutes = async (
       schema: { body: CreateManualWorkoutRequestSchema, response: { 201: WorkoutResponseSchema } },
     },
     async (request, reply) => {
-      const userId = requestUserId(request);
-      const items = await manualDraftFor(userId, request.body, dependencies);
+      const auth = requestAuth(request);
+      const userId = auth.userId;
+      const items = await manualDraftFor(userId, request.body, auth.accessToken, dependencies);
       const workout = await dependencies.workouts.createManual({
         userId,
         request: request.body,
         requestHash: hashRequest(request.body),
         items,
+        accessToken: auth.accessToken,
       });
       return reply.status(201).send({ data: workout });
     },
@@ -413,8 +407,13 @@ export const registerWorkoutRoutes = async (
       },
     },
     async (request) => {
-      const userId = requestUserId(request);
-      const workout = await dependencies.workouts.get(userId, request.params.workoutId);
+      const auth = requestAuth(request);
+      const userId = auth.userId;
+      const workout = await dependencies.workouts.get(
+        userId,
+        request.params.workoutId,
+        auth.accessToken,
+      );
       if (workout === null) {
         throw new ApiError({
           statusCode: 404,
@@ -441,7 +440,7 @@ export const registerWorkoutRoutes = async (
           detail: 'The workout item references an unavailable exercise.',
         });
       }
-      const profile = await dependencies.profiles.getMovementProfile(userId);
+      const profile = await dependencies.profiles.getMovementProfile(userId, auth.accessToken);
       const ranked = rankExercises({
         profile,
         candidates: (await dependencies.catalog.listExerciseCandidates()).filter(
@@ -477,10 +476,16 @@ export const registerWorkoutRoutes = async (
       },
     },
     async (request) => {
-      const userId = requestUserId(request);
-      const workout = await dependencies.workouts.get(userId, request.params.workoutId);
+      const auth = requestAuth(request);
+      const userId = auth.userId;
+      const workout = await dependencies.workouts.get(
+        userId,
+        request.params.workoutId,
+        auth.accessToken,
+      );
       const item = await patchedItemFor(
         userId,
+        auth.accessToken,
         workout,
         request.params.itemId,
         request.body,
@@ -493,6 +498,7 @@ export const registerWorkoutRoutes = async (
           request.params.itemId,
           request.body,
           item,
+          auth.accessToken,
         ),
       };
     },
@@ -504,12 +510,15 @@ export const registerWorkoutRoutes = async (
       preHandler: requireUser,
       schema: { querystring: WorkoutListQuerySchema, response: { 200: WorkoutListResponseSchema } },
     },
-    async (request) =>
-      dependencies.workouts.list(
-        requestUserId(request),
+    async (request) => {
+      const auth = requestAuth(request);
+      return dependencies.workouts.list(
+        auth.userId,
         parseLimit(request.query.limit),
         request.query.cursor,
-      ),
+        auth.accessToken,
+      );
+    },
   );
 
   app.get<{ Params: WorkoutIdParams }>(
@@ -519,9 +528,11 @@ export const registerWorkoutRoutes = async (
       schema: { params: WorkoutIdParamsSchema, response: { 200: WorkoutResponseSchema } },
     },
     async (request) => {
+      const auth = requestAuth(request);
       const workout = await dependencies.workouts.get(
-        requestUserId(request),
+        auth.userId,
         request.params.workoutId,
+        auth.accessToken,
       );
       if (workout === null) {
         throw new ApiError({
@@ -545,13 +556,17 @@ export const registerWorkoutRoutes = async (
         response: { 200: WorkoutResponseSchema },
       },
     },
-    async (request) => ({
-      data: await dependencies.workouts.patch(
-        requestUserId(request),
-        request.params.workoutId,
-        request.body,
-      ),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.workouts.patch(
+          auth.userId,
+          request.params.workoutId,
+          request.body,
+          auth.accessToken,
+        ),
+      };
+    },
   );
 
   app.delete<{ Params: WorkoutIdParams }>(
@@ -560,8 +575,15 @@ export const registerWorkoutRoutes = async (
       preHandler: requireUser,
       schema: { params: WorkoutIdParamsSchema, response: { 200: WorkoutResponseSchema } },
     },
-    async (request) => ({
-      data: await dependencies.workouts.archive(requestUserId(request), request.params.workoutId),
-    }),
+    async (request) => {
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.workouts.archive(
+          auth.userId,
+          request.params.workoutId,
+          auth.accessToken,
+        ),
+      };
+    },
   );
 };

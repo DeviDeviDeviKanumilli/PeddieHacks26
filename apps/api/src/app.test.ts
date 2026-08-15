@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from './app.js';
 import type { AuthVerifier } from './auth.js';
+import { MemoryCatalogRepository } from './catalog-repository.js';
 
 const testAuthVerifier: AuthVerifier = {
   async verify(accessToken) {
@@ -90,6 +91,28 @@ describe('API health', () => {
     expect(unauthorized.statusCode).toBe(401);
     expect(authorized.statusCode).toBe(200);
     expect(authorized.json().data.exerciseId).toBe(exerciseId);
+  });
+
+  it('forwards the verified bearer token to authenticated repositories', async () => {
+    const profileStore = new MemoryCatalogRepository();
+    let observedToken: string | undefined;
+    const profiles = {
+      getMovementProfile: async (userId: string, accessToken?: string) => {
+        observedToken = accessToken;
+        return profileStore.getMovementProfile(userId);
+      },
+      putMovementProfile: profileStore.putMovementProfile.bind(profileStore),
+    };
+    app = await buildApp({ logger: false, authVerifier: testAuthVerifier, profiles });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/movement-profile',
+      headers: { authorization: 'Bearer demo-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(observedToken).toBe('demo-token');
   });
 
   it('rejects a limit outside the public pagination contract', async () => {

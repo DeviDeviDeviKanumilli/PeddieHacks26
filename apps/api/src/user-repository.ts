@@ -1,12 +1,13 @@
 import type { Settings, SettingsPatch, UserProfile, UserProfilePatch } from '@peddie/contracts';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ApiError } from './errors.js';
+import type { SupabaseClientFactory } from './supabase-client.js';
 
 export interface UserRepository {
-  getProfile(userId: string): Promise<UserProfile>;
-  patchProfile(userId: string, patch: UserProfilePatch): Promise<UserProfile>;
-  getSettings(userId: string): Promise<Settings>;
-  patchSettings(userId: string, patch: SettingsPatch): Promise<Settings>;
+  getProfile(userId: string, accessToken?: string): Promise<UserProfile>;
+  patchProfile(userId: string, patch: UserProfilePatch, accessToken?: string): Promise<UserProfile>;
+  getSettings(userId: string, accessToken?: string): Promise<Settings>;
+  patchSettings(userId: string, patch: SettingsPatch, accessToken?: string): Promise<Settings>;
 }
 
 const defaultSettings = (): Settings => ({
@@ -93,10 +94,14 @@ const dependencyError = (detail: string): ApiError =>
   });
 
 export class SupabaseUserRepository implements UserRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly clientFactory?: SupabaseClientFactory,
+  ) {}
 
-  async getProfile(userId: string): Promise<UserProfile> {
-    const result = await this.client
+  async getProfile(userId: string, accessToken?: string): Promise<UserProfile> {
+    const client = this.clientFactory?.(accessToken) ?? this.client;
+    const result = await client
       .from('profiles')
       .select(
         'user_id,display_name,timezone,experience_level,intensity_preference,onboarding_completed_at',
@@ -122,8 +127,13 @@ export class SupabaseUserRepository implements UserRepository {
     };
   }
 
-  async patchProfile(userId: string, patch: UserProfilePatch): Promise<UserProfile> {
-    const result = await this.client
+  async patchProfile(
+    userId: string,
+    patch: UserProfilePatch,
+    accessToken?: string,
+  ): Promise<UserProfile> {
+    const client = this.clientFactory?.(accessToken) ?? this.client;
+    const result = await client
       .from('profiles')
       .update({
         ...(patch.displayName === undefined ? {} : { display_name: patch.displayName }),
@@ -146,11 +156,12 @@ export class SupabaseUserRepository implements UserRepository {
         title: 'Profile not found',
         detail: 'The signed-in user profile is not available.',
       });
-    return this.getProfile(userId);
+    return this.getProfile(userId, accessToken);
   }
 
-  async getSettings(userId: string): Promise<Settings> {
-    const result = await this.client
+  async getSettings(userId: string, accessToken?: string): Promise<Settings> {
+    const client = this.clientFactory?.(accessToken) ?? this.client;
+    const result = await client
       .from('user_settings')
       .select(
         'accessibility_preferences,feedback_preferences,pose_overlay_enabled,default_rest_duration_seconds',
@@ -176,8 +187,13 @@ export class SupabaseUserRepository implements UserRepository {
     };
   }
 
-  async patchSettings(userId: string, patch: SettingsPatch): Promise<Settings> {
-    const current = await this.getSettings(userId);
+  async patchSettings(
+    userId: string,
+    patch: SettingsPatch,
+    accessToken?: string,
+  ): Promise<Settings> {
+    const client = this.clientFactory?.(accessToken) ?? this.client;
+    const current = await this.getSettings(userId, accessToken);
     const next = {
       ...current,
       ...(patch.accessibilityPreferences === undefined
@@ -200,7 +216,7 @@ export class SupabaseUserRepository implements UserRepository {
         ? {}
         : { defaultRestDurationSeconds: patch.defaultRestDurationSeconds }),
     } satisfies Settings;
-    const result = await this.client
+    const result = await client
       .from('user_settings')
       .update({
         accessibility_preferences: next.accessibilityPreferences,

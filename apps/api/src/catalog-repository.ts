@@ -53,11 +53,12 @@ export interface CatalogRepository {
 }
 
 export interface MovementProfileRepository {
-  getMovementProfile(userId: string): Promise<MovementProfile>;
+  getMovementProfile(userId: string, accessToken?: string): Promise<MovementProfile>;
   putMovementProfile(
     userId: string,
     expectedVersion: number,
     profile: Omit<MovementProfile, 'version'>,
+    accessToken?: string,
   ): Promise<MovementProfile>;
 }
 

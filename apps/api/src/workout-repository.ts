@@ -13,6 +13,7 @@ import type {
 } from '@peddie/domain';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ApiError } from './errors.js';
+import type { SupabaseClientFactory } from './supabase-client.js';
 
 export interface ManualWorkoutItemDraft {
   readonly exerciseId: string;
@@ -38,23 +39,36 @@ export interface WorkoutRepository {
     readonly profileVersion: number;
     readonly requestSnapshot: unknown;
     readonly generated: GeneratedWorkout;
+    readonly accessToken?: string;
   }): Promise<Workout>;
   createManual(input: {
     readonly userId: string;
     readonly request: CreateManualWorkoutRequest;
     readonly requestHash: string;
     readonly items: readonly ManualWorkoutItemDraft[];
+    readonly accessToken?: string;
   }): Promise<Workout>;
-  list(userId: string, limit: number, cursor?: string): Promise<WorkoutListResult>;
-  get(userId: string, workoutId: string): Promise<Workout | null>;
-  patch(userId: string, workoutId: string, request: PatchWorkoutRequest): Promise<Workout>;
-  archive(userId: string, workoutId: string): Promise<Workout>;
+  list(
+    userId: string,
+    limit: number,
+    cursor?: string,
+    accessToken?: string,
+  ): Promise<WorkoutListResult>;
+  get(userId: string, workoutId: string, accessToken?: string): Promise<Workout | null>;
+  patch(
+    userId: string,
+    workoutId: string,
+    request: PatchWorkoutRequest,
+    accessToken?: string,
+  ): Promise<Workout>;
+  archive(userId: string, workoutId: string, accessToken?: string): Promise<Workout>;
   patchItem(
     userId: string,
     workoutId: string,
     itemId: string,
     request: PatchWorkoutItemRequest,
     item: WorkoutItem,
+    accessToken?: string,
   ): Promise<Workout>;
 }
 
@@ -386,10 +400,22 @@ const rowArray = (value: unknown): readonly Row[] =>
   Array.isArray(value) ? value.map(rowRecord) : [];
 
 export class SupabaseWorkoutRepository implements WorkoutRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly clientFactory?: SupabaseClientFactory,
+  ) {}
 
-  private async load(userId: string, workoutId: string): Promise<Workout | null> {
-    const workoutResult = await this.client
+  private clientFor(accessToken?: string): SupabaseClient {
+    return this.clientFactory?.(accessToken) ?? this.client;
+  }
+
+  private async load(
+    userId: string,
+    workoutId: string,
+    accessToken?: string,
+  ): Promise<Workout | null> {
+    const client = this.clientFor(accessToken);
+    const workoutResult = await client
       .from('workouts')
       .select(
         'id,source,title,status,requested_duration_minutes,engine_version,profile_version,version,created_at,updated_at',
@@ -400,7 +426,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       .maybeSingle();
     if (workoutResult.error) throw dependencyError('The workout dependency could not be reached.');
     if (workoutResult.data === null) return null;
-    const itemResult = await this.client
+    const itemResult = await client
       .from('workout_items')
       .select(
         'id,position,exercise_id,sets,reps,hold_seconds,rest_seconds,compatibility_snapshot,exercises(slug)',
@@ -447,8 +473,10 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     readonly profileVersion: number;
     readonly requestSnapshot: unknown;
     readonly generated: GeneratedWorkout;
+    readonly accessToken?: string;
   }): Promise<Workout> {
-    const existing = await this.client
+    const client = this.clientFor(input.accessToken);
+    const existing = await client
       .from('workouts')
       .select('id,request_hash')
       .eq('user_id', input.userId)
@@ -462,11 +490,11 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
           'The client request ID was already used with different content.',
           'idempotency_conflict',
         );
-      const loaded = await this.load(input.userId, rowString(row, 'id'));
+      const loaded = await this.load(input.userId, rowString(row, 'id'), input.accessToken);
       if (loaded === null) throw dependencyError('The idempotent workout could not be loaded.');
       return loaded;
     }
-    const workoutInsert = await this.client
+    const workoutInsert = await client
       .from('workouts')
       .insert({
         user_id: input.userId,
@@ -495,9 +523,9 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       rest_seconds: item.restSeconds,
       compatibility_snapshot: item.compatibility,
     }));
-    const items = await this.client.from('workout_items').insert(itemRows);
+    const items = await client.from('workout_items').insert(itemRows);
     if (items.error) throw dependencyError('The generated workout items could not be saved.');
-    const loaded = await this.load(input.userId, workoutId);
+    const loaded = await this.load(input.userId, workoutId, input.accessToken);
     if (loaded === null) throw dependencyError('The generated workout could not be loaded.');
     return loaded;
   }
@@ -507,8 +535,10 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     readonly request: CreateManualWorkoutRequest;
     readonly requestHash: string;
     readonly items: readonly ManualWorkoutItemDraft[];
+    readonly accessToken?: string;
   }): Promise<Workout> {
-    const existing = await this.client
+    const client = this.clientFor(input.accessToken);
+    const existing = await client
       .from('workouts')
       .select('id,request_hash')
       .eq('user_id', input.userId)
@@ -522,11 +552,11 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
           'The client request ID was already used with different content.',
           'idempotency_conflict',
         );
-      const loaded = await this.load(input.userId, rowString(row, 'id'));
+      const loaded = await this.load(input.userId, rowString(row, 'id'), input.accessToken);
       if (loaded === null) throw dependencyError('The idempotent workout could not be loaded.');
       return loaded;
     }
-    const workoutInsert = await this.client
+    const workoutInsert = await client
       .from('workouts')
       .insert({
         user_id: input.userId,
@@ -551,15 +581,20 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       rest_seconds: item.restSeconds,
       compatibility_snapshot: item.compatibility,
     }));
-    const items = await this.client.from('workout_items').insert(itemRows);
+    const items = await client.from('workout_items').insert(itemRows);
     if (items.error) throw dependencyError('The manual workout items could not be saved.');
-    const loaded = await this.load(input.userId, workoutId);
+    const loaded = await this.load(input.userId, workoutId, input.accessToken);
     if (loaded === null) throw dependencyError('The manual workout could not be loaded.');
     return loaded;
   }
 
-  async list(userId: string, limit: number, cursor?: string): Promise<WorkoutListResult> {
-    let query = this.client
+  async list(
+    userId: string,
+    limit: number,
+    cursor?: string,
+    accessToken?: string,
+  ): Promise<WorkoutListResult> {
+    let query = this.clientFor(accessToken)
       .from('workouts')
       .select(
         'id,source,title,status,requested_duration_minutes,engine_version,profile_version,version,created_at,updated_at',
@@ -579,7 +614,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     const pageRows = rows.slice(0, limit);
     const data: Workout[] = [];
     for (const row of pageRows) {
-      const loaded = await this.load(userId, rowString(row, 'id'));
+      const loaded = await this.load(userId, rowString(row, 'id'), accessToken);
       if (loaded !== null) data.push(loaded);
     }
     const hasMore = rows.length > pageRows.length;
@@ -596,17 +631,22 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     };
   }
 
-  async get(userId: string, workoutId: string): Promise<Workout | null> {
-    return this.load(userId, workoutId);
+  async get(userId: string, workoutId: string, accessToken?: string): Promise<Workout | null> {
+    return this.load(userId, workoutId, accessToken);
   }
 
-  async patch(userId: string, workoutId: string, request: PatchWorkoutRequest): Promise<Workout> {
+  async patch(
+    userId: string,
+    workoutId: string,
+    request: PatchWorkoutRequest,
+    accessToken?: string,
+  ): Promise<Workout> {
     const values = {
       ...(request.title === undefined ? {} : { title: request.title }),
       ...(request.status === undefined ? {} : { status: request.status }),
       version: request.expectedVersion + 1,
     };
-    const result = await this.client
+    const result = await this.clientFor(accessToken)
       .from('workouts')
       .update(values)
       .eq('id', workoutId)
@@ -617,7 +657,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       .maybeSingle();
     if (result.error) throw dependencyError('The workout could not be updated.');
     if (result.data === null) {
-      const exists = await this.get(userId, workoutId);
+      const exists = await this.get(userId, workoutId, accessToken);
       if (exists === null)
         throw new ApiError({
           statusCode: 404,
@@ -627,13 +667,13 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
         });
       throw conflict('The workout changed since it was loaded.');
     }
-    const loaded = await this.get(userId, workoutId);
+    const loaded = await this.get(userId, workoutId, accessToken);
     if (loaded === null) throw dependencyError('The updated workout could not be loaded.');
     return loaded;
   }
 
-  async archive(userId: string, workoutId: string): Promise<Workout> {
-    const current = await this.get(userId, workoutId);
+  async archive(userId: string, workoutId: string, accessToken?: string): Promise<Workout> {
+    const current = await this.get(userId, workoutId, accessToken);
     if (current === null) {
       throw new ApiError({
         statusCode: 404,
@@ -642,7 +682,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
         detail: 'The requested workout is not available.',
       });
     }
-    const result = await this.client
+    const result = await this.clientFor(accessToken)
       .from('workouts')
       .update({ status: 'archived', version: current.version + 1 })
       .eq('id', workoutId)
@@ -659,7 +699,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
         title: 'Workout not found',
         detail: 'The requested workout is not available.',
       });
-    const loaded = await this.get(userId, workoutId);
+    const loaded = await this.get(userId, workoutId, accessToken);
     if (loaded === null) throw dependencyError('The archived workout could not be loaded.');
     return loaded;
   }
@@ -670,8 +710,9 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     itemId: string,
     request: PatchWorkoutItemRequest,
     item: WorkoutItem,
+    accessToken?: string,
   ): Promise<Workout> {
-    const result = await this.client.rpc('patch_workout_item', {
+    const result = await this.clientFor(accessToken).rpc('patch_workout_item', {
       p_user_id: userId,
       p_workout_id: workoutId,
       p_item_id: itemId,
@@ -695,7 +736,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       }
       throw dependencyError('The workout item could not be updated.');
     }
-    const loaded = await this.get(userId, workoutId);
+    const loaded = await this.get(userId, workoutId, accessToken);
     if (loaded === null) throw dependencyError('The updated workout could not be loaded.');
     return loaded;
   }

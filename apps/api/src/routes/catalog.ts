@@ -6,8 +6,8 @@ import {
 } from '@peddie/contracts';
 import { evaluateCompatibility } from '@peddie/domain';
 import { type Static, Type } from '@sinclair/typebox';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { requireUser } from '../auth.js';
+import type { FastifyInstance } from 'fastify';
+import { requestAuth, requireUser } from '../auth.js';
 import type {
   CatalogRepository,
   ExerciseListFilters,
@@ -80,18 +80,6 @@ const listFilters = (query: ExerciseListQuery): ExerciseListFilters => {
   return filters;
 };
 
-const requestUserId = (request: FastifyRequest): string => {
-  if (request.userId === null) {
-    throw new ApiError({
-      statusCode: 401,
-      code: 'authentication_required',
-      title: 'Authentication required',
-      detail: 'Sign in before accessing this resource.',
-    });
-  }
-  return request.userId;
-};
-
 export const registerCatalogRoutes = async (
   app: FastifyInstance,
   dependencies: {
@@ -158,7 +146,8 @@ export const registerCatalogRoutes = async (
           detail: 'The requested exercise is not available.',
         });
       }
-      const profile = await dependencies.profiles.getMovementProfile(requestUserId(request));
+      const auth = requestAuth(request);
+      const profile = await dependencies.profiles.getMovementProfile(auth.userId, auth.accessToken);
       const trackingRequired = boolQuery(request.query.trackingRequired);
       const compatibility = evaluateCompatibility(candidate, profile, {
         ...(trackingRequired === undefined ? {} : { trackingRequired }),

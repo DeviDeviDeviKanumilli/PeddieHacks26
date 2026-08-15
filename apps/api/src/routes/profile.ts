@@ -1,7 +1,7 @@
 import { MovementProfileSchema, UpdateMovementProfileRequestSchema } from '@peddie/contracts';
 import { type Static, Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
-import { requireUser } from '../auth.js';
+import { requestAuth, requireUser } from '../auth.js';
 import type { MovementProfileRepository } from '../catalog-repository.js';
 
 const MovementProfileResponseSchema = Type.Object({ data: MovementProfileSchema });
@@ -18,8 +18,10 @@ export const registerProfileRoutes = async (
       schema: { response: { 200: MovementProfileResponseSchema } },
     },
     async (request) => {
-      if (request.userId === null) throw new Error('Authenticated request did not have a user ID.');
-      return { data: await dependencies.profiles.getMovementProfile(request.userId) };
+      const auth = requestAuth(request);
+      return {
+        data: await dependencies.profiles.getMovementProfile(auth.userId, auth.accessToken),
+      };
     },
   );
 
@@ -33,13 +35,14 @@ export const registerProfileRoutes = async (
       },
     },
     async (request) => {
-      if (request.userId === null) throw new Error('Authenticated request did not have a user ID.');
+      const auth = requestAuth(request);
       const { expectedVersion, ...profile } = request.body;
       return {
         data: await dependencies.profiles.putMovementProfile(
-          request.userId,
+          auth.userId,
           expectedVersion,
           profile,
+          auth.accessToken,
         ),
       };
     },

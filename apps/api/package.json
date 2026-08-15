@@ -1,0 +1,24 @@
+{
+  "name": "@peddie/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "11.3.0",
+    "@fastify/rate-limit": "11.2.0",
+    "@fastify/swagger": "9.8.1",
+    "@fastify/swagger-ui": "6.1.1",
+    "@peddie/contracts": "workspace:*",
+    "@peddie/domain": "workspace:*",
+    "@sinclair/typebox": "0.34.52",
+    "@supabase/supabase-js": "2.112.3",
+    "fastify": "5.12.0"
+  }
+}

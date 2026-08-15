@@ -194,7 +194,9 @@ export default function ExerciseDetailScreen() {
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>{index + 1}</Text>
               </View>
-              <Body>{item}</Body>
+              <View style={styles.stepCopy}>
+                <Body>{item}</Body>
+              </View>
             </Card>
           ))}
         </View>
@@ -301,12 +303,14 @@ const styles = StyleSheet.create({
   panel: { gap: spacing.md },
   bullet: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
   step: { alignItems: 'center', flexDirection: 'row', padding: spacing.md },
+  stepCopy: { flex: 1, minWidth: 0, paddingRight: spacing.xs },
   stepNumber: {
     alignItems: 'center',
     backgroundColor: colors.lavenderSoft,
     borderRadius: radii.pill,
     height: 38,
     justifyContent: 'center',
+    flexShrink: 0,
     width: 38,
   },
   stepNumberText: { color: colors.lavenderDark, fontFamily: typography.bold },

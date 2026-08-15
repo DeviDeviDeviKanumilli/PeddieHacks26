@@ -9,6 +9,11 @@
 
 Exit criteria: workspace installs, typechecks, and runs a Fastify health route.
 
+Status: complete. The pnpm workspace, strict TypeScript, Biome, Vitest, Fastify
+health route, shared contracts, deterministic domain engines, and 24-record domain
+catalog are committed and pushed. The next exit gate is the local Supabase schema
+and row-level security test suite.
+
 ## Phase 2 — Supabase foundation
 
 - Initialize local Supabase configuration.
@@ -40,6 +45,9 @@ Exit criteria: authenticated and anonymous access boundaries work in integration
 - Implement deterministic ranking and alternatives.
 
 Exit criteria: full compatibility matrix and equipment behavior are covered by tests.
+
+Status: domain rules and unit coverage are in place; persistence-backed profile
+routes and API integration tests remain.
 
 ## Phase 5 — Workouts
 

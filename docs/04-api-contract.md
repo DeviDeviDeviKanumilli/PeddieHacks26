@@ -35,6 +35,10 @@ Errors use:
 
 Use opaque cursor pagination. Default limit is 20; maximum is 100.
 
+The shared TypeBox definitions live in `packages/contracts`. They are the source of
+truth for request/response validation and are intentionally independent of any web
+or mobile client implementation.
+
 ## Public routes
 
 ```http

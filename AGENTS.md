@@ -49,4 +49,7 @@ For database changes, also run local Supabase reset/migrations, seed validation,
 
 ## Current status
 
-The repository currently contains the planning documents and the initial README. The next step is to scaffold the backend workspace, then implement contracts/domain logic, Supabase schema, API modules, session analytics, and the documented verification gates.
+- Planning documents and the backend-only workspace scaffold are committed and pushed to `origin/main`.
+- `@peddie/contracts` contains TypeBox schemas for movement profiles, compatibility, workout generation, errors, references, and pagination.
+- `@peddie/domain` contains the deterministic `compatibility-v1` and `generation-v1` engines plus the 24-exercise catalog and tests.
+- The Supabase schema, persistence adapters, authenticated routes, sessions, metrics, analytics, and deployment wiring are still pending.

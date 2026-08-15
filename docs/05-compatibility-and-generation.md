@@ -2,6 +2,11 @@
 
 ## Profile states
 
+The first implementation uses `compatibility-v1` and `generation-v1`. Both engines
+are pure TypeScript functions with stable ordering and no database or model calls,
+so the API can test them independently and replay a generation request from its
+stored profile snapshot.
+
 Body-region states:
 
 ```text
@@ -82,3 +87,9 @@ The 24 seeded exercises must include:
 - Stable slug and content version.
 
 No catalog record becomes active if the source validator fails.
+
+The initial domain catalog contains 24 deterministic exercise records. Six have
+tracking profile keys matching the camera-derived exercises in the product scope.
+Catalog persistence, source validation, and activation checks are implemented in
+the Supabase phase; the domain package already exercises the compatibility and
+duration-generation behavior against the complete catalog.

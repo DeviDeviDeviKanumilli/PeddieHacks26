@@ -51,6 +51,7 @@ apps/
 packages/
   contracts/
   domain/
+  intelligence/
 
 supabase/
   config.toml
@@ -77,6 +78,7 @@ scripts/
 - `apps/api`: HTTP routes, request authentication, validation, response serialization, rate limiting, orchestration, and safe logging.
 - `packages/contracts`: TypeBox request/response schemas and inferred TypeScript types. These schemas generate OpenAPI.
 - `packages/domain`: Pure compatibility, recommendation, generation, and analytics functions. No Fastify or Supabase imports.
+- `packages/intelligence`: Isolated on-device intelligence runtime. Not imported by product clients or the API.
 - `supabase`: Ordered migrations, grants, RLS, database functions, taxonomies, and reproducible seed data.
 - `prisma`: Introspected typed model schema and Prisma Client generation target. It is not the owner of Supabase RLS, triggers, or RPC migrations.
 

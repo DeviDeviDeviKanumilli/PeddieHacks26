@@ -248,6 +248,8 @@ importers:
 
   packages/domain: {}
 
+  packages/intelligence: {}
+
 packages:
 
   '@adobe/css-tools@4.5.0':

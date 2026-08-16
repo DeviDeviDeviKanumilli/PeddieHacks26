@@ -64,9 +64,10 @@ For database changes, also run local Supabase reset/migrations, seed validation,
   Supabase Auth and Fastify live mode, onboarding, discovery, workouts, camera-optional
   sessions, analysis, progress, profile, and account deletion.
 - Android on-device pose is in the repository (`apps/mobile/modules/adaptfit-pose` plus
-  session complete/analysis/live-upload wiring). Expo Go cannot run it. The next pose
-  step is `pnpm dev:mobile:android:device` on the physical Android phone, then biceps-curl
-  calibration. Do not train a new pose network. iOS still uses `expo-camera` preview.
+  session complete/analysis/live-upload wiring). Angles use MediaPipe 3D world landmarks.
+  Expo Go cannot run it. The next pose step is `pnpm dev:mobile:android:device` on the
+  physical Android phone, then biceps-curl calibration. Do not train a new pose network.
+  iOS still uses `expo-camera` preview.
 - `@peddie/web` is a legacy reference prototype containing earlier onboarding,
   discovery, compatibility, camera, session, history, progress, and analysis work. It
   must not be treated as the primary application architecture.

@@ -94,9 +94,9 @@ data, explicit grants, forced RLS, owner-scoped policies, and transactional life
 RPCs. Prisma table transactions establish the matching Postgres RLS role and JWT
 subject; the request-scoped Supabase client remains for lifecycle RPCs and the
 service-role client is isolated to account deletion. The development-only Python tree
-under `model/` remains a desktop calibration lab. The Android MediaPipe module,
-TypeScript analyzer, seated-biceps-curl recipe, and session complete/analysis/live-upload
-wiring now live in `apps/mobile`. Guest Expo Go still uses a labeled timer. The next
+under `model/` remains a desktop calibration lab. The Android MediaPipe module now
+emits 3D world-landmark joint angles. The TypeScript analyzer, seated-biceps-curl
+recipe, and session complete/analysis/live-upload wiring now live in `apps/mobile`. Guest Expo Go still uses a labeled timer. The next
 pose step is a physical Android development build: install with
 `pnpm dev:mobile:android:device`, confirm no-camera still works, then calibrate curl on
 that camera. The backend never receives raw camera media or landmarks. See

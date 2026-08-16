@@ -120,11 +120,11 @@ React Native tracker.
 
 | File | Role |
 | --- | --- |
-| `vision_model.py` | Downloads MediaPipe Pose Landmarker lite, detects one person, computes a 3-point joint angle |
+| `vision_model.py` | Downloads MediaPipe Pose Landmarker lite, detects one person, computes a 3-point world-landmark joint angle |
 | `exercise_analyzer.py` | ROM stats, two-state rep machine, bilateral set/rest tracker, terminal summary |
 | `exercise_selector.py` | Bitmask eligibility over the 24 catalog slugs |
 | `main.py` | Webcam loop; default label is seated biceps curl |
-| `test_analyzer.py` / `test_selector.py` | unittest coverage for analyzer and selector |
+| `test_analyzer.py` / `test_selector.py` / `test_vision.py` | unittest coverage for analyzer, selector, and 3D angles |
 
 The analyzer is the reusable part: a rep needs a target angle then a return angle; both
 limbs must finish a cycle; rest then next set; missing detections are ignored. Frames and
@@ -143,7 +143,8 @@ It is not production-ready as-is:
   `pose_landmarker_lite.task` is downloaded at runtime and is not gitignored. `main()`
   defaults `target_angle` to `50` while argparse defaults to `40`.
 
-Use this folder to calibrate angles on a laptop webcam. The analyzer is already ported
+Use this folder to calibrate angles on a laptop webcam. Joint angles use MediaPipe 3D
+world landmarks, with image-landmark visibility. The analyzer is already ported
 to `apps/mobile/src/lib/tracking`, and MediaPipe runs inside the Android development
 build. Remaining work is a physical-phone camera pass and per-exercise angle
 calibration, not a new pose network. See

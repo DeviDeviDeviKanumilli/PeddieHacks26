@@ -176,7 +176,8 @@ On-device pose status, in the order imposed by the current Android test phone:
 
 1. Complete in the repository: `expo-dev-client`, a TypeScript port of
    `exercise_analyzer.py` with tests, a biceps-curl recipe marked calibrated from the
-   desktop lab, an Android MediaPipe native module that emits angles (never landmarks),
+   desktop lab, an Android MediaPipe native module that emits 3D world-landmark angles
+   (never landmarks),
    compile-time bundling of `pose_landmarker_lite.task`, `pnpm dev:mobile:android:device`,
    and complete/analysis/live upload wired to on-device range and confidence. Control and
    stability scores are not invented locally. Expo Go still uses a labeled guest timer.

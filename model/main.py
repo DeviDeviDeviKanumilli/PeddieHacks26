@@ -212,15 +212,17 @@ def main(
                 result = detect_pose(landmarker, frame, timestamp_ms)
 
                 joint_angles = {limb_name: None for limb_name in limb_counters}
-                if result.pose_landmarks:
-                    for pose_landmarks in result.pose_landmarks:
+                if result.pose_landmarks and result.pose_world_landmarks:
+                    for image_landmarks, world_landmarks in zip(
+                        result.pose_landmarks,
+                        result.pose_world_landmarks,
+                    ):
                         if show_pose:
-                            draw_pose(frame, pose_landmarks)
+                            draw_pose(frame, image_landmarks)
                         for limb_name, counter in limb_counters.items():
                             joint_angles[limb_name] = get_angle(
-                                pose_landmarks,
-                                frame.shape[1],
-                                frame.shape[0],
+                                world_landmarks,
+                                visibility_landmarks=image_landmarks,
                                 landmark_indices=counter.landmark_indices,
                             )
 

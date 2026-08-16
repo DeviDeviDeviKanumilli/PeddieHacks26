@@ -14,6 +14,8 @@ import androidx.fragment.app.FragmentActivity
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
+import com.google.mediapipe.tasks.components.containers.Landmark
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import expo.modules.kotlin.AppContext
@@ -22,9 +24,9 @@ import expo.modules.kotlin.views.ExpoView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.acos
-import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sqrt
 
 class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   private val onAngles by EventDispatcher()
@@ -167,8 +169,8 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
         .setMinPoseDetectionConfidence(0.5f)
         .setMinPosePresenceConfidence(0.5f)
         .setMinTrackingConfidence(0.5f)
-        .setResultListener { result, image ->
-          emitAngles(result, image.width, image.height)
+        .setResultListener { result, _ ->
+          emitAngles(result)
         }
         .setErrorListener { error ->
           Log.w(TAG, "Pose landmarker error", error)
@@ -181,8 +183,10 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
     }
   }
 
-  private fun emitAngles(result: PoseLandmarkerResult, width: Int, height: Int) {
-    val pose = result.landmarks().firstOrNull() ?: run {
+  private fun emitAngles(result: PoseLandmarkerResult) {
+    val imagePose = result.landmarks().firstOrNull()
+    val worldPose = result.worldLandmarks().firstOrNull()
+    if (imagePose == null || worldPose == null) {
       onAngles(
         mapOf(
           "leftAngle" to null,
@@ -192,10 +196,10 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
       )
       return
     }
-    val left = jointAngle(pose, leftLandmarks, width, height)
-    val right = jointAngle(pose, rightLandmarks, width, height)
+    val left = jointAngle(worldPose, imagePose, leftLandmarks)
+    val right = jointAngle(worldPose, imagePose, rightLandmarks)
     val visibilities = (leftLandmarks + rightLandmarks).mapNotNull { index ->
-      pose.getOrNull(index)?.visibility()?.orElse(0f)
+      imagePose.getOrNull(index)?.visibility()?.orElse(0f)
     }
     val confidence = if (visibilities.isEmpty()) 0.0 else visibilities.average()
     onAngles(
@@ -208,26 +212,32 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
   }
 
   private fun jointAngle(
-    landmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>,
+    worldLandmarks: List<Landmark>,
+    imageLandmarks: List<NormalizedLandmark>,
     indices: IntArray,
-    width: Int,
-    height: Int,
   ): Double? {
     if (indices.size != 3) return null
-    val point1 = landmarks.getOrNull(indices[0]) ?: return null
-    val vertex = landmarks.getOrNull(indices[1]) ?: return null
-    val point2 = landmarks.getOrNull(indices[2]) ?: return null
-    val visibilities = listOf(point1, vertex, point2).map { it.visibility().orElse(0f) }
+    val point1 = worldLandmarks.getOrNull(indices[0]) ?: return null
+    val vertex = worldLandmarks.getOrNull(indices[1]) ?: return null
+    val point2 = worldLandmarks.getOrNull(indices[2]) ?: return null
+    val visibilities = indices.map { index ->
+      imageLandmarks.getOrNull(index)?.visibility()?.orElse(0f) ?: 0f
+    }
     if (visibilities.any { it < VISIBILITY_THRESHOLD }) return null
 
-    val vector1x = (point1.x() - vertex.x()) * width
-    val vector1y = (point1.y() - vertex.y()) * height
-    val vector2x = (point2.x() - vertex.x()) * width
-    val vector2y = (point2.y() - vertex.y()) * height
-    val magnitude = hypot(vector1x.toDouble(), vector1y.toDouble()) *
-      hypot(vector2x.toDouble(), vector2y.toDouble())
+    val vector1x = (point1.x() - vertex.x()).toDouble()
+    val vector1y = (point1.y() - vertex.y()).toDouble()
+    val vector1z = (point1.z() - vertex.z()).toDouble()
+    val vector2x = (point2.x() - vertex.x()).toDouble()
+    val vector2y = (point2.y() - vertex.y()).toDouble()
+    val vector2z = (point2.z() - vertex.z()).toDouble()
+    val magnitude = sqrt(vector1x * vector1x + vector1y * vector1y + vector1z * vector1z) *
+      sqrt(vector2x * vector2x + vector2y * vector2y + vector2z * vector2z)
     if (magnitude == 0.0) return null
-    val cosine = min(1.0, max(-1.0, (vector1x * vector2x + vector1y * vector2y) / magnitude))
+    val cosine = min(
+      1.0,
+      max(-1.0, (vector1x * vector2x + vector1y * vector2y + vector1z * vector2z) / magnitude),
+    )
     return Math.toDegrees(acos(cosine))
   }
 

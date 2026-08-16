@@ -57,8 +57,9 @@ passed a physical-phone camera acceptance.
 ## On-device pose integration
 
 The Android development path now lives in `apps/mobile/modules/adaptfit-pose`. It runs
-MediaPipe Pose Landmarker on-device and emits left/right joint angles plus confidence.
-Landmarks, frames, and images stay in native code. `apps/mobile/src/lib/tracking` ports
+MediaPipe Pose Landmarker on-device and emits left/right 3D world-landmark joint angles
+plus confidence. Image landmarks are used only for visibility. Landmarks, frames, and
+images stay in native code. `apps/mobile/src/lib/tracking` ports
 the Python analyzer; seated biceps curl is the first calibrated recipe. Guest mode still
 uses a labeled timer when the native module is missing (Expo Go). Live mode uploads
 allowlisted `RepMetric`s from on-device counts, range, and confidence when the native
@@ -71,7 +72,8 @@ at runtime. Inference stops on unmount, navigation away, or backgrounding.
 
 Keep this split:
 
-- Native: camera frames, MediaPipe Pose Landmarker, joint visibility, and joint angles.
+- Native: camera frames, MediaPipe Pose Landmarker, image-landmark visibility, and
+  3D world-landmark joint angles.
 - TypeScript: the `exercise_analyzer.py` state machine (target then return angle,
   bilateral reps, sets/rest, ROM).
 - JavaScript/API: allowlisted `RepMetric` fields and known `feedbackCodes` only.
@@ -179,7 +181,7 @@ The application now lives in `apps/mobile` and includes:
   on-device pose range/confidence when the native module produced them. Simulated guest
   form values are never persisted to the backend.
 - An Android-first local Expo module under `apps/mobile/modules/adaptfit-pose` that runs
-  MediaPipe Pose Landmarker on-device and emits joint angles only. The TypeScript port of
+  MediaPipe Pose Landmarker on-device and emits 3D world-landmark joint angles only. The TypeScript port of
   `exercise_analyzer.py` counts biceps-curl reps from those angles. Session complete and
   analysis show on-device range when samples exist; they do not invent control or
   stability scores. Expo Go cannot load this module; use

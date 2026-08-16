@@ -17,6 +17,8 @@ product decisions across the complete `docs/` set.
 - Use Node.js/TypeScript/Fastify for the API.
 - Keep validation and public types in `packages/contracts`.
 - Keep compatibility, recommendation, generation, and analytics algorithms pure in `packages/domain`.
+- Keep the on-device intelligence runtime in `packages/intelligence`. Do not import it from
+  `apps/mobile`, `apps/api`, `apps/web`, `@peddie/contracts`, or `@peddie/domain`.
 - Keep Supabase SQL under `supabase/migrations` and deterministic fixtures under `supabase/seed.sql`.
 - Do not put business rules directly in route handlers.
 - Build the product client with React Native and Expo for iOS and Android under
@@ -72,6 +74,8 @@ For database changes, also run local Supabase reset/migrations, seed validation,
   must not be treated as the primary application architecture.
 - `@peddie/contracts` contains TypeBox schemas for movement profiles, compatibility, workout generation, errors, references, and pagination.
 - `@peddie/domain` contains the deterministic `compatibility-v1` and `generation-v1` engines plus the 24-exercise catalog and tests.
+- `@peddie/intelligence` contains the isolated on-device intelligence runtime (event bus,
+  tracker, orchestrator, tool validation). Product clients and the API must not import it.
 - Supabase CLI configuration, nine ordered migrations, deterministic catalog seed, RLS isolation tests, atomic profile/item replacement RPCs, and transactional session lifecycle RPCs are now present. A disposable local PostgreSQL run passes them; Docker-backed `supabase db reset` and advisors remain to be run when the environment supports them.
 - The API now has typed error envelopes, request IDs, optional Supabase Auth verification, OpenAPI output, rate limiting, repository injection, public reference/exercise routes, authenticated compatibility lookup, movement-profile writes, workout generation, manual workouts, idempotency, optimistic edits, and archival.
 - The API now also exposes authenticated `/v1/users/me` and `/v1/settings` reads/patches through memory and Supabase repository adapters; nested settings patches are merged and validated.

@@ -22,6 +22,8 @@ optional cloud history are in
 - `packages/contracts` (`@peddie/contracts`): TypeBox request/response schemas and public types.
 - `packages/domain` (`@peddie/domain`): deterministic `compatibility-v1`, `generation-v1`, and
   analytics rules. No Fastify or Supabase imports.
+- `packages/intelligence` (`@peddie/intelligence`): isolated on-device intelligence runtime.
+  Not imported by the mobile app or API.
 - `supabase`: migrations, RLS policies, lifecycle RPCs, and deterministic catalog seed data.
 - `prisma`: typed application models generated from the canonical Supabase schema.
 - `model`: desktop MediaPipe calibration lab. It is not the mobile runtime.

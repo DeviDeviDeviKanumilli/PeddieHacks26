@@ -25,6 +25,12 @@ Last updated: 2026-08-16.
 13. [React Native Mobile Application](13-react-native-mobile.md)
 14. [Visual Assets and Anatomy System](14-visual-and-anatomy-system.md)
 
+## On-Device Intelligence Architecture
+
+Contracts for profile-aware generation, the on-device motion pipeline, local tool
+orchestration, accessible guidance, and privacy-first sync live in
+[On-Device Intelligence Architecture](architecture/README.md).
+
 ## Architecture Decisions
 
 - React Native and Expo power the iOS and Android client under `apps/mobile`.

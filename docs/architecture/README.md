@@ -8,6 +8,9 @@ cloud sync.
 These documents define contracts, trust boundaries, and component responsibilities. They
 do not replace the product specifications in the parent `docs/` folder.
 
+The isolated TypeScript runtime lives in `packages/intelligence`. It is not imported by
+`apps/mobile` or `apps/api`.
+
 ## Layers
 
 1. User profile and workout generation

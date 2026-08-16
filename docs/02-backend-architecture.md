@@ -1,4 +1,4 @@
-# Application Architecture
+# Backend Architecture
 
 ## Workspace
 
@@ -80,7 +80,7 @@ scripts/
 - `supabase`: Ordered migrations, grants, RLS, database functions, taxonomies, and reproducible seed data.
 - `prisma`: Introspected typed model schema and Prisma Client generation target. It is not the owner of Supabase RLS, triggers, or RPC migrations.
 
-## Mobile presentation boundaries
+## Mobile Presentation Boundaries
 
 The mobile client owns presentation choices that do not belong in the API or database:
 
@@ -98,7 +98,7 @@ The mobile client owns presentation choices that do not belong in the API or dat
 - Progress range selection is presentation state, but its UTC bounds are passed unchanged to
   the live `/v1/progress/activity` request. Guest mode applies those same bounds locally.
 
-## Runtime modes
+## Runtime Modes
 
 The React Native mobile client supports two explicit data paths:
 
@@ -133,7 +133,7 @@ plan uses `guest-workout-1`, so those starts stay on-device unless a hosted work
 supplied. The API generation and session routes remain implemented for hosted smoke and
 the legacy web prototype.
 
-## Live request flow
+## Live Request Flow
 
 ```text
 React Native client
@@ -153,7 +153,7 @@ request-scoped Supabase client carries the bearer token into auth-sensitive RPCs
 Public catalog reads use the `anon` Postgres role. The secret/service key is server-only
 and is isolated to Auth-user deletion; there is no client-facing service-key path.
 
-## Camera and metrics flow
+## Camera and Metrics Flow
 
 ```text
 native camera permission
@@ -172,7 +172,7 @@ stores derived metrics only. It intentionally has no pose-estimation implementat
 Expo Go still uses a labeled simulated timer; Android development builds count from
 on-device angles. The Python prototype under `model/` is a desktop calibration lab; the
 mobile runtime is the native module in `apps/mobile/modules/adaptfit-pose`. See
-[the on-device pose plan](13-react-native-mobile.md#on-device-pose-integration).
+[On-Device Pose Integration](13-react-native-mobile.md#on-device-pose-integration).
 
 ## Dependencies
 
@@ -193,7 +193,7 @@ mobile runtime is the native module in `apps/mobile/modules/adaptfit-pose`. See
 
 Pin versions and commit the pnpm lockfile.
 
-## Module boundaries
+## Module Boundaries
 
 - `apps/mobile/app`: route-level onboarding, discovery, compatibility, camera,
   session, progress, and analysis UI.
@@ -214,7 +214,7 @@ Pin versions and commit the pnpm lockfile.
 
 Write operations that need atomicity use reviewed Postgres functions or a single transaction-safe operation. Route handlers must not contain compatibility or analytics algorithms.
 
-## Authentication boundary
+## Authentication Boundary
 
 The mobile client calls Supabase Auth directly for signup, login, logout, and token refresh
 when live configuration is present. It sends the resulting access token to the Fastify

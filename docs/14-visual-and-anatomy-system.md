@@ -7,7 +7,7 @@ illustrations make the mobile experience welcoming, while a deterministic SVG co
 shows movement constraints and muscle emphasis. Exercise eligibility never depends on the
 raster images.
 
-## Illustration library
+## Illustration Library
 
 The generated PNG assets live under `apps/mobile/assets/illustrations`:
 
@@ -26,7 +26,7 @@ Each exercise has a `visualKey`, not a unique image requirement. New exercises s
 of the existing movement-family keys through `inferVisualKey`; a new asset is justified
 only when no current family communicates the posture or equipment safely.
 
-## Movement marks
+## Movement Marks
 
 Compact exercise and collection thumbnails use the code-native
 `apps/mobile/src/components/MovementMark.tsx` component. It maps the four exercise categories to
@@ -48,7 +48,7 @@ The earlier generated files under `apps/mobile/assets/movement-marks` are retain
 experiments, but the live list and collection UI must use `MovementMark` rather than importing
 those bitmaps. This keeps thumbnails reusable, accessible, and independent of image load timing.
 
-## Canonical muscle attributes
+## Canonical Muscle Attributes
 
 The native `Exercise` model includes `muscleActivations` entries with:
 
@@ -63,7 +63,7 @@ deterministic primary/supporting hierarchy from their ordered reviewed muscle la
 The intensity is exercise emphasis, not measured exertion, pain, diagnosis, or a clinical
 score. UI copy must preserve that distinction.
 
-## Reusable anatomy component
+## Reusable Anatomy Component
 
 `apps/mobile/src/components/AnatomyMap.tsx` draws front and back figures entirely with
 React Native SVG paths. Each figure is assembled from connected head, neck, torso,
@@ -88,7 +88,7 @@ The visual map always has a text equivalent. Profile editing retains labeled 52-
 buttons for each selectable region. Exercise and progress maps list highlighted muscle
 names, roles, and intensity values so color is never the only signal.
 
-## Workout and history aggregation
+## Workout and History Aggregation
 
 `combineMuscleLoad` sums exercise intensities by canonical region. `activationsFromLoad`
 normalizes those totals into relative primary, supporting, and stabilizing roles for a
@@ -99,7 +99,7 @@ Hosted progress currently exposes aggregate activity rather than historical musc
 rows, so the live progress map uses locally completed session attributes until a reviewed
 backend aggregate is added. It must not fabricate server-derived muscle history.
 
-## Adding an exercise
+## Adding an Exercise
 
 When adding a reviewed exercise:
 
@@ -110,7 +110,7 @@ When adding a reviewed exercise:
 4. Verify the front/back map and text chips communicate the same primary/supporting roles.
 5. Add a mapping test before releasing the catalog change.
 
-## Image-generation record
+## Image Generation Record
 
 The built-in image-generation tool produced the project-bound raster assets. Prompts asked
 for inclusive adults, structurally plausible mobility equipment, preserved exercise poses,

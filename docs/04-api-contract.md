@@ -39,7 +39,7 @@ The shared TypeBox definitions live in `packages/contracts`. They are the source
 truth for request/response validation and are intentionally independent of any web
 or mobile client implementation.
 
-## Public routes
+## Public Routes
 
 ```http
 GET /healthz
@@ -85,7 +85,7 @@ to the Supabase repository boundary, which creates a request-scoped client with 
 token's `Authorization` header so Postgres RLS evaluates the real signed-in identity.
 Token verification alone is not used as an authorization substitute.
 
-## Profile routes
+## Profile Routes
 
 ```http
 GET    /v1/users/me
@@ -107,7 +107,7 @@ treated as success inside the deletion adapter. After a successful deletion, a n
 client retry is expected to fail authentication with `401` because the identity no
 longer exists. The route returns `503` when the service role key is not configured.
 
-## Exercise and workout routes
+## Exercise and Workout Routes
 
 ```http
 GET   /v1/exercises/:exerciseId/compatibility
@@ -137,7 +137,7 @@ the current movement profile. Item replacement requires the current workout vers
 re-evaluates compatibility, and requires exact caution acknowledgements for a newly
 selected caution exercise.
 
-## Session routes
+## Session Routes
 
 ```http
 POST   /v1/workout-sessions
@@ -166,7 +166,7 @@ form, ROM, and fatigue fields. On-device pose may add allowlisted range and conf
 
 Metrics accept no raw video, image, landmark, coordinate, or arbitrary feedback fields. A batch contains at most 100 reps and 64 KB.
 
-## Progress routes
+## Progress Routes
 
 ```http
 GET /v1/progress/summary
@@ -186,7 +186,7 @@ progress rebuilds, and deletion use owner-checked PostgreSQL functions so a clie
 retry cannot partially apply a lifecycle operation. The API computes the documented
 analysis from stored derived metrics and persists only the aggregate summary.
 
-## Status codes
+## Status Codes
 
 - `400`: malformed request.
 - `401`: missing or invalid authentication.

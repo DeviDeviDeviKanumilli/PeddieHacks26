@@ -1,6 +1,6 @@
 # React Native Mobile Application
 
-## Product platform
+## Product Platform
 
 AdaptFit is a native mobile product for iOS and Android. React Native and Expo are the
 required client stack, and the primary application belongs in `apps/mobile`. The existing
@@ -21,7 +21,7 @@ The tab bar is hidden during those focused routes. Root and onboarding stacks di
 swipe-back (`gestureEnabled: false`) because `GO_BACK` fails when the tab stack is not in
 history, including after a Metro reload.
 
-## Mobile architecture
+## Mobile Architecture
 
 - Use Expo Router and strict TypeScript.
 - Use native safe areas, keyboard handling, permissions, haptics, speech, and application
@@ -43,7 +43,7 @@ compatibility explanations, reviewed exercise details, workout generation and ed
 guided sessions, pause/rest behavior, completion, analysis, progress, history, and account
 deletion.
 
-## Camera and pose boundary
+## Camera and Pose Boundary
 
 Camera use is optional. Permission is requested only after a user action, and every
 camera-assisted route provides an equally prominent path that continues without tracking.
@@ -59,7 +59,7 @@ form measurements. Android development builds run MediaPipe on-device and emit a
 rep metrics and known feedback codes rather than raw landmarks. That path has not yet
 passed a physical-phone camera acceptance.
 
-## On-device pose integration
+## On-Device Pose Integration
 
 The Android development path now lives in `apps/mobile/modules/adaptfit-pose`. It runs
 MediaPipe Pose Landmarker on-device and emits left/right joint angles plus confidence.
@@ -108,7 +108,7 @@ Physical devices must use a LAN IP or hosted API origin, not `localhost`.
 If lite detection is weak, try a larger off-the-shelf MediaPipe pose model. Do not train
 a custom pose network for this milestone.
 
-## Next device pass
+## Next Device Validation
 
 The Mac-side module and session wiring are in the repository. They are not proven until
 a development build runs on the Android test phone:
@@ -139,7 +139,7 @@ a development build runs on the Android test phone:
 - Give the interactive body map an equivalent searchable/list-based control.
 - Keep live coaching brief and present one actionable correction at a time.
 
-## Mobile delivery and acceptance
+## Mobile Delivery and Acceptance
 
 - Provide iOS and Android development, preview, and production build profiles.
 - Run React Native component tests and Maestro acceptance flows on both platforms.
@@ -151,7 +151,7 @@ a development build runs on the Android test phone:
   visibly adapt, understand the reason, complete a camera-optional workout, review
   metrics-first analysis, and see progress in guest and authenticated modes.
 
-## Implemented mobile milestone
+## Current Implementation
 
 The application now lives in `apps/mobile` and includes:
 
@@ -208,7 +208,7 @@ communicate posture or equipment on welcome/detail surfaces, while compact disco
 collection rows use native vector marks. No route should render a blank thumbnail while waiting
 for an optional bitmap asset.
 
-## Session setup and multi-exercise flow
+## Session Setup and Multi-Exercise Flow
 
 Workout setup (`apps/mobile/src/app/session/setup.tsx`) reviews remaining planned items
 before the first or next movement starts.

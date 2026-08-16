@@ -1,4 +1,4 @@
-# PeddieHacks26 Agent Instructions
+# AdaptFit Agent Instructions
 
 ## Scope
 
@@ -8,11 +8,11 @@ truth for server behavior. The existing `apps/web` code is a legacy reference pr
 not the product target. Do not expand or redesign it unless the user explicitly requests
 legacy-web work.
 
-Read `docs/README.md`, `docs/13-react-native-mobile.md`, and the relevant numbered plan
-before changing behavior. Keep implementation aligned with the mobile product decisions
-across the complete `docs/` set.
+Read `docs/README.md`, `docs/13-react-native-mobile.md`, and the relevant numbered
+specification before changing behavior. Keep implementation aligned with the mobile
+product decisions across the complete `docs/` set.
 
-## Architecture rules
+## Architecture Rules
 
 - Use Node.js/TypeScript/Fastify for the API.
 - Keep validation and public types in `packages/contracts`.
@@ -27,7 +27,7 @@ across the complete `docs/` set.
 - Never accept or persist raw video, images, audio, pose landmarks, or arbitrary user feedback text.
 - Never use Supabase secret/service keys in client-facing code.
 
-## Supabase rules
+## Supabase Rules
 
 - Read the current Supabase skill guidance before schema, auth, RLS, or migration work.
 - Use the Supabase CLI to create migration filenames; do not invent timestamps.
@@ -50,7 +50,7 @@ pnpm build
 
 For database changes, also run local Supabase reset/migrations, seed validation, RLS tests, and advisors where available. Update the relevant docs in the same change whenever behavior, schema, API, safety, deployment, or testing expectations change.
 
-## Git cadence
+## Git Cadence
 
 - Work in small slices that can be committed within 10 minutes.
 - Commit every semimajor verified change with a specific message.
@@ -58,7 +58,7 @@ For database changes, also run local Supabase reset/migrations, seed validation,
 - Never commit secrets, local `.env` files, generated credentials, or real user data.
 - Before pushing, confirm `git diff --check`, tests, current branch, and remote target.
 
-## Current status
+## Current Status
 
 - The React Native product client lives under `apps/mobile`: guest mode, optional
   Supabase Auth and Fastify live mode, onboarding, discovery, workouts, camera-optional

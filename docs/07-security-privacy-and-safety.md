@@ -1,6 +1,6 @@
 # Security, Privacy, and Safety
 
-## Data posture
+## Data Posture
 
 Movement profiles and workout metrics are sensitive personal data. Store only what is required for personalization and progress.
 
@@ -12,7 +12,7 @@ Never store:
 - Birth dates or unnecessary identity attributes.
 - Data for model training or advertising.
 
-## Authentication and secrets
+## Authentication and Secrets
 
 - Supabase Auth owns authentication.
 - API validates bearer tokens and creates a request-scoped user context. Private
@@ -32,7 +32,7 @@ Never store:
 - Do not use editable user metadata for authorization.
 - Use `security_invoker` for exposed views.
 
-## API protections
+## API Protections
 
 - TypeBox schemas use `additionalProperties: false`.
 - Response schemas prevent accidental field leakage.
@@ -56,7 +56,7 @@ generation, and deletion limits key authenticated requests by verified user ID;
 metrics key by user and exercise-session ID; public catalog limits key by client IP.
 The current in-memory limiter is appropriate for the single-replica demo only.
 
-## Wellness guardrails
+## Wellness Guardrails
 
 - Position the product as general wellness.
 - Return general stop guidance and safety-warning codes.
@@ -74,7 +74,7 @@ Hiding the Expo developer-tools floating button in development is a UI choice so
 does not cover product controls. Shake still opens the developer menu. That change is not
 a privacy control and does not affect the camera or metrics boundary.
 
-## Deletion and retention
+## Deletion and Retention
 
 - Retain derived metrics until the user deletes a session or account.
 - Session deletion removes metrics, summaries, events, and recomputes daily progress.
@@ -85,9 +85,9 @@ a privacy control and does not affect the camera or metrics boundary.
   The API therefore validates every token through `auth.getUser()` instead of trusting
   offline claims. The old token receives `401` after successful deletion, and clients
   must also clear their local session.
-## Database implementation status
+## Database Implementation Status
 
-### Implemented database controls
+### Implemented Database Controls
 
 - Every application table is forced through RLS.
 - Public roles receive explicit `SELECT` grants only for active reference/catalog rows.

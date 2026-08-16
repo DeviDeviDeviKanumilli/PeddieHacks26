@@ -1,6 +1,6 @@
 # Testing and Acceptance
 
-## Unit tests
+## Unit Tests
 
 - Body-region state matrix.
 - Capability state matrix.
@@ -15,7 +15,7 @@
 - Mobile session-flow item indexes and next-item advancement.
 - Guest planner equipment **None** still fills a chair-based multi-exercise plan.
 
-## Database and RLS tests
+## Database and RLS Tests
 
 - Anonymous users read only active public catalog/reference rows.
 - User A cannot read or modify User B data.
@@ -27,7 +27,7 @@
 - Session and account deletion cascade correctly.
 - Catalog source validation rejects incomplete exercises.
 
-## API tests
+## API Tests
 
 - Missing, expired, and malformed tokens.
 - Unknown input-field rejection.
@@ -39,7 +39,7 @@
 - Invalid state transitions return `409`.
 - OpenAPI matches runtime schemas.
 
-## React Native mobile client tests
+## React Native Mobile Client Tests
 
 - Every Expo Router route renders through native navigation and unknown/deep links reach
   the designed recovery screen.
@@ -76,7 +76,7 @@
 - Layouts remain usable on supported phone and tablet sizes, Dynamic Type, reduced
   motion, and high contrast, with at least 44-point iOS and 48dp Android targets.
 
-## Seed tests
+## Seed Tests
 
 - Exactly 24 active exercises.
 - Exactly 6 tracking profiles.
@@ -85,7 +85,7 @@
 - Every tracking profile references known feedback codes.
 - All slugs and reference IDs are unique and stable.
 
-## Mobile guest-mode acceptance
+## Mobile Guest-Mode Acceptance
 
 1. Start the Expo development server without live client environment variables and open
    the application on iOS and Android.
@@ -101,7 +101,7 @@
 6. Inspect mobile network requests and confirm that no raw media, frames, audio, pose
    landmarks, or coordinates leave the device.
 
-## Hosted live-mode acceptance
+## Hosted Live-Mode Acceptance
 
 1. Sign in with the demo account.
 2. Set both knees and standing to avoid; set seated posture and stable chair to available.
@@ -118,7 +118,7 @@
 11. Confirm iOS and Android preview builds reach only the configured HTTPS API, deep links
     resolve correctly, and no unapproved API origin is used.
 
-## CI gates
+## CI Gates
 
 GitHub Actions (`.github/workflows/ci.yml`) runs:
 
@@ -150,9 +150,9 @@ pnpm --filter @peddie/mobile build
 Mobile guest-mode acceptance remains a release gate even when hosted Supabase credentials
 are unavailable. The hosted live-mode scenario and database tests are environment-gated.
 
-## Current implementation status
+## Current Implementation Status
 
-### Current automated gates
+### Current Automated Gates
 
 - `pnpm format`
 - `pnpm typecheck`

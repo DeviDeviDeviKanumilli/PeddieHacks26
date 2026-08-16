@@ -1,6 +1,6 @@
 # Scope and Requirements
 
-## Product
+## Product Overview
 
 Build a general-wellness fitness product for disabled adults and people with temporary
 or chronic movement limitations, including simple knee or back pain. A React Native
@@ -20,7 +20,7 @@ movement profile
   -> history and progress
 ```
 
-## Required behavior
+## Functional Requirements
 
 - A user can describe preferred, limited, neutral, and avoided body regions.
 - A user can describe available, limited, avoided, or unknown capabilities.
@@ -43,7 +43,7 @@ movement profile
 - A multi-exercise plan continues to the next remaining setup after each completion
   instead of treating the first finished movement as the whole workout.
 
-## Current mobile product shape
+## Current Mobile Experience
 
 The current iOS and Android client uses five tabs: Home, Explore, Workout, Progress, and
 Profile. Home is intentionally focused on the next action. Explore has two distinct modes:
@@ -70,7 +70,7 @@ Guest equipment **None** means a stable chair is assumed. The local recommended 
 return up to four compatible exercises; it is not limited to a 1–2 exercise shortlist. The
 Explore **For me** list still shows a short recommendation slice plus collections.
 
-## Out of scope
+## Out of Scope
 
 - A replacement desktop-first website or expansion of the legacy `apps/web` prototype.
 - Training a new pose model. On-device integration uses an off-the-shelf MediaPipe pose
@@ -83,7 +83,7 @@ Explore **For me** list still shows a short recommendation slice plus collection
 - External exercise APIs.
 - Supabase Storage, Realtime, Redis, queues, or background workers in v1.
 
-## Initial catalog
+## Initial Catalog
 
 Seed 24 reviewed exercises. Calibrate camera-derived tracking rules for:
 
@@ -120,7 +120,7 @@ Every exercise needs source metadata, requirements, equipment behavior, safety c
 - Mobile camera access is opt-in. Camera frames and pose landmarks stay on-device;
   only allowlisted derived metrics may cross the API boundary.
 
-## Success criteria
+## Success Criteria
 
 The mobile app must let a user navigate the supplied reference screens, configure movement
 constraints, choose camera tracking or continue without it, complete a guided exercise,

@@ -25,7 +25,7 @@
   one-line fix through `patches/expo-modules-jsi@57.0.4.patch`. Drop the patch after an
   upstream Expo release includes the fix or Xcode is 26.4+.
 
-### Hosted demo
+### Hosted Demo
 
 - One Supabase project for Auth/Postgres.
 - One Railway Fastify service.
@@ -37,7 +37,7 @@ The Expo/EAS account and store identities are deployment inputs. The API origin 
 present in the mobile build configuration, and public API and Supabase variables must be
 provided at build time.
 
-## React Native mobile client
+## React Native Mobile Client
 
 - Build iOS and Android development, preview, and production profiles with Expo/EAS.
   The committed `development` profile already sets `developmentClient: true`.
@@ -58,7 +58,7 @@ provided at build time.
   and renders compact list movement marks from native code. The API does not need to host or
   transform thumbnails for the Explore and collection rows.
 
-## Railway service
+## Railway Service
 
 - Listen on Railway's injected `PORT`.
 - Bind to host `::`.
@@ -74,7 +74,7 @@ provided at build time.
 - The committed `railway.toml` installs dependencies with pnpm, builds all workspaces,
   starts only `@peddie/api`, and applies restart limits.
 
-## API environment variables
+## API Environment Variables
 
 ```text
 NODE_ENV
@@ -103,7 +103,7 @@ Demo-user provisioning is a deployment task handled through the Supabase Auth
 dashboard or an approved operator workflow; the API does not expose a provisioning
 endpoint and the database seed does not contain credentials.
 
-## Mobile environment variables
+## Mobile Environment Variables
 
 ```text
 EXPO_PUBLIC_API_BASE_URL
@@ -116,7 +116,7 @@ values for live authentication. The publishable key is designed to be public and
 constrained by RLS; it is not interchangeable with the server-only service-role key.
 Example values belong in `apps/mobile/.env.example` without real credentials.
 
-## Release sequence
+## Release Sequence
 
 1. Run `pnpm format`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
    `pnpm openapi:check`, and `pnpm build`. The recursive gates must include `apps/mobile`.
@@ -133,7 +133,7 @@ Example values belong in `apps/mobile/.env.example` without real credentials.
 9. Verify `DELETE /v1/users/me` removes the Auth identity and cascaded application
    rows, then verify the old token receives `401` and the client clears local state.
 
-## Hosted smoke runner
+## Hosted Smoke Verification
 
 Run public health, readiness, and catalog checks:
 

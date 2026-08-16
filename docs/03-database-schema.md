@@ -10,7 +10,7 @@
 - Every user-owned table includes `user_id` to simplify RLS and indexing.
 - Reference/catalog rows are deactivated rather than deleted after use.
 
-## Reference tables
+## Reference Tables
 
 - `body_regions(id text primary key, label, side, parent_id, sort_order)`.
 - `capabilities(id text primary key, label, sort_order)`.
@@ -22,7 +22,7 @@ Body regions include five central regions and left/right versions of shoulder, u
 
 Capabilities include seated posture, standing, standing balance, floor transfer, supine, prone, kneeling, jumping, high impact, overhead reach, forward bend, torso rotation, left/right grip, left/right upper-body weight bearing, left/right lower-body weight bearing, and left/right single-leg balance.
 
-## User tables
+## User Tables
 
 - `profiles`: `user_id` references `auth.users`, display name, timezone, experience level, intensity preference, onboarding timestamp, and timestamps.
 - `movement_profiles`: one row per user, current version, and update timestamp.
@@ -34,7 +34,7 @@ Capabilities include seated posture, standing, standing balance, floor transfer,
 
 Do not store diagnoses, free-text pain descriptions, birth dates, clinician notes, or medical records.
 
-## Exercise tables
+## Exercise Tables
 
 - `exercises`: UUID, unique slug, family key, name, summary, category, position, difficulty, default prescription, ordered instruction JSONB, safety-cue JSONB, active flag, content version, and timestamps.
 - `exercise_sources`: source title, publisher, URL, publication year, access date, license note, review status, and reviewer role.
@@ -47,7 +47,7 @@ Do not store diagnoses, free-text pain descriptions, birth dates, clinician note
 - `exercise_tracking_profiles`: exercise, model-neutral tracking key, version, confidence floor, ROM/tempo targets, and supported metric flags.
 - `exercise_form_rules`: tracking profile, feedback code, metric comparison, threshold, severity, and message key.
 
-### Client visual metadata boundary
+### Client Visual Metadata Boundary
 
 The database stores reviewed exercise content, category, position, family key, muscles, and
 requirements; it does not store a separate image for every exercise. The mobile client derives
@@ -56,7 +56,7 @@ families for detail screens. Compact list rows use the client-only `MovementMark
 registry, while `AnatomyMap` renders from canonical muscle IDs and intensities. These visual
 choices must not become a second eligibility or analytics source of truth.
 
-## Workout and session tables
+## Workout and Session Tables
 
 - `workouts`: owner, source, title, status, requested duration, engine version, profile version, generation request snapshot, version, and timestamps.
 - `workout_items`: owner, workout, position, exercise, sets, reps or hold duration, rest seconds, and compatibility snapshot.
@@ -68,7 +68,7 @@ choices must not become a second eligibility or analytics source of truth.
 - `session_events`: append-only session state transitions and safe metadata.
 - `daily_progress`: user/date primary key with session, time, exercise, set, rep, and score totals.
 
-## Constraints and indexes
+## Constraints and Indexes
 
 - Unique slugs, user/reference pairs, workout positions, client request IDs, metric batch IDs, and `(exercise_session_id, set_number, rep_number)`.
 - Foreign-key indexes on every referencing column.
@@ -78,7 +78,7 @@ choices must not become a second eligibility or analytics source of truth.
 - Partial unique index for one active/paused/resting exercise per workout session.
 - No JSONB indexes until a measured query needs one.
 
-## RLS and grants
+## RLS and Grants
 
 - Enable and force RLS on every exposed table.
 - Anonymous users can select only active public catalog/reference rows.
@@ -88,7 +88,7 @@ choices must not become a second eligibility or analytics source of truth.
 - Grants and RLS policies are defined together in migrations.
 - Views use `security_invoker = true`.
 
-## Migrations and seed
+## Migrations and Seed
 
 Create migrations through the Supabase CLI. The expected order is:
 
@@ -124,7 +124,7 @@ new Supabase projects where public-schema tables are no longer exposed automatic
 RLS remains enabled and forced independently of those grants. See the [Supabase Data
 API exposure change](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically).
 
-## Prisma ORM boundary
+## Prisma ORM Boundary
 
 `prisma/schema.prisma` is introspected from the existing `public` tables plus the
 `auth.users` foreign-key target. `prisma.config.ts` uses `DIRECT_URL` for CLI

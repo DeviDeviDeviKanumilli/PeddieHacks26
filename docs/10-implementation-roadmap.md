@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-## Phase 1 - Documentation and scaffold
+## Phase 1 — Documentation and Workspace Foundation
 
 - Create this `docs/` set.
 - Initialize pnpm workspace.
@@ -13,7 +13,7 @@ Status: complete. The pnpm workspace, strict TypeScript, Biome, Vitest, Fastify
 health route, shared contracts, deterministic domain engines, 24-record domain
 catalog, and GitHub CI workflow are committed and pushed.
 
-## Phase 2 - Supabase foundation
+## Phase 2 — Supabase Foundation
 
 - Initialize local Supabase configuration.
 - Create ordered migrations.
@@ -30,7 +30,7 @@ deletion, account-deletion boundary, and mandatory disposable PostgreSQL CI chec
 complete. Docker-backed reset, advisor output, and hosted smoke execution remain
 environment-gated.
 
-## Phase 3 - API foundation
+## Phase 3 — API Foundation
 
 - Implement environment validation.
 - Implement auth/request context.
@@ -48,7 +48,7 @@ profile/settings routes, and all scoped authenticated resources are complete in 
 repository-injected API. Supabase private repositories now receive the request bearer
 token so hosted RLS is exercised with the real user identity.
 
-## Phase 4 - Personalization and compatibility
+## Phase 4 — Personalization and Compatibility
 
 - Implement profile/settings routes.
 - Implement pure compatibility rules.
@@ -61,7 +61,7 @@ Status: domain rules, persistence-backed movement/profile/settings routes,
 compatibility responses, deterministic alternatives, atomic item replacement, and API
 integration tests are complete for the current backend scope.
 
-## Phase 5 - Workouts
+## Phase 5 — Workouts
 
 - Implement workout generation.
 - Implement manual workouts.
@@ -74,7 +74,7 @@ Status: generated and manual workout creation, deterministic compatibility check
 idempotent client request IDs, list/get, optimistic patching, archive behavior, and
 workout-session creation are implemented and covered by API tests.
 
-## Phase 6 - Sessions and analytics
+## Phase 6 — Sessions and Analytics
 
 - Implement workout and exercise state machines.
 - Implement metric batch ingestion and deduplication.
@@ -89,7 +89,7 @@ helpers, contract schemas, memory/Supabase repositories, transactional lifecycle
 functions, derived metric ingestion, completion summaries, history, and progress API
 routes are complete. Hosted verification and deletion smoke tests remain.
 
-## Phase 7 - Deletion, security, and deployment
+## Phase 7 — Deletion, Security, and Deployment
 
 - Implement session deletion and account deletion.
 - Run Supabase advisors and resolve high-severity findings.
@@ -104,7 +104,7 @@ Railway config-as-code, mandatory clean-database CI, and a guarded hosted smoke 
 are implemented. Hosted migration, advisor, load, and smoke-test execution remain
 deployment-gated.
 
-## Phase 8 — Prisma ORM migration
+## Phase 8 — Prisma ORM Migration
 
 - Add Prisma 7 with the PostgreSQL driver adapter and generated client.
 - Introspect the existing public schema without replacing Supabase migrations.
@@ -119,9 +119,9 @@ Exit criteria: clean checkout generation/build, RLS-scoped Prisma smoke check, e
 SQL security suite, API tests, and OpenAPI checks all pass.
 
 Status: complete for the current backend scope. The deliberate Supabase RPC boundary
-remains documented in [the Prisma migration boundary](11-prisma-migration.md).
+remains documented in [Prisma Migration Boundary](11-prisma-migration.md).
 
-## Phase 9 - Legacy reference prototype
+## Phase 9 — Legacy Reference Prototype
 
 - Preserve the earlier reference prototype under `apps/web` as historical implementation
   material; it is not the product target.
@@ -136,7 +136,7 @@ remains documented in [the Prisma migration boundary](11-prisma-migration.md).
 Status: complete as a legacy prototype. It does not satisfy the React Native mobile
 application requirement.
 
-## Phase 10 - React Native iOS and Android application
+## Phase 10 — React Native iOS and Android Application
 
 - Add the Expo/React Native application under `apps/mobile`.
 - Implement native onboarding, five-tab navigation, discovery, exercise details,
@@ -182,7 +182,7 @@ guest flow still describes earlier Home/setup copy and needs a refresh.
 The Android pose module and session-metric wiring are in the repository. Signed
 preview/store builds, a physical Android camera pass, hosted credentials, hosted
 migration/advisor execution, and final network inspection remain environment-gated.
-See [the React Native mobile plan](13-react-native-mobile.md).
+See [React Native Mobile Application](13-react-native-mobile.md).
 
 On-device pose status, in the order imposed by the current Android test phone:
 

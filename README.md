@@ -1,78 +1,98 @@
-# PeddieHacks26
+# AdaptFit
 
-AdaptFit is a React Native adaptive fitness application for iOS and Android, designed for
-disabled adults and people with temporary or chronic movement limitations. The
-repository contains its Fastify API, shared TypeBox contracts, pure domain rules,
-Prisma/Supabase/Postgres data layer, and an earlier web reference prototype.
+AdaptFit is a general-wellness fitness application for disabled adults and people with temporary
+or chronic movement limitations. It turns a saved movement profile into compatible exercise
+discovery, generated or manual workouts, camera-optional guided sessions, and non-clinical
+progress history. It does not diagnose, treat, or provide rehabilitation.
+
+The product client is the React Native / Expo application in `apps/mobile` (iOS and Android).
+`apps/web` is a legacy reference prototype and is not the product target.
+
+Architecture, privacy, API, and acceptance requirements are in the
+[AdaptFit Product and Engineering Specifications](docs/README.md).
 
 ## Workspace
 
-- `apps/mobile`: primary React Native/Expo iOS and Android application target.
-- `apps/web`: legacy reference prototype; it is not the primary product client.
-- `apps/api`: Fastify service for profiles, compatibility, workouts, sessions, and
-  progress.
-- `packages/contracts`: public validation schemas and inferred TypeScript types.
-- `packages/domain`: deterministic compatibility, generation, and analytics rules.
-- `supabase`: migrations, RLS policies, database functions, and deterministic seed data.
+- `apps/mobile`: primary React Native/Expo client for iOS and Android.
+- `apps/web`: legacy web reference prototype; do not treat it as the product runtime.
+- `apps/api`: Fastify 5 service for profiles, compatibility, workouts, sessions, and progress.
+- `packages/contracts` (`@peddie/contracts`): TypeBox request/response schemas and public types.
+- `packages/domain` (`@peddie/domain`): deterministic `compatibility-v1`, `generation-v1`, and
+  analytics rules. No Fastify or Supabase imports.
+- `supabase`: migrations, RLS policies, lifecycle RPCs, and deterministic catalog seed data.
 - `prisma`: typed application models generated from the canonical Supabase schema.
-- `model`: development-only local MediaPipe pose and arm-angle prototype.
-- `docs`: product scope, architecture, API, privacy, deployment, testing, and roadmap.
+- `model`: desktop MediaPipe calibration lab. It is not the mobile runtime.
+- `docs`: [AdaptFit Product and Engineering Specifications](docs/README.md).
 
-## Mobile development status
+## Architecture
 
-Requirements are Node.js 24 through 26, pnpm 11.5.1, Expo-compatible iOS/Android tooling,
-and Supabase credentials only when running the API or using live authentication.
+The mobile client has two modes:
 
-The React Native workspace under `apps/mobile` is the implemented primary application. It
-runs through Expo on an iOS simulator, Android emulator, or physical device. Guest mode
-uses reviewed demo data and SQLite-backed device persistence, while live mode uses
-Supabase Auth and the bearer-aware Fastify API. Do not use the legacy `apps/web`
-prototype as the product runtime.
+- **Guest mode** uses reviewed demo data and SQLite on the device. It runs without API or
+  Supabase credentials.
+- **Live mode** uses Supabase Auth (publishable key only) and the bearer-aware Fastify API
+  when `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
+  `EXPO_PUBLIC_API_BASE_URL` are set.
 
-On-device pose tracking requires a development build (`pnpm dev:mobile:android:device`),
-not Expo Go. The first calibrated exercise is seated biceps curl.
+Route handlers in `apps/api` validate, authenticate, and orchestrate. Business rules live in
+`@peddie/domain`. Authenticated Supabase access evaluates hosted RLS with the caller's bearer
+token. Account deletion is the only path that uses a server-only service-role adapter.
 
-The current mobile UI keeps Home focused on one plan, one tip, and two quick actions;
-Explore separates **For me** recommendations and collections from the full **All exercises**
-catalog; compact lists use reusable colored movement marks; exercise detail keeps a small
-family illustration beside the name; Progress begins with a date-range selector, totals, and
-activity; and no-camera sessions show an accessible **Tracking off** badge with manual rep
-guidance.
+## Camera and Privacy
+
+Camera permission is optional and requested only when the user chooses tracking. The camera
+stream and pose processing stay on-device. Raw video, images, audio, and pose landmarks are
+never sent to or stored by the API; only allowlisted derived metrics may be uploaded.
+
+On-device pose uses MediaPipe Pose Landmarker in `apps/mobile/modules/adaptfit-pose` on
+Android development builds (`pnpm dev:mobile:android:device`). Expo Go cannot load that
+module. The first calibrated exercise is seated biceps curl. iOS currently uses an
+`expo-camera` preview and does not ship the native pose path. Guest Expo Go sessions use a
+labeled timer when the module is absent. Pose inference is a mobile-client responsibility;
+the backend does not perform it.
+
+## Requirements
+
+- Node.js 24 through 26 and pnpm 11.5.1
+- Expo-compatible iOS and/or Android tooling
+- Values from `.env.example` to run the API
+- Values from `apps/mobile/.env.example` only for live mode (guest mode works without them)
+
+## Run
 
 ```bash
+pnpm install --frozen-lockfile
+
 pnpm dev:mobile
 pnpm dev:mobile:ios
 pnpm dev:mobile:android
 ```
 
-To run the API, provide the server values shown in `.env.example` through your shell or
-deployment environment, then run:
+On-device Android pose requires a development build on a physical device, not Expo Go:
+
+```bash
+pnpm dev:mobile:android:device
+```
+
+To run the API, provide the server values in `.env.example`, then:
 
 ```bash
 pnpm dev:api
 ```
 
-The API runs at `http://localhost:3000`. The mobile client uses
-`EXPO_PUBLIC_API_BASE_URL` to reach it; physical devices must use a host address reachable
-from the device rather than `localhost`.
+The API listens at `http://localhost:3000`. Physical devices cannot reach the laptop through
+`localhost`; set `EXPO_PUBLIC_API_BASE_URL` to a LAN IP (and bind `HOST=0.0.0.0` on the API)
+or to a hosted origin.
 
-For live mode, configure `EXPO_PUBLIC_SUPABASE_URL`,
-`EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `EXPO_PUBLIC_API_BASE_URL`. Never put a
-Supabase service-role key, database URL, or another server secret in an `EXPO_PUBLIC_`
-variable.
+Never put a Supabase service-role key, database URL, or other server secret in an
+`EXPO_PUBLIC_` variable.
 
-## Camera and pose privacy
-
-Camera permission is optional and requested by the native app only when the user chooses
-tracking. The camera stream and pose processing stay on-device. Raw video, images, audio, and pose
-landmarks are not sent to or stored by the API; only allowlisted derived metrics may be
-uploaded. Guest feedback is explicitly labeled when simulated. Pose inference is a
-mobile-client responsibility and is intentionally not a backend responsibility.
+`pnpm dev` and `pnpm dev:web` start the legacy web prototype. They are not the product
+client.
 
 ## Verification
 
 ```bash
-pnpm install --frozen-lockfile
 pnpm format
 pnpm typecheck
 pnpm test
@@ -81,12 +101,12 @@ pnpm openapi:check
 pnpm build
 ```
 
-The recursive typecheck, test, and build commands cover both applications and the shared
-packages. GitHub Actions additionally creates a disposable PostgreSQL 17 database,
-applies all Supabase migrations and seed data, runs the SQL/RLS suite, and executes the
-RLS-scoped Prisma smoke test on every push to `main` and every pull request. See
-[the documentation index](docs/README.md) for the full architecture and acceptance
-requirements.
+`pnpm test:mobile` runs the React Native component suite. Guest Maestro flows live under
+`apps/mobile/.maestro` and require the Maestro CLI plus a built app. Database and RLS checks
+(`pnpm test:db`, `pnpm test:prisma`) need migrations and seed data applied against
+`SUPABASE_DB_URL` or `DATABASE_URL`.
 
-The focused native component suite is `pnpm test:mobile`; the committed Maestro guest
-flow is under `apps/mobile/.maestro` and requires the Maestro CLI plus a built app.
+GitHub Actions provisions PostgreSQL 17, applies every Supabase migration and seed row, and
+runs the SQL/RLS and Prisma smoke suites on every push to `main` and every pull request.
+
+This repository is named PeddieHacks26 after its original event; the product is AdaptFit.

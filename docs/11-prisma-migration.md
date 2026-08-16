@@ -22,7 +22,7 @@ This is intentional. Prisma introspection reports RLS and check constraints, but
 Prisma migrations cannot recreate the project-specific security and PL/pgSQL
 objects safely.
 
-## Runtime flow
+## Runtime Flow
 
 1. Fastify verifies the Supabase bearer token and records `userId` on the request.
 2. A Prisma repository opens an interactive transaction for private table access.
@@ -37,7 +37,7 @@ The application still includes explicit `user_id` filters even though RLS is ena
 Those filters make ownership intent visible in repository code and protect against
 accidental broad reads if a query is later moved to a privileged maintenance path.
 
-## Connection variables
+## Connection Variables
 
 - `DATABASE_URL`: runtime connection string used by `@prisma/adapter-pg`; prefer a
   pooled URL for Railway.
@@ -50,7 +50,7 @@ accidental broad reads if a query is later moved to a privileged maintenance pat
 Never put a service-role key in `DATABASE_URL`, a mobile app, browser code, or seed
 data. Do not log any of these values.
 
-## Schema update workflow
+## Schema Update Workflow
 
 1. Add or modify database objects in a new ordered `supabase/migrations/*.sql` file.
 2. Apply/reset the database with the Supabase CLI in local development.
@@ -72,7 +72,7 @@ supported for that release. Do not roll back the database by deleting Prisma
 migration history. Database changes are rolled forward through reviewed Supabase
 SQL migrations.
 
-## Current repository coverage
+## Current Repository Coverage
 
 - Prisma: catalog/reference data, movement profiles, user profiles/settings, readiness,
   workout CRUD, idempotency, owner-scoped session history, and progress reads.

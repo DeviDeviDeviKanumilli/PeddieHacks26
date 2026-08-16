@@ -1,6 +1,6 @@
 # Compatibility and Workout Generation
 
-## Profile states
+## Profile States
 
 The first implementation uses `compatibility-v1` and `generation-v1`. Both engines
 are pure TypeScript functions with stable ordering and no database or model calls,
@@ -21,7 +21,7 @@ unknown | available | limited | avoid
 
 Equipment uses explicit IDs. An empty equipment set means no equipment. Required equipment may use OR-groups such as stable chair OR wheelchair.
 
-## Hard filters
+## Hard Filters
 
 Exclude an exercise when:
 
@@ -33,7 +33,7 @@ Exclude an exercise when:
 - The exercise is inactive.
 - The exercise exceeds the user's requested intensity.
 
-## Caution results
+## Caution Results
 
 Return `caution` for:
 
@@ -59,7 +59,7 @@ Start at 50 and apply:
 
 Clamp to 0–100. Break ties by stable exercise slug. Every result includes the engine version.
 
-## Workout composition
+## Workout Composition
 
 - 5–10 minutes: 3 exercises.
 - 11–20 minutes: 4 exercises.
@@ -68,7 +68,7 @@ Clamp to 0–100. Break ties by stable exercise slug. Every result includes the 
 
 Use catalog defaults first, then adjust sets from 1–5 to target 85–110% of requested duration. Avoid consecutive high-demand work on the same region. Preserve variety by family and target region.
 
-## Mobile discovery surface
+## Mobile Discovery Surface
 
 The native Explore tab presents the same reviewed compatibility data in two intentionally
 different modes. **For me** shows a short personalized list after hard-incompatible exercises
@@ -80,7 +80,7 @@ server/domain compatibility result.
 
 If there are not enough compatible exercises, return `422 insufficientCompatibleExercises` with safe configuration suggestions. Never fill the workout with an incompatible exercise.
 
-## Mobile recommended planner
+## Mobile Recommended Planner
 
 The phone’s current recommended plan is not `generation-v1`. `apps/mobile/src/lib/guestWorkout.ts`
 filters the local catalog, scores by goals and focus regions, and takes up to four
@@ -101,7 +101,7 @@ until the screens call `POST /v1/workouts/generate`.
 
 Alternatives must pass hard compatibility filters, preserve the primary purpose, stay within one difficulty level, use available equipment, and prefer the same position and tracking support. Each alternative returns a stable explanation code and message.
 
-## Catalog review requirements
+## Catalog Review Requirements
 
 The 24 seeded exercises must include:
 

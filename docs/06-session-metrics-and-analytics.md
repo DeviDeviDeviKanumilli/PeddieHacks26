@@ -1,6 +1,6 @@
 # Session Metrics and Analytics
 
-## Workout-session states
+## Workout-Session States
 
 ```text
 active -> paused -> active
@@ -8,7 +8,7 @@ active -> resting -> active
 active|paused|resting -> completed|cancelled
 ```
 
-## Exercise-session states
+## Exercise-Session States
 
 ```text
 pending -> active
@@ -19,7 +19,7 @@ pending -> skipped
 
 Invalid transitions return `409 invalidStateTransition`.
 
-## Metric payload
+## Metric Payload
 
 Each rep may contain:
 
@@ -34,13 +34,13 @@ Each rep may contain:
 
 The API stores derived values only. Raw camera frames, images, audio, landmarks, coordinates, and arbitrary text are rejected.
 
-## Ingestion behavior
+## Ingestion Behavior
 
 Metrics are accepted while an exercise is active, paused, or resting. Clients must flush queued metrics before completion. Batches are deduplicated by `(exercise_session_id, batch_id)` and reps by `(exercise_session_id, set_number, rep_number)`.
 
 Metric batches are limited to 100 reps and 64 KB. The API returns accepted, duplicate, and rejected counts.
 
-## Completion transaction
+## Completion Transaction
 
 Exercise completion must atomically:
 
@@ -54,7 +54,7 @@ Exercise completion must atomically:
 
 Workout completion requires every child exercise to be completed, skipped, or cancelled. It updates daily progress once and is idempotent.
 
-## Analysis formulas
+## Analysis Formulas
 
 Only reps with confidence at least `0.60` contribute to form analytics. Low-confidence manually counted reps may contribute to completion.
 
@@ -81,11 +81,11 @@ Missing metrics are removed and the remaining weights are renormalized.
 
 Progress compares the current score with the previous three completed sessions for the same exercise. Until three sessions exist, use the previous completed session. Return both score delta and relative percentage; return null when there is no baseline.
 
-## Progress data
+## Progress Data
 
 `daily_progress` powers the activity grid, totals, and date-range summaries. Body coverage is calculated from completed exercises and muscle/body-region intensity metadata. Session deletion recomputes affected daily rows.
 
-## Mobile progress and tracking presentation
+## Mobile Progress and Tracking Presentation
 
 The native Progress tab uses the selected 7-day, 4-week, or 12-week UTC window for its top-line
 active time, workout, exercise, and rep totals, activity grid, muscle groups hit, and recent
@@ -98,7 +98,7 @@ when an authenticated session is synchronized. On-device pose sessions may also 
 allowlisted range and confidence. The client does not manufacture form, ROM, or fatigue
 measurements for a manual or guest-simulated session.
 
-## Mobile multi-exercise session flow
+## Mobile Multi-Exercise Session Flow
 
 A planned workout is a sequence of items, not a single exercise. Helpers in
 `apps/mobile/src/lib/sessionFlow.ts` parse `itemIndex`, resolve the current and next items,
@@ -134,7 +134,7 @@ path uses transactional lifecycle RPCs and rebuilds affected daily rows after se
 deletion. Unknown metric fields are rejected by the request validator rather than
 silently stripped.
 
-## Local MediaPipe prototype
+## Local MediaPipe Prototype
 
 The development-only Python tree lives under `model/` (not `models/`). The `model` git
 branch that added it is merged to `main`. It is a desktop OpenCV webcam lab, not the
@@ -169,4 +169,4 @@ Use this folder to calibrate angles on a laptop webcam. The analyzer is already 
 to `apps/mobile/src/lib/tracking`, and MediaPipe runs inside the Android development
 build. Remaining work is a physical-phone camera pass and per-exercise angle
 calibration, not a new pose network. See
-[the on-device pose plan](13-react-native-mobile.md#on-device-pose-integration).
+[On-Device Pose Integration](13-react-native-mobile.md#on-device-pose-integration).

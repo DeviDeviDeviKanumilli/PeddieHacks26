@@ -1,10 +1,10 @@
-# Market and Evidence Brief
+# Market and Evidence
 
 Last reviewed: 2026-08-16. Statistics are labeled by source-data year so older
 surveillance is not presented as a current 2026 measurement. The product facts in this
-brief are unchanged: constraint-first discovery, optional camera, and no clinical claims.
+document are unchanged: constraint-first discovery, optional camera, and no clinical claims.
 
-## Population and need
+## Population and Need
 
 The potential user population is large, but disability is not one homogeneous market.
 The product should segment by functional constraints and available movements rather
@@ -23,7 +23,7 @@ The U.S. figures are prevalence context, not a serviceable-market calculation. T
 not establish willingness to use or pay for this product. A credible commercial model
 needs interviews, prototype testing, acquisition-cost experiments, and retention data.
 
-## Health disparities
+## Health Disparities
 
 CDC's 2022 disability infographic reports the following age-adjusted comparisons:
 
@@ -51,7 +51,7 @@ by immobility, surgery, injury, medication, age, and specific condition; present
 single disability-wide correlation would be medically misleading. This product must
 not assess or claim to reduce clot risk.
 
-## Evidence that activity can help
+## Evidence That Activity Can Help
 
 The U.S. Physical Activity Guidelines state that physical activity reduces the risk of
 heart disease, stroke, high blood pressure, type 2 diabetes, depression, and several
@@ -83,7 +83,7 @@ exercise around their stated abilities. It cannot say its recommendation or pose
 diagnoses, treats, rehabilitates, prevents complications, or produces the same outcomes
 as supervised clinical care.
 
-## Competitive landscape
+## Competitive Landscape
 
 The market contains both broad fitness platforms and narrower adaptive products:
 
@@ -110,7 +110,7 @@ products already occupy that description. The sharper position is:
 > compatibility decision, handles equipment as optional or substitutable, and accepts
 > privacy-preserving form metrics without storing camera footage.
 
-## Initial market segment
+## Initial Market Segment
 
 The practical beachhead is adults who:
 
@@ -125,7 +125,7 @@ The practical beachhead is adults who:
 This deliberately excludes acute injury, unexplained severe pain, immediate post-op
 care, and users needing clinician-supervised rehabilitation.
 
-## Validation plan
+## Validation Plan
 
 Before treating the concept as product-market fit:
 

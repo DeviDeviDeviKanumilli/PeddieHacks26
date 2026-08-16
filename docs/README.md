@@ -1,29 +1,31 @@
-# PeddieHacks26 Product Plan
+# AdaptFit Product and Engineering Specifications
 
-This folder is the system source of truth for AdaptFit, a React Native iOS and Android
+This folder contains the product and engineering specifications for AdaptFit, a React Native iOS and Android
 application with a Fastify API, domain rules, Supabase data model, privacy posture, and
-mobile deployment plan.
+mobile deployment guidance. Local setup and commands are in the repository
+[README](../README.md). The product client is `apps/mobile`; `apps/web` is a legacy
+reference prototype only.
 
 Last updated: 2026-08-16.
 
-## Reading order
+## Contents
 
-1. [Scope and requirements](01-scope-and-requirements.md)
-2. [Backend architecture](02-backend-architecture.md)
-3. [Database schema](03-database-schema.md)
-4. [API contract](04-api-contract.md)
-5. [Compatibility and workout generation](05-compatibility-and-generation.md)
-6. [Session metrics and analytics](06-session-metrics-and-analytics.md)
-7. [Security, privacy, and safety](07-security-privacy-and-safety.md)
-8. [Deployment and operations](08-deployment-and-operations.md)
-9. [Testing and acceptance](09-testing-and-acceptance.md)
-10. [Implementation roadmap](10-implementation-roadmap.md)
-11. [Prisma migration boundary](11-prisma-migration.md)
-12. [Market and evidence brief](12-market-and-evidence.md)
-13. [React Native mobile application](13-react-native-mobile.md)
-14. [Visual assets and anatomy system](14-visual-and-anatomy-system.md)
+1. [Scope and Requirements](01-scope-and-requirements.md)
+2. [Backend Architecture](02-backend-architecture.md)
+3. [Database Schema](03-database-schema.md)
+4. [API Contract](04-api-contract.md)
+5. [Compatibility and Workout Generation](05-compatibility-and-generation.md)
+6. [Session Metrics and Analytics](06-session-metrics-and-analytics.md)
+7. [Security, Privacy, and Safety](07-security-privacy-and-safety.md)
+8. [Deployment and Operations](08-deployment-and-operations.md)
+9. [Testing and Acceptance](09-testing-and-acceptance.md)
+10. [Implementation Roadmap](10-implementation-roadmap.md)
+11. [Prisma Migration Boundary](11-prisma-migration.md)
+12. [Market and Evidence](12-market-and-evidence.md)
+13. [React Native Mobile Application](13-react-native-mobile.md)
+14. [Visual Assets and Anatomy System](14-visual-and-anatomy-system.md)
 
-## Locked decisions
+## Architecture Decisions
 
 - React Native and Expo power the iOS and Android client under `apps/mobile`.
 - The mobile client supports a persistent guest mode and can use Supabase Auth plus the
@@ -47,7 +49,7 @@ Last updated: 2026-08-16.
 - Seed 24 sourced exercises, with tracking rules for 6.
 - General wellness positioning for adults; no diagnosis, treatment, or rehabilitation claims.
 
-## Current state
+## Implementation Status
 
 AdaptFit's product target is the PDF-derived React Native experience under `apps/mobile`,
 including onboarding, discovery, exercise details and safety gates, native camera
@@ -68,7 +70,7 @@ next remaining item. Workout setup uses a paged carousel, a custom form-feedback
 and a start preview that always names the first remaining movement. Back exits use
 `router.replace` so they still work when the tab stack is not in history.
 
-### Current mobile presentation
+### Mobile Presentation
 
 The shipped mobile surface is intentionally compact and follows the reference hierarchy:
 
@@ -111,8 +113,8 @@ wiring now live in `apps/mobile`. Guest Expo Go still uses a labeled timer. The 
 pose step is a physical Android development build: install with
 `pnpm dev:mobile:android:device`, confirm no-camera still works, then calibrate curl on
 that camera. The backend never receives raw camera media or landmarks. See
-[session metrics](06-session-metrics-and-analytics.md) and
-[the React Native mobile plan](13-react-native-mobile.md).
+[Session Metrics and Analytics](06-session-metrics-and-analytics.md) and
+[React Native Mobile Application](13-react-native-mobile.md).
 
 Repeatable checks are available through `pnpm format`, `pnpm typecheck`, `pnpm test`,
 `pnpm build`, `pnpm openapi:check`, `pnpm test:integration`, and `pnpm test:db`.

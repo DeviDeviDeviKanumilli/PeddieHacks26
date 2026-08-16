@@ -186,17 +186,15 @@ See [React Native Mobile Application](13-react-native-mobile.md).
 
 On-device pose status, in the order imposed by the current Android test phone:
 
-1. Complete in the repository: `expo-dev-client`, a TypeScript port of
-   `exercise_analyzer.py` with tests, a biceps-curl recipe marked calibrated from the
-   desktop lab, an Android MediaPipe native module that emits angles (never landmarks),
-   compile-time bundling of `pose_landmarker_lite.task`, `pnpm dev:mobile:android:device`,
-   and complete/analysis/live upload wired to on-device range and confidence. Control and
-   stability scores are not invented locally. Expo Go still uses a labeled guest timer.
-2. Next: install that development build on the Android phone. Confirm the existing
-   camera preview and no-camera session still work. Use a LAN IP or hosted API URL, not
-   `localhost`. Expo Go is not a valid runtime for this step.
-3. Then: turn on seated-biceps-curl tracking on that phone and calibrate target/return
-   angles against the live camera. If lite detection is too weak, try a larger
+1. Complete in the repository: `expo-dev-client`, Android MediaPipe with corrected frame
+   rotation/timestamps, a native skeleton overlay, per-side confidence, a noise-resistant
+   TypeScript rep state machine, and derived range/accuracy/control/stability/form metrics.
+   No raw landmarks cross the native boundary or enter an API request.
+2. In progress on the physical Android phone: prove a stationary straight arm remains at
+   zero, then calibrate the seated-biceps-curl target/return thresholds against real reps.
+   Camera preview and no-camera sessions already run on that device.
+3. Then: enable the other five recipes one at a time after the same false-positive and
+   real-motion checks. If lite detection is too weak, try a larger
    off-the-shelf MediaPipe model. Do not train a custom pose network. Repeat for the
    other five tracking keys, then prove iOS parity before release.
 

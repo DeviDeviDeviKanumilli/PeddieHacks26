@@ -14,15 +14,29 @@ export default function CameraSetupScreen() {
   const query = new URLSearchParams(params).toString();
   const recipe = getTrackingRecipe(params.exercise ?? '');
   const nativePose = isPoseTrackingAvailable();
+  const isWallPushUp = params.exercise === 'wall-push-up';
+  const isKneeExtension = params.exercise === 'seated-knee-extension';
+  const setupTitle = isWallPushUp
+    ? 'Place the camera beside you.'
+    : isKneeExtension
+      ? 'Place the camera beside your chair.'
+      : 'Make space to move comfortably.';
+  const setupBody = isWallPushUp
+    ? 'Use a side view with your shoulder, elbow, wrist, hip, and knee visible. Keep the phone stable while you use the wall.'
+    : isKneeExtension
+      ? 'Use a side view with your hip, knee, and ankle visible. Keep your full lower leg in frame.'
+      : 'Place the phone where your working joints are visible. You can adjust or turn off tracking later.';
+  const readyText = isWallPushUp
+    ? 'Start with straight arms and keep your body in one line.'
+    : isKneeExtension
+      ? 'Start with your knee comfortably bent and your thigh supported.'
+      : 'Keep the full working area inside the guide.';
   return (
     <Screen>
       <View style={styles.intro}>
         <Eyebrow>Camera setup</Eyebrow>
-        <Title compact>Make space to move comfortably.</Title>
-        <Body muted>
-          Place the phone where your working joints are visible. You can adjust or turn off tracking
-          later.
-        </Body>
+        <Title compact>{setupTitle}</Title>
+        <Body muted>{setupBody}</Body>
       </View>
       <View style={styles.preview}>
         {appIsActive ? (
@@ -32,11 +46,6 @@ export default function CameraSetupScreen() {
             <CameraView facing="front" mirror style={StyleSheet.absoluteFill} />
           )
         ) : null}
-        <View style={styles.guide}>
-          <View style={styles.head} />
-          <View style={styles.torso} />
-          <View style={styles.base} />
-        </View>
         <View style={styles.local}>
           <Text style={styles.localText}>On-device preview</Text>
         </View>
@@ -44,7 +53,7 @@ export default function CameraSetupScreen() {
       <Card tone="success">
         <View style={styles.ready}>
           <Check color={colors.success} size={21} />
-          <Text style={styles.readyText}>Keep the full working area inside the guide.</Text>
+          <Text style={styles.readyText}>{readyText}</Text>
         </View>
       </Card>
       <Button icon={Check} onPress={() => router.replace(`/session/active?${query}`)}>
@@ -70,38 +79,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     height: 430,
     overflow: 'hidden',
-  },
-  guide: {
-    alignItems: 'center',
-    bottom: 35,
-    justifyContent: 'center',
-    left: 30,
-    position: 'absolute',
-    right: 30,
-    top: 35,
-  },
-  head: {
-    borderColor: colors.surface,
-    borderRadius: 99,
-    borderStyle: 'dashed',
-    borderWidth: 2,
-    height: 54,
-    width: 54,
-  },
-  torso: {
-    borderColor: colors.surface,
-    borderRadius: 40,
-    borderStyle: 'dashed',
-    borderWidth: 2,
-    height: 170,
-    marginTop: 8,
-    width: 120,
-  },
-  base: {
-    borderBottomColor: colors.surface,
-    borderBottomWidth: 2,
-    borderStyle: 'dashed',
-    width: 210,
   },
   local: {
     backgroundColor: 'rgba(20,20,30,0.72)',

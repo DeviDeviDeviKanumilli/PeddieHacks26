@@ -165,8 +165,10 @@ It is not production-ready as-is:
   `pose_landmarker_lite.task` is downloaded at runtime and is not gitignored. `main()`
   defaults `target_angle` to `50` while argparse defaults to `40`.
 
-Use this folder to calibrate angles on a laptop webcam. The analyzer is already ported
-to `apps/mobile/src/lib/tracking`, and MediaPipe runs inside the Android development
-build. Remaining work is a physical-phone camera pass and per-exercise angle
-calibration, not a new pose network. See
+Use this folder to compare angle recipes on a laptop webcam. Production analysis lives
+under `apps/mobile`: MediaPipe runs inside the Android development build, landmarks stay
+native for the skeleton overlay, and TypeScript requires a confirmed start, multi-frame
+target/return, intermediate motion, minimum range, and minimum duration before counting.
+It derives allowlisted range and quality scores per rep. Remaining work is physical-phone
+threshold calibration before enabling each recipe, not a new pose network. See
 [On-Device Pose Integration](13-react-native-mobile.md#on-device-pose-integration).

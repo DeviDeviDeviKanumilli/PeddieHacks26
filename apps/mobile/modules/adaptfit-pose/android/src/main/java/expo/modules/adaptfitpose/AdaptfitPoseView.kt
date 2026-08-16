@@ -3,14 +3,22 @@ package expo.modules.adaptfitpose
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.os.SystemClock
 import android.util.Log
+import android.view.View
+import android.widget.FrameLayout
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.LifecycleOwner
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -27,22 +35,43 @@ import kotlin.math.max
 import kotlin.math.min
 
 class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
+  override val shouldUseAndroidLayout = true
+
   private val onAngles by EventDispatcher()
-  private val previewView = PreviewView(context).also {
+  private val cameraContainer = FrameLayout(context).also {
     it.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+    addView(it)
+  }
+  private val previewView = PreviewView(context).also {
+    it.layoutParams = FrameLayout.LayoutParams(
+      FrameLayout.LayoutParams.MATCH_PARENT,
+      FrameLayout.LayoutParams.MATCH_PARENT,
+    )
     it.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
     it.scaleType = PreviewView.ScaleType.FILL_CENTER
-    addView(it)
+    cameraContainer.addView(it)
+  }
+  private val overlayView = PoseOverlayView(context).also {
+    it.layoutParams = FrameLayout.LayoutParams(
+      FrameLayout.LayoutParams.MATCH_PARENT,
+      FrameLayout.LayoutParams.MATCH_PARENT,
+    )
+    cameraContainer.addView(it)
   }
 
   private var poseLandmarker: PoseLandmarker? = null
   private var analysisExecutor: ExecutorService? = null
   private var cameraProvider: ProcessCameraProvider? = null
+  private var previewUseCase: Preview? = null
+  private var analysisUseCase: ImageAnalysis? = null
   private var trackingEnabled = false
   private var useFrontCamera = true
   private var leftLandmarks = intArrayOf(11, 13, 15)
   private var rightLandmarks = intArrayOf(12, 14, 16)
+  private var leftSecondaryLandmarks = intArrayOf(23, 11, 13)
+  private var rightSecondaryLandmarks = intArrayOf(24, 12, 14)
   private var lastTimestampMs = 0L
+  private var lastDiagnosticLogMs = 0L
   private var bound = false
 
   fun setTrackingEnabled(enabled: Boolean) {
@@ -72,6 +101,22 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
     }
   }
 
+  fun setLeftSecondaryLandmarks(landmarks: List<Int>?) {
+    if (landmarks != null && landmarks.size == 3) {
+      leftSecondaryLandmarks = landmarks.toIntArray()
+    }
+  }
+
+  fun setRightSecondaryLandmarks(landmarks: List<Int>?) {
+    if (landmarks != null && landmarks.size == 3) {
+      rightSecondaryLandmarks = landmarks.toIntArray()
+    }
+  }
+
+  fun setShowOverlay(showOverlay: Boolean) {
+    overlayView.visibility = if (showOverlay) View.VISIBLE else View.GONE
+  }
+
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
     if (trackingEnabled) startCamera()
@@ -83,7 +128,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
   }
 
   private fun startCamera() {
-    val activity = appContext.currentActivity as? FragmentActivity ?: return
+    val activity = appContext.currentActivity as? LifecycleOwner ?: return
     if (!trackingEnabled || bound || !isAttachedToWindow) return
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
       != PackageManager.PERMISSION_GRANTED
@@ -109,7 +154,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
     )
   }
 
-  private fun bindCamera(activity: FragmentActivity, provider: ProcessCameraProvider) {
+  private fun bindCamera(activity: LifecycleOwner, provider: ProcessCameraProvider) {
     if (!trackingEnabled || !isAttachedToWindow) return
     provider.unbindAll()
 
@@ -124,9 +169,9 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
         imageAnalysis.setAnalyzer(executor) { imageProxy ->
           try {
             val landmarker = poseLandmarker ?: return@setAnalyzer
-            val bitmap = imageProxy.toBitmap()
+            val bitmap = rotateBitmap(imageProxy.toBitmap(), imageProxy.imageInfo.rotationDegrees)
             val mpImage = BitmapImageBuilder(bitmap).build()
-            val timestamp = max(imageProxy.imageInfo.timestamp, lastTimestampMs + 1)
+            val timestamp = max(imageProxy.imageInfo.timestamp / 1_000_000L, lastTimestampMs + 1)
             lastTimestampMs = timestamp
             landmarker.detectAsync(mpImage, timestamp)
           } catch (error: Exception) {
@@ -143,12 +188,18 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
       CameraSelector.DEFAULT_BACK_CAMERA
     }
     provider.bindToLifecycle(activity, selector, preview, analysis)
+    previewUseCase = preview
+    analysisUseCase = analysis
     bound = true
   }
 
   private fun stopCamera() {
     bound = false
-    cameraProvider?.unbindAll()
+    previewUseCase?.let { cameraProvider?.unbind(it) }
+    analysisUseCase?.let { cameraProvider?.unbind(it) }
+    previewUseCase = null
+    analysisUseCase = null
+    cameraProvider = null
     analysisExecutor?.shutdown()
     analysisExecutor = null
     poseLandmarker?.close()
@@ -183,28 +234,52 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
 
   private fun emitAngles(result: PoseLandmarkerResult, width: Int, height: Int) {
     val pose = result.landmarks().firstOrNull() ?: run {
-      onAngles(
-        mapOf(
-          "leftAngle" to null,
-          "rightAngle" to null,
-          "confidence" to 0.0,
-        ),
-      )
+      overlayView.post { overlayView.updatePose(emptyList(), width, height, useFrontCamera) }
+      onAngles(mapOf("confidence" to 0.0))
       return
     }
+    overlayView.post { overlayView.updatePose(pose, width, height, useFrontCamera) }
     val left = jointAngle(pose, leftLandmarks, width, height)
     val right = jointAngle(pose, rightLandmarks, width, height)
-    val visibilities = (leftLandmarks + rightLandmarks).mapNotNull { index ->
-      pose.getOrNull(index)?.visibility()?.orElse(0f)
+    val leftSecondary = jointAngle(pose, leftSecondaryLandmarks, width, height)
+    val rightSecondary = jointAngle(pose, rightSecondaryLandmarks, width, height)
+    val leftConfidence = landmarkConfidence(pose, leftLandmarks + leftSecondaryLandmarks)
+    val rightConfidence = landmarkConfidence(pose, rightLandmarks + rightSecondaryLandmarks)
+    val confidence = max(leftConfidence, rightConfidence)
+    val payload = mutableMapOf<String, Any>("confidence" to confidence)
+    if (left != null) payload["leftAngle"] = left
+    if (right != null) payload["rightAngle"] = right
+    if (leftSecondary != null) payload["leftSecondaryAngle"] = leftSecondary
+    if (rightSecondary != null) payload["rightSecondaryAngle"] = rightSecondary
+    payload["leftConfidence"] = leftConfidence
+    payload["rightConfidence"] = rightConfidence
+    val diagnosticNow = SystemClock.elapsedRealtime()
+    if (BuildConfig.DEBUG && diagnosticNow - lastDiagnosticLogMs >= 500L) {
+      lastDiagnosticLogMs = diagnosticNow
+      Log.d(
+        TAG,
+        "angles left=$left right=$right secondaryLeft=$leftSecondary " +
+          "secondaryRight=$rightSecondary confidenceLeft=$leftConfidence " +
+          "confidenceRight=$rightConfidence",
+      )
     }
-    val confidence = if (visibilities.isEmpty()) 0.0 else visibilities.average()
-    onAngles(
-      mapOf(
-        "leftAngle" to left,
-        "rightAngle" to right,
-        "confidence" to confidence,
-      ),
-    )
+    onAngles(payload)
+  }
+
+  private fun landmarkConfidence(
+    landmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>,
+    indices: IntArray,
+  ): Double {
+    val visibilities = indices
+      .map { index -> landmarks.getOrNull(index)?.visibility()?.orElse(0f) }
+      .filterNotNull()
+    return if (visibilities.isEmpty()) 0.0 else visibilities.average()
+  }
+
+  private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
+    if (rotationDegrees == 0) return bitmap
+    val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
+    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
   }
 
   private fun jointAngle(
@@ -234,5 +309,83 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
   companion object {
     private const val TAG = "AdaptfitPose"
     private const val VISIBILITY_THRESHOLD = 0.5f
+  }
+}
+
+private class PoseOverlayView(context: Context) : View(context) {
+  private data class Point(val x: Float, val y: Float, val visibility: Float)
+
+  private val density = resources.displayMetrics.density
+  private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    color = Color.argb(220, 214, 207, 255)
+    strokeCap = Paint.Cap.ROUND
+    strokeWidth = 3f * density
+  }
+  private val pointPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    color = Color.rgb(116, 102, 204)
+    style = Paint.Style.FILL
+  }
+  private val pointOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    color = Color.WHITE
+    style = Paint.Style.STROKE
+    strokeWidth = 2f * density
+  }
+  private var points: List<Point> = emptyList()
+  private var sourceWidth = 1
+  private var sourceHeight = 1
+  private var mirrored = false
+
+  fun updatePose(
+    landmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>,
+    width: Int,
+    height: Int,
+    mirror: Boolean,
+  ) {
+    sourceWidth = max(1, width)
+    sourceHeight = max(1, height)
+    mirrored = mirror
+    points = landmarks.map {
+      Point(it.x(), it.y(), it.visibility().orElse(0f))
+    }
+    invalidate()
+  }
+
+  override fun onDraw(canvas: Canvas) {
+    super.onDraw(canvas)
+    if (points.isEmpty() || width == 0 || height == 0) return
+    val scale = max(width.toFloat() / sourceWidth, height.toFloat() / sourceHeight)
+    val drawnWidth = sourceWidth * scale
+    val drawnHeight = sourceHeight * scale
+    val offsetX = (width - drawnWidth) / 2f
+    val offsetY = (height - drawnHeight) / 2f
+
+    fun screenPoint(index: Int): Pair<Float, Float>? {
+      val point = points.getOrNull(index) ?: return null
+      if (point.visibility < 0.45f) return null
+      val normalizedX = if (mirrored) 1f - point.x else point.x
+      return Pair(offsetX + normalizedX * drawnWidth, offsetY + point.y * drawnHeight)
+    }
+
+    for ((start, end) in CONNECTIONS) {
+      val first = screenPoint(start) ?: continue
+      val second = screenPoint(end) ?: continue
+      canvas.drawLine(first.first, first.second, second.first, second.second, linePaint)
+    }
+    for (index in DISPLAY_LANDMARKS) {
+      val point = screenPoint(index) ?: continue
+      canvas.drawCircle(point.first, point.second, 5f * density, pointPaint)
+      canvas.drawCircle(point.first, point.second, 5f * density, pointOutlinePaint)
+    }
+  }
+
+  companion object {
+    private val DISPLAY_LANDMARKS = intArrayOf(
+      0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28,
+    )
+    private val CONNECTIONS = arrayOf(
+      11 to 12, 11 to 13, 13 to 15, 12 to 14, 14 to 16,
+      11 to 23, 12 to 24, 23 to 24, 23 to 25, 25 to 27,
+      24 to 26, 26 to 28,
+    )
   }
 }

@@ -41,37 +41,54 @@ describe('RangeOfMotionTracker', () => {
 
 describe('RepCounter', () => {
   const makeCurl = () => new RepCounter([11, 13, 15], 40, 160);
+  const runCurl = (counter: RepCounter): boolean => {
+    const samples = [170, 170, 170, 130, 95, 40, 40, 40, 90, 125, 165, 165, 165];
+    return samples.reduce(
+      (completed, angle, index) => counter.update(angle, index * 0.12) || completed,
+      false,
+    );
+  };
 
   it('counts a decreasing then increasing elbow rep', () => {
     const counter = makeCurl();
-    expect(counter.update(180)).toBe(false);
-    expect(counter.update(40)).toBe(false);
-    expect(counter.state).toBe(MoveState.TARGET_REACHED);
-    expect(counter.update(160)).toBe(false);
-    expect(counter.update(160.1)).toBe(true);
+    expect(runCurl(counter)).toBe(true);
     expect(counter.repCount).toBe(1);
     expect(counter.state).toBe(MoveState.START);
   });
 
   it('counts an increasing then decreasing angle rep', () => {
     const counter = new RepCounter([23, 25, 27], 160, 40);
-    expect(counter.update(160)).toBe(false);
-    expect(counter.state).toBe(MoveState.TARGET_REACHED);
-    expect(counter.update(40)).toBe(false);
-    expect(counter.update(39.9)).toBe(true);
+    const samples = [35, 35, 35, 75, 120, 165, 165, 165, 120, 75, 35, 35, 35];
+    const completed = samples.reduce(
+      (result, angle, index) => counter.update(angle, index * 0.12) || result,
+      false,
+    );
+    expect(completed).toBe(true);
     expect(counter.repCount).toBe(1);
   });
 
-  it('does not double-count while at start', () => {
+  it('does not count a stationary arm or a single noisy angle', () => {
     const counter = makeCurl();
-    for (const angle of [40, 170, 175, 180]) counter.update(angle);
-    expect(counter.repCount).toBe(1);
+    for (const angle of [170, 170, 170, 168, 42, 169, 171, 168, 170]) {
+      counter.update(angle);
+    }
+    expect(counter.repCount).toBe(0);
     expect(counter.state).toBe(MoveState.START);
+  });
+
+  it('requires a confirmed start position before accepting motion', () => {
+    const counter = makeCurl();
+    expect(counter.isArmed).toBe(false);
+    counter.update(170);
+    counter.update(170);
+    expect(counter.isArmed).toBe(false);
+    counter.update(170);
+    expect(counter.isArmed).toBe(true);
   });
 
   it('ignores missing detections', () => {
     const counter = makeCurl();
-    counter.update(40);
+    for (const angle of [170, 170, 170, 120, 90, 40, 40, 40]) counter.update(angle);
     expect(counter.update(null)).toBe(false);
     expect(counter.state).toBe(MoveState.TARGET_REACHED);
   });
@@ -88,25 +105,51 @@ describe('ExerciseSetTracker', () => {
       repsPerSet,
       restSeconds,
     );
+  const runTrackerCurl = (
+    tracker: ExerciseSetTracker,
+    leftVisible = true,
+    rightVisible = true,
+  ): number => {
+    const samples = [170, 170, 170, 130, 95, 40, 40, 40, 90, 125, 165, 165, 165];
+    let completedAt = 0;
+    for (const [index, angle] of samples.entries()) {
+      completedAt = index * 0.12;
+      tracker.update(
+        { left: leftVisible ? angle : null, right: rightVisible ? angle : null },
+        completedAt,
+      );
+    }
+    return completedAt;
+  };
 
   it('requires both limbs to complete a rep', () => {
     const tracker = makeTracker(2);
-    tracker.update({ left: 40, right: 40 }, 0);
-    expect(tracker.moveState).toBe(MoveState.TARGET_REACHED);
-    expect(tracker.update({ left: 170, right: 100 }, 0.1)).toBe(false);
-    expect(tracker.repsInSet).toBe(0);
-    expect(tracker.update({ left: 170, right: 170 }, 0.2)).toBe(true);
+    runTrackerCurl(tracker);
+    expect(tracker.repsInSet).toBe(1);
+  });
+
+  it('can count either visible limb for unilateral-friendly recipes', () => {
+    const tracker = new ExerciseSetTracker(
+      {
+        left: new RepCounter([11, 13, 15], 50, 145),
+        right: new RepCounter([12, 14, 16], 50, 145),
+      },
+      1,
+      2,
+      0,
+      'either',
+    );
+    runTrackerCurl(tracker, true, false);
     expect(tracker.repsInSet).toBe(1);
   });
 
   it('rests then starts the next set', () => {
     const tracker = makeTracker(1, 2, 1.5);
-    tracker.update({ left: 40, right: 40 }, 0);
-    tracker.update({ left: 170, right: 170 }, 0.1);
+    const completedAt = runTrackerCurl(tracker);
     expect(tracker.phase).toBe(ExercisePhase.RESTING);
-    tracker.update({}, 1.59);
+    tracker.update({}, completedAt + 1.49);
     expect(tracker.phase).toBe(ExercisePhase.RESTING);
-    tracker.update({}, 1.6);
+    tracker.update({}, completedAt + 1.5);
     expect(tracker.phase).toBe(ExercisePhase.ACTIVE);
     expect(tracker.currentSet).toBe(2);
     expect(tracker.repsInSet).toBe(0);
@@ -114,8 +157,7 @@ describe('ExerciseSetTracker', () => {
 
   it('analyzes a partial session', () => {
     const tracker = makeTracker(2, 2, 1);
-    tracker.update({ left: 40, right: 40 }, 0);
-    tracker.update({ left: 170, right: 170 }, 0.1);
+    runTrackerCurl(tracker);
     const motion = { left: new RangeOfMotionTracker(), right: new RangeOfMotionTracker() };
     for (const angle of [120, 60, 90]) motion.left.addAngle(angle);
     const stats = analyzeExercise('seated-biceps-curl', 12.5, tracker, motion);
@@ -128,10 +170,55 @@ describe('ExerciseSetTracker', () => {
 });
 
 describe('tracking recipes', () => {
-  it('marks seated biceps curl as the calibrated Android-first recipe', () => {
+  it('enables the Android-first automatic-counting recipes', () => {
     expect(getCalibratedRecipe('seated-biceps-curl')?.key).toBe('seated-biceps-curl-v1');
-    expect(getCalibratedRecipe('wall-push-up')).toBeUndefined();
-    expect(getTrackingRecipe('wall-push-up')?.calibrated).toBe(false);
+    expect(getCalibratedRecipe('wall-push-up')?.key).toBe('wall-push-up-v1');
+    expect(getCalibratedRecipe('seated-knee-extension')?.key).toBe('seated-knee-extension-v1');
+    expect(getTrackingRecipe('seated-march')?.limbRule).toBe('either');
+  });
+
+  it('counts a full seated knee extension but rejects stationary and partial motion', () => {
+    const recipe = getCalibratedRecipe('seated-knee-extension');
+    expect(recipe).toBeDefined();
+    if (recipe === undefined) return;
+
+    const stationaryTracker = createSetTracker(recipe, 3);
+    for (const [index, angle] of [98, 99, 98, 100, 98, 99, 98].entries()) {
+      stationaryTracker.update({ left: angle, right: null }, index * 0.12);
+    }
+    expect(stationaryTracker.repsInSet).toBe(0);
+
+    const partialTracker = createSetTracker(recipe, 3);
+    for (const [index, angle] of [100, 100, 100, 120, 140, 140, 120, 100, 100, 100].entries()) {
+      partialTracker.update({ left: angle, right: null }, index * 0.12);
+    }
+    expect(partialTracker.repsInSet).toBe(0);
+
+    const tracker = createSetTracker(recipe, 3);
+    const rep = [100, 100, 100, 120, 140, 160, 160, 160, 140, 120, 100, 100, 100];
+    for (const [index, angle] of rep.entries()) {
+      tracker.update({ left: angle, right: null }, index * 0.12);
+    }
+    expect(tracker.repsInSet).toBe(1);
+  });
+
+  it('counts a confirmed wall push-up but rejects stationary noise', () => {
+    const recipe = getCalibratedRecipe('wall-push-up');
+    expect(recipe).toBeDefined();
+    if (recipe === undefined) return;
+
+    const noisyTracker = createSetTracker(recipe, 3);
+    for (const [index, angle] of [160, 160, 160, 92, 160, 158, 161].entries()) {
+      noisyTracker.update({ left: angle, right: null }, index * 0.12);
+    }
+    expect(noisyTracker.repsInSet).toBe(0);
+
+    const tracker = createSetTracker(recipe, 3);
+    const rep = [160, 160, 160, 135, 115, 90, 90, 90, 112, 132, 155, 155, 155];
+    for (const [index, angle] of rep.entries()) {
+      tracker.update({ left: angle, right: null }, index * 0.12);
+    }
+    expect(tracker.repsInSet).toBe(1);
   });
 
   it('builds a one-set tracker for the active session screen', () => {

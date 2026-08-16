@@ -1,7 +1,7 @@
 import { CameraView } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CircleStop, Pause, Play, Plus, VideoOff } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AnatomyMap } from '@/components/AnatomyMap';
 import { Button, Card, Screen } from '@/components/ui';
@@ -9,23 +9,17 @@ import { useAppIsActive } from '@/hooks/useAppIsActive';
 import { speakFeedback, stopSpokenFeedback } from '@/lib/accessibility';
 import { isPoseTrackingAvailable, type PoseAnglesEvent, SessionCamera } from '@/lib/poseCamera';
 import { compactSearchParams, parseNonNegativeInt } from '@/lib/sessionFlow';
-import { MoveState, RangeOfMotionTracker } from '@/lib/tracking/analyzer';
+import { RangeOfMotionTracker } from '@/lib/tracking/analyzer';
 import { usePoseSession } from '@/lib/tracking/poseSession';
+import { analyzeRepQuality, livePoseCue, type PoseSample } from '@/lib/tracking/quality';
 import { createSetTracker, getCalibratedRecipe, getTrackingRecipe } from '@/lib/tracking/recipes';
 import {
   combinedRangeOfMotion,
-  feedbackForRep,
   finiteJointAngle,
   type PoseRepRecord,
 } from '@/lib/tracking/sessionMetrics';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
-
-const feedback = [
-  'Keep the movement smooth',
-  'Nice control—keep breathing',
-  'Use the range that feels comfortable',
-];
 
 export default function ActiveSessionScreen() {
   const params = useLocalSearchParams<{
@@ -45,7 +39,6 @@ export default function ActiveSessionScreen() {
     exerciseSessionVersion?: string;
     remainingSessions?: string;
   }>();
-  const mode = useAppStore((state) => state.mode);
   const spokenFeedback = useAppStore((state) =>
     state.profile.accessibility.includes('Spoken feedback'),
   );
@@ -68,7 +61,6 @@ export default function ActiveSessionScreen() {
   const calibratedRecipe = getCalibratedRecipe(exercise?.slug ?? '');
   const nativePose = tracking && isPoseTrackingAvailable();
   const nativeCounting = nativePose && calibratedRecipe !== undefined;
-  const demoTracking = tracking && mode === 'guest' && !nativeCounting;
   const recordPoseRep = usePoseSession((state) => state.recordPoseRep);
   const beginPoseSession = usePoseSession((state) => state.beginPoseSession);
   const trackerRef = useRef(
@@ -79,6 +71,7 @@ export default function ActiveSessionScreen() {
     right: new RangeOfMotionTracker(),
   });
   const confidenceRef = useRef<number[]>([]);
+  const samplesRef = useRef<PoseSample[]>([]);
   const repStartedAt = useRef(Date.now());
   const setStartedAt = useRef(Date.now());
   const [poseCue, setPoseCue] = useState('Keep the movement smooth');
@@ -87,6 +80,7 @@ export default function ActiveSessionScreen() {
     trackerRef.current = calibratedRecipe ? createSetTracker(calibratedRecipe, targetReps) : null;
     romRef.current = { left: new RangeOfMotionTracker(), right: new RangeOfMotionTracker() };
     confidenceRef.current = [];
+    samplesRef.current = [];
     repStartedAt.current = Date.now();
     setStartedAt.current = Date.now();
     setReps(0);
@@ -116,58 +110,82 @@ export default function ActiveSessionScreen() {
           : confidenceRef.current.reduce((sum, value) => sum + value, 0) /
             confidenceRef.current.length;
       const durationMs = Math.max(0, Date.now() - repStartedAt.current);
+      const rangeOfMotionDeg = combinedRangeOfMotion(
+        romRef.current.left.getStats()?.rangeOfMotionDegrees ?? null,
+        romRef.current.right.getStats()?.rangeOfMotionDegrees ?? null,
+      );
+      const quality = calibratedRecipe
+        ? analyzeRepQuality(calibratedRecipe, samplesRef.current, durationMs, rangeOfMotionDeg)
+        : null;
       recordNativeRep({
         repNumber,
         counted: true,
         durationMs,
-        rangeOfMotionDeg: combinedRangeOfMotion(
-          romRef.current.left.getStats()?.rangeOfMotionDegrees ?? null,
-          romRef.current.right.getStats()?.rangeOfMotionDegrees ?? null,
-        ),
+        rangeOfMotionDeg,
         trackingConfidence:
           meanConfidence === null ? null : Math.min(1, Math.max(0, meanConfidence)),
         targetPositionReached,
-        feedbackCodes: feedbackForRep({ confidence: meanConfidence, durationMs }),
+        accuracyScore: quality?.accuracyScore ?? null,
+        controlScore: quality?.controlScore ?? null,
+        stabilityScore: quality?.stabilityScore ?? null,
+        formScore: quality?.formScore ?? null,
+        feedbackCodes: quality?.feedbackCodes ?? [],
       });
       romRef.current = { left: new RangeOfMotionTracker(), right: new RangeOfMotionTracker() };
       confidenceRef.current = [];
+      samplesRef.current = [];
       repStartedAt.current = Date.now();
     },
-    [recordNativeRep],
+    [calibratedRecipe, recordNativeRep],
   );
   const onAngles = useCallback(
     (event: PoseAnglesEvent) => {
       if (!nativePose || paused) return;
-      const { leftAngle, rightAngle, confidence } = event.nativeEvent;
-      const left = finiteJointAngle(leftAngle);
-      const right = finiteJointAngle(rightAngle);
+      const {
+        leftAngle,
+        rightAngle,
+        leftSecondaryAngle,
+        rightSecondaryAngle,
+        leftConfidence = 0,
+        rightConfidence = 0,
+        confidence,
+      } = event.nativeEvent;
+      const rawLeftSecondary = finiteJointAngle(leftSecondaryAngle);
+      const rawRightSecondary = finiteJointAngle(rightSecondaryAngle);
+      const leftSecondary = leftConfidence >= 0.65 ? rawLeftSecondary : null;
+      const rightSecondary = rightConfidence >= 0.65 ? rawRightSecondary : null;
+      const left =
+        leftConfidence >= 0.65 && leftSecondary !== null ? finiteJointAngle(leftAngle) : null;
+      const right =
+        rightConfidence >= 0.65 && rightSecondary !== null ? finiteJointAngle(rightAngle) : null;
+      const sample: PoseSample = {
+        timestampMs: Date.now(),
+        left,
+        right,
+        leftSecondary,
+        rightSecondary,
+        confidence,
+      };
+      samplesRef.current.push(sample);
+      if (samplesRef.current.length > 600) samplesRef.current.shift();
       if (confidence > 0) confidenceRef.current.push(confidence);
       romRef.current.left.addAngle(left);
       romRef.current.right.addAngle(right);
       const tracker = trackerRef.current;
-      if (!nativeCounting || tracker === null) return;
+      if (!nativeCounting || tracker === null || calibratedRecipe === undefined) return;
       const completed = tracker.update({ left, right }, Date.now() / 1000);
-      setPoseCue(
-        tracker.moveState === MoveState.TARGET_REACHED
-          ? 'Target reached—return with control'
-          : 'Keep the movement smooth',
-      );
+      setPoseCue(livePoseCue(calibratedRecipe, sample, tracker.moveState, tracker.ready));
       if (!completed) return;
       snapshotCurrentRep(tracker.repsInSet, true);
       setReps(tracker.repsInSet);
     },
-    [nativeCounting, nativePose, paused, snapshotCurrentRep],
+    [calibratedRecipe, nativeCounting, nativePose, paused, snapshotCurrentRep],
   );
   useEffect(() => {
     if (paused) return;
     const timer = setInterval(() => setElapsed((value) => value + 1), 1000);
     return () => clearInterval(timer);
   }, [paused]);
-  useEffect(() => {
-    if (!demoTracking || paused) return;
-    const timer = setInterval(() => setReps((value) => Math.min(targetReps, value + 1)), 2800);
-    return () => clearInterval(timer);
-  }, [demoTracking, paused, targetReps]);
   useEffect(() => {
     if (reps < targetReps) return;
     const query = compactSearchParams({
@@ -181,10 +199,9 @@ export default function ActiveSessionScreen() {
     }, 600);
     return () => clearTimeout(timer);
   }, [currentSet, elapsed, params, priorCompleted, priorElapsed, reps, targetReps, totalSets]);
-  const feedbackText = useMemo(() => {
-    if (nativeCounting) return poseCue;
-    return feedback[Math.floor(reps / 2) % feedback.length] ?? feedback[0];
-  }, [nativeCounting, poseCue, reps]);
+  const feedbackText = nativeCounting
+    ? poseCue
+    : 'Automatic analysis is not calibrated for this movement. Count repetitions manually.';
   useEffect(() => {
     if (!tracking || !spokenFeedback || paused || !appIsActive || !feedbackText) return;
     speakFeedback(feedbackText);
@@ -260,9 +277,9 @@ export default function ActiveSessionScreen() {
               {nativeCounting ? 'On-device tracking' : 'On-device camera'}
             </Text>
           </View>
-        ) : demoTracking ? (
+        ) : tracking ? (
           <View style={styles.demoBadge}>
-            <Text style={styles.demoText}>Simulated guest tracking</Text>
+            <Text style={styles.demoText}>Camera preview · manual reps</Text>
           </View>
         ) : null}
         <View style={styles.repWrap}>

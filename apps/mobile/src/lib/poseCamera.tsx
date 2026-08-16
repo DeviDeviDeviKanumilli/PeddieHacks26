@@ -22,12 +22,15 @@ export const SessionCamera = ({
     <PoseCameraView
       enabled={active}
       facing="front"
+      showOverlay
       style={style ?? StyleSheet.absoluteFill}
       {...(landmarks === undefined
         ? {}
         : {
             leftLandmarks: landmarks.leftLandmarks,
             rightLandmarks: landmarks.rightLandmarks,
+            leftSecondaryLandmarks: landmarks.leftSecondaryLandmarks,
+            rightSecondaryLandmarks: landmarks.rightSecondaryLandmarks,
           })}
       {...(onAngles === undefined ? {} : { onAngles })}
     />

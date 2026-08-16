@@ -58,7 +58,7 @@ export default function CompleteScreen() {
       durationSeconds: accElapsed,
       exercises: accExercises,
       reps: accReps,
-      averageScore: null,
+      averageScore: poseSummary.meanFormScore,
       muscleLoad: combineMuscleLoad(
         (completedItems.length > 0 ? completedItems : [{ exerciseSlug: exercise.slug }]).flatMap(
           (item) => {
@@ -76,6 +76,7 @@ export default function CompleteScreen() {
     completeWorkout,
     exercise,
     inPlan,
+    poseSummary.meanFormScore,
     workout.items,
     workout.title,
   ]);
@@ -188,7 +189,7 @@ export default function CompleteScreen() {
               <Body muted>
                 {poseSummary.meanRomDeg === null
                   ? 'Repetitions were counted on this device. Range was not confident enough to store.'
-                  : `Average range was ${Math.round(poseSummary.meanRomDeg)}°. Only derived measurements may sync.`}
+                  : `Average range was ${Math.round(poseSummary.meanRomDeg)}° with a ${Math.round(poseSummary.meanFormScore ?? 0)}% form score. Only derived measurements may sync.`}
               </Body>
             </View>
           </View>
@@ -198,9 +199,10 @@ export default function CompleteScreen() {
           <View style={styles.insight}>
             <Sparkles color={colors.success} size={22} />
             <View style={styles.insightCopy}>
-              <Text style={styles.insightTitle}>Camera was on</Text>
+              <Text style={styles.insightTitle}>Manual camera session</Text>
               <Body muted>
-                Guest tracking is simulated and is not stored as form, range, or fatigue data.
+                Automatic analysis was unavailable for this movement, so only manually counted
+                repetitions and time were saved.
               </Body>
             </View>
           </View>

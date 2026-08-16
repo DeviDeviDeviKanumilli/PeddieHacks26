@@ -29,6 +29,18 @@ class AdaptfitPoseModule : Module() {
       Prop("rightLandmarks") { view: AdaptfitPoseView, landmarks: List<Int>? ->
         view.setRightLandmarks(landmarks)
       }
+
+      Prop("leftSecondaryLandmarks") { view: AdaptfitPoseView, landmarks: List<Int>? ->
+        view.setLeftSecondaryLandmarks(landmarks)
+      }
+
+      Prop("rightSecondaryLandmarks") { view: AdaptfitPoseView, landmarks: List<Int>? ->
+        view.setRightSecondaryLandmarks(landmarks)
+      }
+
+      Prop("showOverlay") { view: AdaptfitPoseView, showOverlay: Boolean? ->
+        view.setShowOverlay(showOverlay ?: true)
+      }
     }
   }
 }

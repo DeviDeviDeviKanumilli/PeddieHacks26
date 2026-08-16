@@ -30,6 +30,7 @@ export const Screen = ({
     <View
       style={[
         styles.content,
+        !scroll && styles.fill,
         padded && styles.padded,
         {
           paddingBottom: spacing.md + (oneHanded ? spacing.xl : 0) + (inTabs ? 0 : insets.bottom),
@@ -301,6 +302,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvas },
   scroll: { flexGrow: 0 },
   content: { gap: spacing.sm },
+  fill: { flex: 1 },
   padded: { paddingHorizontal: spacing.lg },
   eyebrow: {
     color: colors.lavenderDark,

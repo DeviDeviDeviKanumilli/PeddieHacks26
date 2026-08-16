@@ -8,6 +8,10 @@ export type PoseRepRecord = {
   rangeOfMotionDeg: number | null;
   trackingConfidence: number | null;
   targetPositionReached: boolean;
+  accuracyScore: number | null;
+  controlScore: number | null;
+  stabilityScore: number | null;
+  formScore: number | null;
   feedbackCodes: FeedbackCode[];
   recordedOffsetMs: number;
 };
@@ -19,6 +23,10 @@ export type PoseSessionSummary = {
   maxRomDeg: number | null;
   meanConfidence: number | null;
   targetReachedRate: number | null;
+  meanAccuracyScore: number | null;
+  meanControlScore: number | null;
+  meanStabilityScore: number | null;
+  meanFormScore: number | null;
 };
 
 const round = (value: number, digits: number): number => {
@@ -34,6 +42,14 @@ export const summarizePoseSession = (reps: readonly PoseRepRecord[]): PoseSessio
     .map((rep) => rep.trackingConfidence)
     .filter((value): value is number => value !== null);
   const reached = reps.filter((rep) => rep.targetPositionReached).length;
+  const meanScore = (
+    key: 'accuracyScore' | 'controlScore' | 'stabilityScore' | 'formScore',
+  ): number | null => {
+    const values = reps.map((rep) => rep[key]).filter((value): value is number => value !== null);
+    return values.length === 0
+      ? null
+      : round(values.reduce((sum, value) => sum + value, 0) / values.length, 1);
+  };
   return {
     counted: reps.filter((rep) => rep.counted).length,
     meanRomDeg:
@@ -47,6 +63,10 @@ export const summarizePoseSession = (reps: readonly PoseRepRecord[]): PoseSessio
         ? null
         : round(confidences.reduce((sum, value) => sum + value, 0) / confidences.length, 3),
     targetReachedRate: reps.length === 0 ? null : round(reached / reps.length, 3),
+    meanAccuracyScore: meanScore('accuracyScore'),
+    meanControlScore: meanScore('controlScore'),
+    meanStabilityScore: meanScore('stabilityScore'),
+    meanFormScore: meanScore('formScore'),
   };
 };
 
@@ -60,6 +80,10 @@ export const poseRepToMetric = (rep: PoseRepRecord): RepMetric => ({
   ...(rep.rangeOfMotionDeg === null ? {} : { rangeOfMotionDeg: rep.rangeOfMotionDeg }),
   ...(rep.trackingConfidence === null ? {} : { trackingConfidence: rep.trackingConfidence }),
   targetPositionReached: rep.targetPositionReached,
+  ...(rep.accuracyScore === null ? {} : { accuracyScore: rep.accuracyScore }),
+  ...(rep.controlScore === null ? {} : { controlScore: rep.controlScore }),
+  ...(rep.stabilityScore === null ? {} : { stabilityScore: rep.stabilityScore }),
+  ...(rep.formScore === null ? {} : { formScore: rep.formScore }),
 });
 
 export const feedbackForRep = (input: {

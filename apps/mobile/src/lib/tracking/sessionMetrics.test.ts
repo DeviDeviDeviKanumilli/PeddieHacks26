@@ -15,6 +15,10 @@ describe('pose session metrics', () => {
       rangeOfMotionDeg: 110,
       trackingConfidence: 0.82,
       targetPositionReached: true,
+      accuracyScore: 92,
+      controlScore: 84,
+      stabilityScore: 88,
+      formScore: 88,
       feedbackCodes: [],
       recordedOffsetMs: 2400,
     },
@@ -26,6 +30,10 @@ describe('pose session metrics', () => {
       rangeOfMotionDeg: 90,
       trackingConfidence: 0.4,
       targetPositionReached: true,
+      accuracyScore: 68,
+      controlScore: 61,
+      stabilityScore: 72,
+      formScore: 67,
       feedbackCodes: ['low_tracking_confidence', 'tempo_too_slow'],
       recordedOffsetMs: 9400,
     },
@@ -39,6 +47,10 @@ describe('pose session metrics', () => {
       maxRomDeg: 110,
       meanConfidence: 0.61,
       targetReachedRate: 1,
+      meanAccuracyScore: 80,
+      meanControlScore: 72.5,
+      meanStabilityScore: 80,
+      meanFormScore: 77.5,
     });
   });
 
@@ -55,6 +67,10 @@ describe('pose session metrics', () => {
       rangeOfMotionDeg: 110,
       trackingConfidence: 0.82,
       targetPositionReached: true,
+      accuracyScore: 92,
+      controlScore: 84,
+      stabilityScore: 88,
+      formScore: 88,
       feedbackCodes: [],
       recordedOffsetMs: 2400,
     });

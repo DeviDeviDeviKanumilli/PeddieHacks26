@@ -1,6 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Activity, ArrowLeft, Gauge, Move, Repeat2, Timer, TrendingUp } from 'lucide-react-native';
+import {
+  Activity,
+  ArrowLeft,
+  Gauge,
+  Move,
+  Repeat2,
+  ShieldCheck,
+  Sparkles,
+  Timer,
+  TrendingUp,
+} from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AnatomyMap } from '@/components/AnatomyMap';
 import {
@@ -16,6 +26,7 @@ import {
 import { mobileApi } from '@/lib/api';
 import { hasApiConfig } from '@/lib/config';
 import { usePoseSession } from '@/lib/tracking/poseSession';
+import { getTrackingRecipe } from '@/lib/tracking/recipes';
 import { summarizePoseSession } from '@/lib/tracking/sessionMetrics';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
@@ -29,6 +40,21 @@ export default function AnalysisScreen() {
   const poseReps = usePoseSession((state) => state.reps);
   const poseSummary = summarizePoseSession(poseReps);
   const nativeTracked = poseSummary.counted > 0;
+  const recipe = getTrackingRecipe(exercise?.slug ?? '');
+  const feedbackCodes = new Set(poseReps.flatMap((rep) => rep.feedbackCodes));
+  const nextSessionCue = feedbackCodes.has('low_tracking_confidence')
+    ? 'Place the phone farther away so your working joints remain visible.'
+    : feedbackCodes.has('stability_left') || feedbackCodes.has('stability_right')
+      ? (recipe?.formCue ?? 'Keep your supporting joints steady through each repetition.')
+      : feedbackCodes.has('movement_jerky')
+        ? 'Slow the direction changes and keep the movement continuous.'
+        : feedbackCodes.has('range_of_motion_short') || feedbackCodes.has('target_position_missed')
+          ? 'Use a slightly fuller comfortable range on the next set.'
+          : feedbackCodes.has('tempo_too_slow')
+            ? 'Keep a steady pace and avoid long pauses within a repetition.'
+            : nativeTracked
+              ? 'Your tracked repetitions stayed within the current movement targets.'
+              : null;
   const completed = Number(params.completedReps ?? 0);
   const target = Number(params.targetReps ?? 0);
   const elapsed = Number(params.elapsed ?? 0);
@@ -98,9 +124,21 @@ export default function AnalysisScreen() {
               : nativeTracked
                 ? 'Repetitions were counted on-device without a confident range sample.'
                 : tracked
-                  ? 'Guest simulation does not store range of motion.'
+                  ? 'Manual camera sessions do not infer range of motion.'
                   : 'Turn on supported tracking to measure range.'
           }
+        />
+        <AnalysisCard
+          icon={ShieldCheck}
+          label="Movement accuracy"
+          value={
+            analysis?.movementAccuracy !== null && analysis?.movementAccuracy !== undefined
+              ? `${Math.round(analysis.movementAccuracy)}%`
+              : poseSummary.meanAccuracyScore !== null
+                ? `${Math.round(poseSummary.meanAccuracyScore)}%`
+                : 'Not measured'
+          }
+          detail="How consistently completed repetitions reached the exercise-specific movement target."
         />
         <AnalysisCard
           icon={Gauge}
@@ -108,12 +146,16 @@ export default function AnalysisScreen() {
           value={
             analysis?.movementControl !== null && analysis?.movementControl !== undefined
               ? `${Math.round(analysis.movementControl)}%`
-              : 'Not measured'
+              : poseSummary.meanControlScore !== null
+                ? `${Math.round(poseSummary.meanControlScore)}%`
+                : 'Not measured'
           }
           detail={
             analysis?.movementControl !== null && analysis?.movementControl !== undefined
               ? 'From derived control scores in this session.'
-              : 'No form score is inferred from counted reps or guest simulation.'
+              : poseSummary.meanControlScore !== null
+                ? 'Estimated from changes in joint speed within each repetition.'
+                : 'No control score is inferred from manual counts or guest simulation.'
           }
         />
         <AnalysisCard
@@ -122,13 +164,29 @@ export default function AnalysisScreen() {
           value={
             analysis?.stability !== null && analysis?.stability !== undefined
               ? `${Math.round(analysis.stability)}%`
-              : 'Not measured'
+              : poseSummary.meanStabilityScore !== null
+                ? `${Math.round(poseSummary.meanStabilityScore)}%`
+                : 'Not measured'
           }
           detail={
             analysis?.stability !== null && analysis?.stability !== undefined
               ? 'From derived stability scores in this session.'
-              : 'Camera landmarks never leave the device, and stability is not invented locally.'
+              : poseSummary.meanStabilityScore !== null
+                ? `Estimated from exercise-specific posture checks. ${recipe?.formCue ?? ''}`.trim()
+                : 'Camera landmarks never leave the device, and stability is not inferred without tracked samples.'
           }
+        />
+        <AnalysisCard
+          icon={Sparkles}
+          label="Overall form"
+          value={
+            analysis?.overallScore !== null && analysis?.overallScore !== undefined
+              ? `${Math.round(analysis.overallScore)}%`
+              : poseSummary.meanFormScore !== null
+                ? `${Math.round(poseSummary.meanFormScore)}%`
+                : 'Not measured'
+          }
+          detail="A weighted summary of range, movement control, and posture stability—not a clinical assessment."
         />
         <AnalysisCard
           icon={Timer}
@@ -137,6 +195,17 @@ export default function AnalysisScreen() {
           detail="Time between completed repetitions."
         />
       </View>
+      {nextSessionCue ? (
+        <Card tone={feedbackCodes.size > 0 ? 'warning' : 'success'}>
+          <View style={styles.progress}>
+            <Sparkles color={feedbackCodes.size > 0 ? colors.warning : colors.success} size={24} />
+            <View style={styles.progressCopy}>
+              <Text style={styles.progressTitle}>Try this next session</Text>
+              <Body muted>{nextSessionCue}</Body>
+            </View>
+          </View>
+        </Card>
+      ) : null}
       <Card tone="success">
         <View style={styles.progress}>
           <TrendingUp color={colors.success} size={24} />

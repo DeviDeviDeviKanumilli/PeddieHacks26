@@ -4,8 +4,12 @@ import { View, type ViewProps } from 'react-native';
 
 export type PoseAnglesEvent = {
   nativeEvent: {
-    leftAngle: number | null;
-    rightAngle: number | null;
+    leftAngle?: number | null;
+    rightAngle?: number | null;
+    leftSecondaryAngle?: number | null;
+    rightSecondaryAngle?: number | null;
+    leftConfidence?: number;
+    rightConfidence?: number;
     confidence: number;
   };
 };
@@ -15,6 +19,9 @@ export type PoseCameraViewProps = ViewProps & {
   facing?: 'front' | 'back';
   leftLandmarks?: readonly [number, number, number];
   rightLandmarks?: readonly [number, number, number];
+  leftSecondaryLandmarks?: readonly [number, number, number];
+  rightSecondaryLandmarks?: readonly [number, number, number];
+  showOverlay?: boolean;
   onAngles?: (event: PoseAnglesEvent) => void;
 };
 

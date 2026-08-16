@@ -63,6 +63,14 @@ export class RepCounter {
   readonly #targetIsLower: boolean;
   #state: MoveState = MoveState.START;
   #repCount = 0;
+  #armed = false;
+  #targetFrames = 0;
+  #returnFrames = 0;
+  #outboundTransitionFrames = 0;
+  #inboundTransitionFrames = 0;
+  #minObserved: number | null = null;
+  #maxObserved: number | null = null;
+  #cycleStartedAtSeconds: number | null = null;
 
   constructor(
     landmarkIndices: readonly [number, number, number],
@@ -92,6 +100,7 @@ export class RepCounter {
   reset(): void {
     this.#state = MoveState.START;
     this.#repCount = 0;
+    this.resetCycle(false);
   }
 
   get state(): MoveState {
@@ -102,7 +111,11 @@ export class RepCounter {
     return this.#repCount;
   }
 
-  update(angleDegrees: number | null): boolean {
+  get isArmed(): boolean {
+    return this.#armed;
+  }
+
+  update(angleDegrees: number | null, nowSeconds?: number): boolean {
     if (angleDegrees === null) return false;
     if (!isAngle(angleDegrees)) {
       throw new Error('angle_degrees must be between 0 and 180');
@@ -111,19 +124,90 @@ export class RepCounter {
       ? angleDegrees <= this.targetAngleDegrees
       : angleDegrees >= this.targetAngleDegrees;
     const returnedToStart = this.#targetIsLower
-      ? angleDegrees > this.returnAngleDegrees
-      : angleDegrees < this.returnAngleDegrees;
+      ? angleDegrees >= this.returnAngleDegrees
+      : angleDegrees <= this.returnAngleDegrees;
+    const inTransition = this.#targetIsLower
+      ? angleDegrees > this.targetAngleDegrees + TARGET_MARGIN_DEGREES &&
+        angleDegrees < this.returnAngleDegrees - RETURN_MARGIN_DEGREES
+      : angleDegrees < this.targetAngleDegrees - TARGET_MARGIN_DEGREES &&
+        angleDegrees > this.returnAngleDegrees + RETURN_MARGIN_DEGREES;
+
+    if (!this.#armed) {
+      this.#returnFrames = returnedToStart ? this.#returnFrames + 1 : 0;
+      if (this.#returnFrames >= CONFIRMATION_FRAMES) this.resetCycle(true);
+      return false;
+    }
+
+    this.#minObserved =
+      this.#minObserved === null ? angleDegrees : Math.min(this.#minObserved, angleDegrees);
+    this.#maxObserved =
+      this.#maxObserved === null ? angleDegrees : Math.max(this.#maxObserved, angleDegrees);
+    if (this.#cycleStartedAtSeconds === null && !returnedToStart) {
+      this.#cycleStartedAtSeconds = nowSeconds ?? null;
+    }
 
     if (this.#state === MoveState.START && targetReached) {
-      this.#state = MoveState.TARGET_REACHED;
+      this.#targetFrames += 1;
+      if (
+        this.#targetFrames >= CONFIRMATION_FRAMES &&
+        this.#outboundTransitionFrames >= MIN_TRANSITION_FRAMES
+      ) {
+        this.#state = MoveState.TARGET_REACHED;
+        this.#returnFrames = 0;
+      }
+      return false;
+    }
+    if (this.#state === MoveState.START && inTransition) {
+      this.#outboundTransitionFrames += 1;
+      this.#targetFrames = 0;
+      return false;
+    }
+    if (this.#state === MoveState.START && returnedToStart) {
+      this.#targetFrames = 0;
+      this.#outboundTransitionFrames = 0;
+      this.#cycleStartedAtSeconds = null;
+    }
+    if (this.#state === MoveState.TARGET_REACHED && inTransition) {
+      this.#inboundTransitionFrames += 1;
+      this.#returnFrames = 0;
       return false;
     }
     if (this.#state === MoveState.TARGET_REACHED && returnedToStart) {
-      this.#state = MoveState.START;
-      this.#repCount += 1;
-      return true;
+      this.#returnFrames += 1;
+      const observedRange =
+        this.#minObserved === null || this.#maxObserved === null
+          ? 0
+          : this.#maxObserved - this.#minObserved;
+      const requiredRange =
+        Math.abs(this.returnAngleDegrees - this.targetAngleDegrees) * MIN_RANGE_FRACTION;
+      const durationSeconds =
+        nowSeconds === undefined || this.#cycleStartedAtSeconds === null
+          ? MIN_REP_SECONDS
+          : nowSeconds - this.#cycleStartedAtSeconds;
+      if (
+        this.#returnFrames >= CONFIRMATION_FRAMES &&
+        this.#inboundTransitionFrames >= MIN_TRANSITION_FRAMES &&
+        observedRange >= requiredRange &&
+        durationSeconds >= MIN_REP_SECONDS
+      ) {
+        this.#state = MoveState.START;
+        this.#repCount += 1;
+        this.resetCycle(true);
+        return true;
+      }
     }
     return false;
+  }
+
+  private resetCycle(armed: boolean): void {
+    this.#armed = armed;
+    this.#targetFrames = 0;
+    this.#returnFrames = 0;
+    this.#outboundTransitionFrames = 0;
+    this.#inboundTransitionFrames = 0;
+    this.#minObserved = null;
+    this.#maxObserved = null;
+    this.#cycleStartedAtSeconds = null;
   }
 }
 
@@ -134,12 +218,14 @@ export const ExercisePhase = {
 } as const;
 
 export type ExercisePhase = (typeof ExercisePhase)[keyof typeof ExercisePhase];
+export type LimbRule = 'both' | 'either';
 
 export class ExerciseSetTracker {
   readonly limbCounters: Record<string, RepCounter>;
   readonly totalSets: number;
   readonly repsPerSet: number;
   readonly restSeconds: number;
+  readonly limbRule: LimbRule;
   #phase: ExercisePhase = ExercisePhase.ACTIVE;
   #currentSet = 1;
   #repsInSet = 0;
@@ -151,6 +237,7 @@ export class ExerciseSetTracker {
     totalSets: number,
     repsPerSet: number,
     restSeconds = 5,
+    limbRule: LimbRule = 'both',
   ) {
     const names = Object.keys(limbCounters);
     if (names.length === 0 || names.some((name) => name.trim().length === 0)) {
@@ -168,10 +255,14 @@ export class ExerciseSetTracker {
     if (!Number.isFinite(restSeconds) || restSeconds < 0) {
       throw new Error('rest_seconds must be a finite non-negative number');
     }
+    if (limbRule !== 'both' && limbRule !== 'either') {
+      throw new Error('limb_rule must be either both or either');
+    }
     this.limbCounters = { ...limbCounters };
     this.totalSets = totalSets;
     this.repsPerSet = repsPerSet;
     this.restSeconds = restSeconds;
+    this.limbRule = limbRule;
   }
 
   reset(): void {
@@ -197,11 +288,21 @@ export class ExerciseSetTracker {
 
   get moveState(): MoveState {
     if (this.#phase !== ExercisePhase.ACTIVE) return MoveState.START;
-    return Object.values(this.limbCounters).every(
-      (counter) => counter.state === MoveState.TARGET_REACHED,
+    const states = Object.values(this.limbCounters).map((counter) => counter.state);
+    return (
+      this.limbRule === 'both'
+        ? states.every((state) => state === MoveState.TARGET_REACHED)
+        : states.some((state) => state === MoveState.TARGET_REACHED)
     )
       ? MoveState.TARGET_REACHED
       : MoveState.START;
+  }
+
+  get ready(): boolean {
+    const counters = Object.values(this.limbCounters);
+    return this.limbRule === 'both'
+      ? counters.every((counter) => counter.isArmed)
+      : counters.some((counter) => counter.isArmed);
   }
 
   get completedAtSeconds(): number | null {
@@ -237,11 +338,12 @@ export class ExerciseSetTracker {
 
     const previousReps = this.#repsInSet;
     for (const [limbName, counter] of Object.entries(this.limbCounters)) {
-      counter.update(jointAngles[limbName] ?? null);
+      counter.update(jointAngles[limbName] ?? null, nowSeconds);
     }
+    const limbRepCounts = Object.values(this.limbCounters).map((counter) => counter.repCount);
     this.#repsInSet = Math.min(
       this.repsPerSet,
-      Math.min(...Object.values(this.limbCounters).map((counter) => counter.repCount)),
+      this.limbRule === 'both' ? Math.min(...limbRepCounts) : Math.max(...limbRepCounts),
     );
     const repCompleted = this.#repsInSet > previousReps;
     if (this.#repsInSet === this.repsPerSet) {
@@ -256,6 +358,13 @@ export class ExerciseSetTracker {
     return repCompleted;
   }
 }
+
+const CONFIRMATION_FRAMES = 3;
+const MIN_TRANSITION_FRAMES = 2;
+const TARGET_MARGIN_DEGREES = 8;
+const RETURN_MARGIN_DEGREES = 8;
+const MIN_RANGE_FRACTION = 0.7;
+const MIN_REP_SECONDS = 0.6;
 
 export type ExerciseStats = {
   exerciseName: string;

@@ -61,13 +61,14 @@ passed a physical-phone camera acceptance.
 
 ## On-Device Pose Integration
 
-The Android development path now lives in `apps/mobile/modules/adaptfit-pose`. It runs
-MediaPipe Pose Landmarker on-device and emits left/right joint angles plus confidence.
-Landmarks, frames, and images stay in native code. `apps/mobile/src/lib/tracking` ports
-the Python analyzer; seated biceps curl is the first calibrated recipe. Guest mode still
-uses a labeled timer when the native module is missing (Expo Go). Live mode uploads
-allowlisted `RepMetric`s from on-device counts, range, and confidence when the native
-module produced them, and must not persist simulated form values.
+The Android development path lives in `apps/mobile/modules/adaptfit-pose`. It runs
+MediaPipe Pose Landmarker on-device, applies camera-frame rotation, draws a native
+skeleton overlay, and emits primary/secondary joint angles plus per-side confidence.
+Landmark coordinates, frames, and images stay inside native code. `apps/mobile/src/lib/tracking`
+owns the rep state machine and derives range, accuracy, control, stability, form, and known
+feedback codes. Seated biceps curl, wall push-up, and seated knee extension have automatic
+counting enabled; the remaining recipes show a camera preview with manual counting rather
+than simulated tracking. Live mode may upload only allowlisted derived `RepMetric` fields.
 
 Expo Go cannot load MediaPipe or a bundled `.task` model. Use `expo-dev-client` and
 `pnpm dev:mobile:android:device` so the module owns one camera session for setup and the
@@ -76,16 +77,17 @@ at runtime. Inference stops on unmount, navigation away, or backgrounding.
 
 Keep this split:
 
-- Native: camera frames, MediaPipe Pose Landmarker, joint visibility, and joint angles.
-- TypeScript: the `exercise_analyzer.py` state machine (target then return angle,
-  bilateral reps, sets/rest, ROM).
+- Native: camera frames, MediaPipe Pose Landmarker, private landmark overlay, joint
+  visibility, and derived joint angles.
+- TypeScript: a noise-resistant state machine (confirmed start, target, and return;
+  minimum range/time; unilateral or bilateral limb rule), sets/rest, ROM, quality scores,
+  and actionable correction codes.
 - JavaScript/API: allowlisted `RepMetric` fields and known `feedbackCodes` only.
 
 Never emit landmark coordinates, frames, images, or audio to JavaScript for persistence
-or to the API. If the native module is absent, keep the labeled guest simulation; live
-mode must not persist simulated form, ROM, or fatigue values. Skip native auto-counting
-when the exercise has no calibrated tracking recipe; stub recipes still supply joint
-indices for the camera, and manual counts may record on-device range from those angles.
+or to the API. When the native module or a calibrated recipe is absent, count manually
+and do not invent form, ROM, or fatigue values. Stub recipes may still supply joint
+indices for the camera preview, but they must not increment repetitions on a timer.
 
 Calibrate six client recipes rather than training a new pose model. Seed data currently
 reuses one ROM window (`30–140°`) and tempo (`2–6s`) for every tracked exercise. Each
@@ -93,12 +95,12 @@ tracking key needs its own joints, target/return angles, and limb rule:
 
 | Tracking key | Starting joint recipe |
 | --- | --- |
-| `seated-biceps-curl-v1` | elbows `11-13-15` / `12-14-16` (calibrated; matches `model/main.py`) |
-| `seated-resistance-band-row-v1` | elbows or shoulders (stub) |
-| `seated-march-v1` | hips `23-25-27` / `24-26-28` (stub) |
-| `seated-knee-extension-v1` | knees (stub) |
-| `sit-to-stand-v1` | hip and knee (stub) |
-| `wall-push-up-v1` | elbows or shoulders (stub) |
+| `seated-biceps-curl-v1` | elbow angle plus upper-arm posture; enabled, pending final phone thresholds |
+| `seated-resistance-band-row-v1` | elbow angle plus torso posture; manual until tested |
+| `seated-march-v1` | hip angle plus knee posture; manual until tested |
+| `seated-knee-extension-v1` | automatic knee-angle reps plus seated hip-posture feedback |
+| `sit-to-stand-v1` | bilateral knee angle plus hip extension; manual until tested |
+| `wall-push-up-v1` | automatic elbow-angle reps plus body-line posture feedback |
 
 The first physical test device is Android. Install the development APK, confirm preview
 and no-camera still work, then calibrate curl on that camera. iOS remains required for
@@ -117,9 +119,10 @@ a development build runs on the Android test phone:
    MediaPipe and downloads `pose_landmarker_lite.task` into module assets.
 2. Complete a workout with tracking off. Manual count, pause, rest, and complete must
    still work.
-3. Allow the camera on seated biceps curl. The badge should read **On-device tracking**,
-   not **Simulated guest tracking**. Reps should increment from the curl cycle, not a
-   timer. Complete and analysis should show on-device range when samples were confident.
+3. Allow the camera on seated biceps curl. The badge should read **On-device tracking**.
+   A stationary straight arm must remain at zero. A rep must start straight, traverse the
+   intermediate range, reach the bent target for multiple frames, and return with control.
+   Complete and analysis should show derived range and quality scores when samples were confident.
 4. Inspect traffic: no frames, landmarks, or coordinates. Live upload may include
    counted, duration, range, confidence, `targetPositionReached`, and known
    `feedbackCodes` only.
@@ -186,14 +189,15 @@ The application now lives in `apps/mobile` and includes:
   compact in-session tracking-off status, nearby manual rep guidance, pause, timed rest, early
   completion, and metrics-first analysis. See
   [session setup and multi-exercise flow](#session-setup-and-multi-exercise-flow).
-- Authenticated session lifecycle calls that submit counted-rep derived records, and
-  on-device pose range/confidence when the native module produced them. Simulated guest
-  form values are never persisted to the backend.
+- Authenticated session lifecycle calls that submit counted-rep derived records and
+  confidence-backed on-device pose measurements. Manual camera sessions never invent
+  or persist form values.
 - An Android-first local Expo module under `apps/mobile/modules/adaptfit-pose` that runs
-  MediaPipe Pose Landmarker on-device and emits joint angles only. The TypeScript port of
-  `exercise_analyzer.py` counts biceps-curl reps from those angles. Session complete and
-  analysis show on-device range when samples exist; they do not invent control or
-  stability scores. Expo Go cannot load this module; use
+  MediaPipe Pose Landmarker on-device, keeps a skeleton overlay native, and emits only
+  derived angles/confidence to TypeScript. The mobile analyzer rejects single-frame noise,
+  derives per-rep range and quality scores, and keeps unverified recipes manual. Session
+  complete and analysis show those on-device measurements when confident samples exist.
+  Expo Go cannot load this module; use
   `pnpm dev:mobile:android:device` / `expo run:android` to install a development build.
   iOS still uses the `expo-camera` preview until the same native path ships there.
 - Account deletion, EAS development/preview/production profiles, and Jest / React Native

@@ -10,6 +10,9 @@ The product client is the React Native / Expo application in `apps/mobile` (iOS 
 
 Architecture, privacy, API, and acceptance requirements are in the
 [AdaptFit Product and Engineering Specifications](docs/README.md).
+On-device motion, local orchestration, and the privacy split between device media and
+optional cloud history are in
+[On-Device Intelligence Architecture](docs/architecture/README.md).
 
 ## Workspace
 
@@ -22,7 +25,8 @@ Architecture, privacy, API, and acceptance requirements are in the
 - `supabase`: migrations, RLS policies, lifecycle RPCs, and deterministic catalog seed data.
 - `prisma`: typed application models generated from the canonical Supabase schema.
 - `model`: desktop MediaPipe calibration lab. It is not the mobile runtime.
-- `docs`: [AdaptFit Product and Engineering Specifications](docs/README.md).
+- `docs`: [AdaptFit Product and Engineering Specifications](docs/README.md) and
+  [On-Device Intelligence Architecture](docs/architecture/README.md).
 
 ## Architecture
 

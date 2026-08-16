@@ -3,6 +3,7 @@ import {
   combineMuscleLoad,
   inferMuscleActivations,
   inferVisualKey,
+  muscleIdsForLabel,
 } from '@/lib/anatomy';
 
 describe('anatomy data adapters', () => {
@@ -11,6 +12,14 @@ describe('anatomy data adapters', () => {
       { id: 'quadriceps', role: 'primary', intensity: 4 },
       { id: 'glutes', role: 'secondary', intensity: 3 },
     ]);
+  });
+
+  it('resolves extra muscle partitions and common synonyms', () => {
+    expect(muscleIdsForLabel('Obliques')).toEqual(['obliques']);
+    expect(muscleIdsForLabel('Traps')).toEqual(['traps']);
+    expect(muscleIdsForLabel('Latissimus dorsi')).toEqual(['lats']);
+    expect(muscleIdsForLabel('Pecs')).toEqual(['chest']);
+    expect(muscleIdsForLabel('Abs')).toEqual(['core']);
   });
 
   it('combines a workout into relative muscle coverage', () => {

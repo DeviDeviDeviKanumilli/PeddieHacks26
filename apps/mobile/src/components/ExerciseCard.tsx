@@ -11,14 +11,20 @@ const tone = {
   incompatible: { label: 'Not recommended', color: colors.danger },
 };
 
-export const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
+export const ExerciseCard = ({
+  exercise,
+  onPress,
+}: {
+  exercise: Exercise;
+  onPress?: () => void;
+}) => {
   const status = tone[exercise.compatibility];
   return (
     <Pressable
       accessibilityHint="Opens exercise details"
       accessibilityLabel={`${exercise.name}. ${status.label}. ${exercise.summary}`}
       accessibilityRole="button"
-      onPress={() => router.push(`/exercise/${exercise.slug}`)}
+      onPress={() => (onPress ? onPress() : router.push(`/exercise/${exercise.slug}`))}
     >
       {({ pressed }) => (
         <View style={[styles.card, pressed && styles.pressed]}>
@@ -41,8 +47,7 @@ export const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
               {exercise.summary}
             </Text>
             <Text style={styles.metaText}>
-              {exercise.position} · {exercise.sets} sets × {exercise.reps} reps · Level{' '}
-              {exercise.difficulty}
+              {exercise.position} · Level {exercise.difficulty}
             </Text>
           </View>
           <ChevronRight color={colors.neutral} size={20} />

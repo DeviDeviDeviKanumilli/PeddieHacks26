@@ -1,5 +1,5 @@
 import { exercises } from '@/data/catalog';
-import { buildGuestWorkout } from '@/lib/guestWorkout';
+import { buildGuestWorkout, planFitReasons } from '@/lib/guestWorkout';
 import type { MovementProfile } from '@/types';
 
 const profile = (overrides: Partial<MovementProfile> = {}): MovementProfile => ({
@@ -29,6 +29,26 @@ describe('buildGuestWorkout', () => {
 
     expect(workout.items.map(({ exerciseSlug }) => exerciseSlug)).not.toEqual(
       expect.arrayContaining(['seated-resistance-band-row', 'sit-to-stand', 'wall-push-up']),
+    );
+  });
+});
+
+describe('planFitReasons', () => {
+  it('explains seated, no-jumping, and saved knee limits', () => {
+    const workout = buildGuestWorkout(
+      profile({ regions: { 'left-knee': 'avoid' }, capabilities: { standing: 'avoid' } }),
+      exercises,
+    );
+    const planned = workout.items
+      .map((item) => exercises.find((exercise) => exercise.slug === item.exerciseSlug))
+      .filter((exercise): exercise is NonNullable<typeof exercise> => Boolean(exercise));
+
+    expect(planFitReasons(profile({ regions: { 'left-knee': 'avoid' } }), planned)).toEqual(
+      expect.arrayContaining([
+        'Seated movements',
+        'No jumping',
+        'Avoids your saved knee limitation',
+      ]),
     );
   });
 });

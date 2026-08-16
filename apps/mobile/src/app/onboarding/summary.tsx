@@ -109,7 +109,7 @@ const SummaryRow = ({
 );
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.sm, marginTop: spacing.md },
+  intro: { gap: spacing.sm },
   row: {
     alignItems: 'flex-start',
     flexDirection: 'row',

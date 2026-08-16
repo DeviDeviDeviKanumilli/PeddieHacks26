@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   backText: { color: colors.ink, fontFamily: typography.semibold, fontSize: 14 },
-  intro: { gap: spacing.xs, marginTop: spacing.sm },
+  intro: { gap: spacing.xs },
   count: { color: colors.muted, fontFamily: typography.medium, fontSize: 13 },
   list: { gap: spacing.sm },
   pressed: { opacity: 0.7 },

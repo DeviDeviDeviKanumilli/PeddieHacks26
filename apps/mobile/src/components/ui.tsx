@@ -1,9 +1,10 @@
-import * as Haptics from 'expo-haptics';
+import { useSegments } from 'expo-router';
 import type { LucideIcon } from 'lucide-react-native';
 import type { PropsWithChildren, ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  type PressableProps,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,8 +13,8 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppStore } from '@/state/useAppStore';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { selectionHaptic, useAccessibility } from '@/lib/accessibility';
 import { colors, radii, shadow, spacing, typography } from '@/theme/tokens';
 
 export const Screen = ({
@@ -22,13 +23,32 @@ export const Screen = ({
   padded = true,
   style,
 }: PropsWithChildren<{ scroll?: boolean; padded?: boolean; style?: ViewStyle }>) => {
-  const content = <View style={[styles.content, padded && styles.padded, style]}>{children}</View>;
+  const insets = useSafeAreaInsets();
+  const inTabs = useSegments()[0] === '(tabs)';
+  const { oneHanded } = useAccessibility();
+  const content = (
+    <View
+      style={[
+        styles.content,
+        padded && styles.padded,
+        {
+          paddingBottom: spacing.md + (oneHanded ? spacing.xl : 0) + (inTabs ? 0 : insets.bottom),
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       {scroll ? (
         <ScrollView
+          alwaysBounceVertical={false}
+          bounces={false}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
+          overScrollMode="never"
           showsVerticalScrollIndicator={false}
         >
           {content}
@@ -40,19 +60,52 @@ export const Screen = ({
   );
 };
 
-export const Eyebrow = ({ children }: PropsWithChildren) => (
-  <Text style={styles.eyebrow}>{children}</Text>
-);
+export const Eyebrow = ({ children }: PropsWithChildren) => {
+  const { highContrast, textScale } = useAccessibility();
+  return (
+    <Text
+      style={[
+        styles.eyebrow,
+        { fontSize: 12 * textScale },
+        highContrast && styles.highContrastText,
+      ]}
+    >
+      {children}
+    </Text>
+  );
+};
 
-export const Title = ({ children, compact = false }: PropsWithChildren<{ compact?: boolean }>) => (
-  <Text accessibilityRole="header" style={[styles.title, compact && styles.titleCompact]}>
-    {children}
-  </Text>
-);
+export const Title = ({ children, compact = false }: PropsWithChildren<{ compact?: boolean }>) => {
+  const { textScale } = useAccessibility();
+  const size = (compact ? 34 : 42) * textScale;
+  return (
+    <Text
+      accessibilityRole="header"
+      style={[
+        styles.title,
+        compact && styles.titleCompact,
+        { fontSize: size, lineHeight: size + 4 },
+      ]}
+    >
+      {children}
+    </Text>
+  );
+};
 
-export const Body = ({ children, muted = false }: PropsWithChildren<{ muted?: boolean }>) => (
-  <Text style={[styles.body, muted && styles.bodyMuted]}>{children}</Text>
-);
+export const Body = ({ children, muted = false }: PropsWithChildren<{ muted?: boolean }>) => {
+  const { highContrast, textScale } = useAccessibility();
+  return (
+    <Text
+      style={[
+        styles.body,
+        { fontSize: 16 * textScale, lineHeight: 24 * textScale },
+        muted && (highContrast ? styles.highContrastText : styles.bodyMuted),
+      ]}
+    >
+      {children}
+    </Text>
+  );
+};
 
 export const Card = ({
   children,
@@ -61,7 +114,24 @@ export const Card = ({
 }: PropsWithChildren<{
   tone?: 'default' | 'lavender' | 'success' | 'warning' | 'danger';
   style?: ViewStyle;
-}>) => <View style={[styles.card, cardTones[tone], style]}>{children}</View>;
+}>) => {
+  const { highContrast } = useAccessibility();
+  return (
+    <View style={[styles.card, cardTones[tone], highContrast && styles.highContrastBorder, style]}>
+      {children}
+    </View>
+  );
+};
+
+export const AccessiblePressable = ({ onPress, ...props }: PressableProps) => (
+  <Pressable
+    {...props}
+    onPress={(event) => {
+      void selectionHaptic();
+      onPress?.(event);
+    }}
+  />
+);
 
 export const Button = ({
   children,
@@ -71,6 +141,7 @@ export const Button = ({
   loading = false,
   icon: Icon,
   accessibilityLabel,
+  style,
 }: {
   children: ReactNode;
   onPress: () => void;
@@ -79,8 +150,9 @@ export const Button = ({
   loading?: boolean;
   icon?: LucideIcon;
   accessibilityLabel?: string;
+  style?: ViewStyle;
 }) => {
-  const haptics = useAppStore((state) => state.profile.accessibility.includes('Haptic feedback'));
+  const { controlMinHeight, highContrast, reducedMotion, textScale } = useAccessibility();
   return (
     <Pressable
       accessibilityRole="button"
@@ -88,14 +160,17 @@ export const Button = ({
       accessibilityState={{ disabled, busy: loading }}
       disabled={disabled || loading}
       onPress={() => {
-        if (haptics) void Haptics.selectionAsync();
+        void selectionHaptic();
         onPress();
       }}
       style={({ pressed }) => [
         styles.button,
         buttonVariants[variant],
-        pressed && !disabled && styles.pressed,
+        { minHeight: controlMinHeight + 6 },
+        highContrast && styles.highContrastBorder,
+        pressed && !disabled && (reducedMotion ? styles.pressedStatic : styles.pressed),
         disabled && styles.disabled,
+        style,
       ]}
     >
       {loading ? (
@@ -103,9 +178,17 @@ export const Button = ({
       ) : (
         <>
           {Icon ? (
-            <Icon color={variant === 'primary' ? colors.surface : colors.lavenderDark} size={20} />
+            <Icon
+              accessibilityElementsHidden
+              color={variant === 'primary' ? colors.surface : colors.lavenderDark}
+              size={20}
+            />
           ) : null}
-          <Text style={[styles.buttonText, buttonTextVariants[variant]]}>{children}</Text>
+          <Text
+            style={[styles.buttonText, buttonTextVariants[variant], { fontSize: 16 * textScale }]}
+          >
+            {children}
+          </Text>
         </>
       )}
     </Pressable>
@@ -123,34 +206,50 @@ export const Chip = ({
   onPress: () => void;
   tone?: 'lavender' | 'danger' | 'success';
 }) => {
-  const haptics = useAppStore((state) => state.profile.accessibility.includes('Haptic feedback'));
+  const { controlMinHeight, highContrast, reducedMotion, textScale } = useAccessibility();
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
       onPress={() => {
-        if (haptics) void Haptics.selectionAsync();
+        void selectionHaptic();
         onPress();
       }}
       style={({ pressed }) => [
         styles.chip,
+        { minHeight: Math.max(46, controlMinHeight - 4) },
         selected && chipSelected[tone],
-        pressed && styles.pressed,
+        highContrast && styles.highContrastBorder,
+        pressed && (reducedMotion ? styles.pressedStatic : styles.pressed),
       ]}
     >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+      <Text
+        style={[styles.chipText, selected && styles.chipTextSelected, { fontSize: 14 * textScale }]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 };
 
-export const Field = (props: TextInputProps) => (
-  <TextInput
-    placeholderTextColor={colors.neutral}
-    selectionColor={colors.lavender}
-    {...props}
-    style={[styles.field, props.style]}
-  />
-);
+export const Field = (props: TextInputProps) => {
+  const { highContrast, textScale } = useAccessibility();
+  return (
+    <TextInput
+      allowFontScaling
+      placeholderTextColor={highContrast ? colors.ink : colors.neutral}
+      selectionColor={colors.lavender}
+      {...props}
+      style={[
+        styles.field,
+        { fontSize: 16 * textScale, minHeight: 52 * Math.max(1, textScale) },
+        highContrast && styles.highContrastBorder,
+        props.style,
+      ]}
+    />
+  );
+};
 
 export const SectionHeading = ({ title, action }: { title: string; action?: ReactNode }) => (
   <View style={styles.sectionHeading}>
@@ -200,8 +299,8 @@ const chipSelected = StyleSheet.create({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvas },
-  scroll: { flexGrow: 1 },
-  content: { flex: 1, gap: spacing.md, paddingBottom: 110 },
+  scroll: { flexGrow: 0 },
+  content: { gap: spacing.sm },
   padded: { paddingHorizontal: spacing.lg },
   eyebrow: {
     color: colors.lavenderDark,
@@ -225,7 +324,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     borderWidth: 1,
     gap: spacing.sm,
-    padding: spacing.lg,
+    padding: spacing.md,
     ...shadow,
   },
   button: {
@@ -240,7 +339,10 @@ const styles = StyleSheet.create({
   },
   buttonText: { fontFamily: typography.semibold, fontSize: 16 },
   pressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
+  pressedStatic: { opacity: 0.76 },
   disabled: { opacity: 0.46 },
+  highContrastText: { color: colors.ink },
+  highContrastBorder: { borderColor: colors.ink, borderWidth: 2 },
   chip: {
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -269,7 +371,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.sm,
   },
   sectionTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 20 },
   metric: {

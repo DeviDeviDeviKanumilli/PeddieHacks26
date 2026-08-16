@@ -5,9 +5,10 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
+    "android": "expo run:android",
     "run:android": "expo run:android",
-    "ios": "expo start --ios",
+    "ios": "expo run:ios",
+    "run:ios": "expo run:ios",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "jest --runInBand",
     "build": "expo export --platform ios --output-dir dist/ios && expo export --platform android --output-dir dist/android",

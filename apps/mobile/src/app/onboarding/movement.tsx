@@ -13,7 +13,7 @@ export default function MovementScreen() {
   return (
     <Screen>
       <OnboardingHeader step={2} />
-      <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+      <View style={{ gap: spacing.sm }}>
         <Eyebrow>Your movement map</Eyebrow>
         <Title compact>Tell us what feels available today.</Title>
         <Body muted>

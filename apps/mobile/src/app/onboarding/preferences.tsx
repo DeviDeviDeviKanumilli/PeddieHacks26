@@ -55,6 +55,6 @@ export default function PreferencesScreen() {
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.sm, marginTop: spacing.md },
+  intro: { gap: spacing.sm },
   choices: { gap: spacing.sm },
 });

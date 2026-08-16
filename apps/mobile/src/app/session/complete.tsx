@@ -157,7 +157,7 @@ export default function CompleteScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', gap: spacing.sm, marginTop: spacing.xl },
+  hero: { alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   check: {
     alignItems: 'center',
     backgroundColor: colors.success,

@@ -128,6 +128,9 @@ a development build runs on the Android test phone:
 - Support Dynamic Type, screen readers, reduced motion, high contrast, and one-handed use.
 - Never communicate movement status, compatibility, or progress through color alone.
 - Provide visual, spoken, and haptic feedback according to user preferences.
+  `apps/mobile/src/lib/accessibility.ts` applies those preferences: haptics on shared
+  buttons and pressables, spoken status and coaching, larger type, high-contrast
+  borders, reduced-motion press states, and extra one-handed bottom reach.
 - Give the interactive body map an equivalent searchable/list-based control.
 - Keep live coaching brief and present one actionable correction at a time.
 
@@ -207,10 +210,14 @@ pnpm test:mobile
 pnpm --filter @peddie/mobile build
 ```
 
-`pnpm dev:mobile:android` starts Metro for Expo Go, which cannot run pose inference.
-`pnpm dev:mobile:android:device` compiles a development client with MediaPipe and installs
-it on a connected Android phone or emulator. The pose model is downloaded into module
-assets at compile time, not at runtime.
+`pnpm dev:mobile` starts Metro. `pnpm dev:mobile:ios` compiles a development client
+(`expo run:ios`) and installs it on a simulator; Expo Go cannot load `expo-dev-client`
+or the pose module. `pnpm dev:mobile:android` is also a native run. Use
+`pnpm dev:mobile:android:device` on a connected Android phone. The pose model is
+downloaded into module assets at compile time, not at runtime. iOS pose remains a stub
+(`isAvailable() === false`) until the Android camera pass lands. Xcode 26.3 needs the
+committed `expo-modules-jsi` `Swift.abs` patch documented in
+[deployment and operations](08-deployment-and-operations.md).
 
 The iOS and Android export gate succeeds without private environment variables. Physical
 devices must use a reachable API URL rather than `localhost`. The Android pose module is

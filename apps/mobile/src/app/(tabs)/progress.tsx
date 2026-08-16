@@ -238,7 +238,7 @@ export default function ProgressScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { gap: spacing.lg, paddingTop: spacing.xs },
+  screen: { gap: spacing.sm, paddingTop: spacing.xs },
   titleRow: {
     alignItems: 'center',
     flexDirection: 'row',

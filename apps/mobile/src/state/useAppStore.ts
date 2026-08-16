@@ -41,6 +41,7 @@ type AppStore = {
   clearLocalData: () => void;
   regenerateWorkout: () => void;
   setRecommendedWorkout: (workout: Workout) => void;
+  addWorkoutExercise: (exercise: Exercise) => boolean;
   completeWorkout: (summary: Omit<WorkoutHistory, 'id' | 'completedAt'>) => void;
 };
 
@@ -103,6 +104,31 @@ export const useAppStore = create<AppStore>()(
           recommendedWorkout: buildGuestWorkout(state.profile, state.catalog),
         })),
       setRecommendedWorkout: (recommendedWorkout) => set({ recommendedWorkout }),
+      addWorkoutExercise: (exercise) => {
+        let added = false;
+        set((state) => {
+          if (state.recommendedWorkout.items.some((item) => item.exerciseSlug === exercise.slug)) {
+            return state;
+          }
+          added = true;
+          return {
+            recommendedWorkout: {
+              ...state.recommendedWorkout,
+              items: [
+                ...state.recommendedWorkout.items,
+                {
+                  id: `guest-item-${exercise.slug}-${Date.now()}`,
+                  exerciseSlug: exercise.slug,
+                  sets: exercise.sets,
+                  reps: exercise.reps,
+                  restSeconds: exercise.restSeconds,
+                },
+              ],
+            },
+          };
+        });
+        return added;
+      },
       completeWorkout: (summary) =>
         set((state) => ({
           history: [

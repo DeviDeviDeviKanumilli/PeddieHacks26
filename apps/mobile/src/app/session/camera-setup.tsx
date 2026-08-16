@@ -64,7 +64,7 @@ export default function CameraSetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs, marginTop: spacing.md },
+  intro: { gap: spacing.xs },
   preview: {
     backgroundColor: colors.black,
     borderRadius: radii.lg,

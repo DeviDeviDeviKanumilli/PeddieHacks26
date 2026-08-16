@@ -1,22 +1,29 @@
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { AccessiblePressable } from '@/components/ui';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export const OnboardingHeader = ({ step, total = 6 }: { step: number; total?: number }) => (
   <View style={styles.wrap}>
-    <Pressable
+    <AccessiblePressable
+      accessibilityHint="Returns to the previous step"
       accessibilityLabel="Go back"
       accessibilityRole="button"
       onPress={() => router.back()}
       style={styles.back}
     >
-      <ArrowLeft color={colors.ink} size={21} />
-    </Pressable>
-    <View style={styles.progress}>
+      <ArrowLeft accessibilityElementsHidden color={colors.ink} size={21} />
+    </AccessiblePressable>
+    <View
+      accessibilityLabel={`Step ${step} of ${total}`}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: total, now: step }}
+      style={styles.progress}
+    >
       <View style={[styles.fill, { width: `${Math.round((step / total) * 100)}%` }]} />
     </View>
-    <Text style={styles.count}>
+    <Text accessibilityElementsHidden style={styles.count}>
       {step}/{total}
     </Text>
   </View>

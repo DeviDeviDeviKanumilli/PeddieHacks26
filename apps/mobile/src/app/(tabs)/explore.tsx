@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { type Href, router } from 'expo-router';
-import { ChevronRight, Search } from 'lucide-react-native';
+import { type Href, router, useLocalSearchParams } from 'expo-router';
+import { ArrowLeft, ChevronRight, Search } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ExerciseCard } from '@/components/ExerciseCard';
@@ -17,6 +17,7 @@ import {
 import { exerciseSummaryFromApi } from '@/lib/exercises';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
+import type { Exercise } from '@/types';
 
 const categories = ['All', 'Strength', 'Mobility', 'Cardio', 'Balance'];
 
@@ -49,9 +50,14 @@ export default function ExploreScreen() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [personalized, setPersonalized] = useState(true);
+  const { add, replace } = useLocalSearchParams<{ add?: string; replace?: string }>();
+  const picking = add === '1' || Boolean(replace);
   const regions = useAppStore((state) => state.profile.regions);
   const catalog = useAppStore((state) => state.catalog);
   const mergeExercises = useAppStore((state) => state.mergeExercises);
+  const addWorkoutExercise = useAppStore((state) => state.addWorkoutExercise);
+  const setRecommendedWorkout = useAppStore((state) => state.setRecommendedWorkout);
+  const workout = useAppStore((state) => state.recommendedWorkout);
   const mode = useAppStore((state) => state.mode);
   const liveCatalog = useQuery({
     queryKey: ['exercise-catalog'],
@@ -82,7 +88,33 @@ export default function ExploreScreen() {
     [catalog, regions],
   );
   const searching = query.trim().length > 0;
-  const recommended = results.slice(0, 2);
+  const plannedSlugs = new Set(workout.items.map((item) => item.exerciseSlug));
+  const selectable = picking
+    ? results.filter((exercise) => replace || !plannedSlugs.has(exercise.slug))
+    : results;
+  const recommended = picking ? selectable : selectable.slice(0, 2);
+
+  const pickExercise = (exercise: Exercise) => {
+    if (replace) {
+      setRecommendedWorkout({
+        ...workout,
+        items: workout.items.map((item) =>
+          item.id === replace
+            ? {
+                ...item,
+                exerciseSlug: exercise.slug,
+                sets: exercise.sets,
+                reps: exercise.reps,
+                restSeconds: exercise.restSeconds,
+              }
+            : item,
+        ),
+      });
+    } else {
+      addWorkoutExercise(exercise);
+    }
+    router.back();
+  };
 
   const selectTab = (forMe: boolean) => {
     setPersonalized(forMe);
@@ -91,7 +123,20 @@ export default function ExploreScreen() {
 
   return (
     <Screen style={styles.screen}>
-      <Title compact>Explore</Title>
+      {picking ? (
+        <Pressable
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+            else router.push(`/workout/${workout.id}`);
+          }}
+          style={styles.back}
+        >
+          <ArrowLeft color={colors.ink} size={22} />
+        </Pressable>
+      ) : null}
+      <Title compact>{picking ? (replace ? 'Swap exercise' : 'Add exercise') : 'Explore'}</Title>
 
       <View style={styles.searchWrap}>
         <Search color={colors.muted} size={20} />
@@ -122,15 +167,23 @@ export default function ExploreScreen() {
         })}
       </View>
 
-      {searching ? (
+      {searching || picking ? (
         <>
-          <SectionHeading title="Search results" />
+          <SectionHeading
+            title={
+              picking ? (replace ? 'Choose a replacement' : 'Choose an exercise') : 'Search results'
+            }
+          />
           <Text accessibilityLiveRegion="polite" style={styles.count}>
-            {results.length} exercise{results.length === 1 ? '' : 's'}
+            {selectable.length} exercise{selectable.length === 1 ? '' : 's'}
           </Text>
           <View style={styles.list}>
-            {results.map((exercise) => (
-              <ExerciseCard exercise={exercise} key={exercise.slug} />
+            {selectable.map((exercise) => (
+              <ExerciseCard
+                exercise={exercise}
+                key={exercise.slug}
+                {...(picking ? { onPress: () => pickExercise(exercise) } : {})}
+              />
             ))}
           </View>
         </>
@@ -188,6 +241,16 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   screen: { gap: spacing.md },
+  back: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
   searchWrap: {
     alignItems: 'center',
     backgroundColor: colors.surface,

@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxl,
     width: 86,
   },
-  intro: { gap: spacing.sm, marginVertical: spacing.lg },
+  intro: { gap: spacing.sm, marginVertical: spacing.sm },
   row: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
   rowText: {
     color: colors.ink,

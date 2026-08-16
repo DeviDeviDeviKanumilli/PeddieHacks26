@@ -1,12 +1,12 @@
 import { CameraView } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Speech from 'expo-speech';
 import { CircleStop, Pause, Play, Plus, VideoOff } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AnatomyMap } from '@/components/AnatomyMap';
 import { Button, Card, Screen } from '@/components/ui';
 import { useAppIsActive } from '@/hooks/useAppIsActive';
+import { speakFeedback, stopSpokenFeedback } from '@/lib/accessibility';
 import { isPoseTrackingAvailable, type PoseAnglesEvent, SessionCamera } from '@/lib/poseCamera';
 import { MoveState, RangeOfMotionTracker } from '@/lib/tracking/analyzer';
 import { usePoseSession } from '@/lib/tracking/poseSession';
@@ -181,10 +181,9 @@ export default function ActiveSessionScreen() {
   }, [nativeCounting, poseCue, reps]);
   useEffect(() => {
     if (!tracking || !spokenFeedback || paused || !appIsActive || !feedbackText) return;
-    Speech.stop();
-    Speech.speak(feedbackText, { rate: 0.92 });
+    speakFeedback(feedbackText);
     return () => {
-      Speech.stop();
+      stopSpokenFeedback();
     };
   }, [appIsActive, feedbackText, paused, spokenFeedback, tracking]);
   if (!exercise) return null;

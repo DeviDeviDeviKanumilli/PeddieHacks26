@@ -3,25 +3,20 @@ import { ArrowRight } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { OnboardingHeader } from '@/components/OnboardingHeader';
 import { Body, Button, Chip, Eyebrow, Screen, Title } from '@/components/ui';
+import { accessibilityPreferences, selectionHaptic, speakFeedback } from '@/lib/accessibility';
 import { useAppStore } from '@/state/useAppStore';
 import { spacing } from '@/theme/tokens';
-
-const options = [
-  'Larger text',
-  'High contrast',
-  'Reduced motion',
-  'Spoken feedback',
-  'Haptic feedback',
-  'One-handed controls',
-];
 
 export default function AccessibilityScreen() {
   const selected = useAppStore((state) => state.profile.accessibility);
   const setAccessibility = useAppStore((state) => state.setAccessibility);
-  const toggle = (item: string) =>
-    setAccessibility(
-      selected.includes(item) ? selected.filter((value) => value !== item) : [...selected, item],
-    );
+  const toggle = (item: (typeof accessibilityPreferences)[number]) => {
+    const enabling = !selected.includes(item);
+    const next = enabling ? [...selected, item] : selected.filter((value) => value !== item);
+    setAccessibility(next);
+    if (item === 'Haptic feedback' && enabling) void selectionHaptic();
+    if (item === 'Spoken feedback' && enabling) speakFeedback('Spoken feedback on.');
+  };
   return (
     <Screen>
       <OnboardingHeader step={5} />
@@ -34,7 +29,7 @@ export default function AccessibilityScreen() {
         </Body>
       </View>
       <View style={styles.choices}>
-        {options.map((item) => (
+        {accessibilityPreferences.map((item) => (
           <Chip
             key={item}
             label={item}
@@ -51,6 +46,6 @@ export default function AccessibilityScreen() {
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.sm, marginTop: spacing.md },
+  intro: { gap: spacing.sm },
   choices: { gap: spacing.sm },
 });

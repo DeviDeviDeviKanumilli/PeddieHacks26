@@ -20,6 +20,10 @@
   phone. Compile and install with `pnpm dev:mobile:android:device` on a machine that has
   the Android SDK. That command is the next pose step; Mac-side module and session
   wiring are already in the repository.
+- iOS simulator local runs use `pnpm dev:mobile:ios` (`expo run:ios`). Xcode 26.3 fails
+  to compile `expo-modules-jsi@57.0.4` unless `Swift.abs` is used; the repo applies that
+  one-line fix through `patches/expo-modules-jsi@57.0.4.patch`. Drop the patch after an
+  upstream Expo release includes the fix or Xcode is 26.4+.
 
 ### Hosted demo
 

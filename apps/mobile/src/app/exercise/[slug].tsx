@@ -220,7 +220,7 @@ const Bullet = ({ text }: { text: string }) => (
 );
 
 const styles = StyleSheet.create({
-  screen: { gap: spacing.lg },
+  screen: { gap: spacing.md },
   navigationRow: {
     alignItems: 'center',
     flexDirection: 'row',

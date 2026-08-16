@@ -1,4 +1,4 @@
-import type { Exercise, MovementProfile, Workout } from '@/types';
+import type { Exercise, MovementProfile, Workout, WorkoutItem } from '@/types';
 
 const usesAny = (exercise: Exercise, terms: readonly string[]): boolean => {
   const text = `${exercise.slug} ${exercise.muscles.join(' ')}`.toLowerCase();
@@ -26,6 +26,70 @@ const conflictsWithProfile = (exercise: Exercise, profile: MovementProfile): boo
     return true;
   if (profile.capabilities.standing === 'avoid' && exercise.position === 'standing') return true;
   return false;
+};
+
+export const estimatedWorkoutMinutes = (
+  items: readonly Pick<WorkoutItem, 'sets' | 'reps' | 'restSeconds'>[],
+): number =>
+  Math.max(
+    1,
+    Math.round(
+      items.reduce(
+        (seconds, item) =>
+          seconds + item.sets * item.reps * 3 + Math.max(0, item.sets - 1) * item.restSeconds,
+        0,
+      ) / 60,
+    ),
+  );
+
+const regionLabel = (id: string) => {
+  if (id.includes('knee')) return 'knee';
+  if (id.includes('shoulder')) return 'shoulder';
+  if (id.includes('hip')) return 'hip';
+  if (id.includes('back')) return 'back';
+  return id.replaceAll('-', ' ');
+};
+
+export const usesExtraEquipment = (exercises: readonly Pick<Exercise, 'equipment'>[]): boolean =>
+  exercises.some((exercise) =>
+    exercise.equipment.some((item) => {
+      const label = item.toLowerCase();
+      return label.length > 0 && !label.includes('none') && !label.includes('chair');
+    }),
+  );
+
+export const planFitReasons = (
+  profile: MovementProfile,
+  exercises: readonly Exercise[],
+): string[] => {
+  if (exercises.length === 0) return [];
+  const reasons: string[] = [];
+  if (exercises.every((exercise) => exercise.position === 'seated')) {
+    reasons.push('Seated movements');
+  } else if (
+    profile.capabilities.standing === 'avoid' ||
+    profile.capabilities['seated-posture'] === 'focus'
+  ) {
+    reasons.push('Seated movements');
+  }
+  const jumping = exercises.some((exercise) =>
+    /jump|hop|plyo|skip/u.test(`${exercise.slug} ${exercise.name} ${exercise.summary}`),
+  );
+  if (!jumping) reasons.push('No jumping');
+  const avoided = Object.entries(profile.regions)
+    .filter(([, state]) => state === 'avoid')
+    .map(([id]) => id);
+  const kneeAvoid = avoided.some((id) => id.includes('knee'));
+  if (kneeAvoid) {
+    reasons.push('Avoids your saved knee limitation');
+  } else {
+    const other = avoided[0];
+    if (other) reasons.push(`Avoids ${regionLabel(other)}-intensive exercises`);
+  }
+  if (reasons.length < 3 && !usesExtraEquipment(exercises)) {
+    reasons.push('No extra equipment');
+  }
+  return reasons.slice(0, 3);
 };
 
 const equipmentAvailable = (exercise: Exercise, selected: ReadonlySet<string>): boolean => {
@@ -66,29 +130,18 @@ export const buildGuestWorkout = (
     .sort((left, right) => right.score - left.score || left.index - right.index)
     .slice(0, 4)
     .map(({ exercise }) => exercise);
-  const durationMinutes = Math.max(
-    5,
-    Math.round(
-      selected.reduce(
-        (seconds, exercise) =>
-          seconds +
-          exercise.sets * exercise.reps * 3 +
-          Math.max(0, exercise.sets - 1) * exercise.restSeconds,
-        0,
-      ) / 60,
-    ),
-  );
+  const items = selected.map((exercise, index) => ({
+    id: `guest-item-${index + 1}`,
+    exerciseSlug: exercise.slug,
+    sets: exercise.sets,
+    reps: exercise.reps,
+    restSeconds: exercise.restSeconds,
+  }));
   return {
     id: 'guest-workout-1',
-    title: selected.length >= 3 ? 'Your adaptive movement set' : 'Your focused movement set',
-    durationMinutes,
+    title: selected.length >= 3 ? 'Your adaptive movement' : 'Your focused movement',
+    durationMinutes: Math.max(5, estimatedWorkoutMinutes(items)),
     focus: profile.goals.join(' + ') || 'Movement that fits today',
-    items: selected.map((exercise, index) => ({
-      id: `guest-item-${index + 1}`,
-      exerciseSlug: exercise.slug,
-      sets: exercise.sets,
-      reps: exercise.reps,
-      restSeconds: exercise.restSeconds,
-    })),
+    items,
   };
 };

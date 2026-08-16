@@ -108,14 +108,6 @@ export default function ProfileScreen() {
       <Button icon={Settings2} onPress={editProfile} variant="secondary">
         Edit movement profile
       </Button>
-      <SectionHeading title="About your data" />
-      <Card>
-        <Text style={styles.dataTitle}>Camera data stays on your device.</Text>
-        <Body muted>
-          AdaptFit never uploads raw video, images, audio, or pose landmarks. Only derived workout
-          measurements may be saved when you use a synced account.
-        </Body>
-      </Card>
       {mode === 'live' ? (
         <Button onPress={deleteAccount} variant="danger">
           Delete synced account
@@ -149,7 +141,7 @@ const ProfileRow = ({
 );
 
 const styles = StyleSheet.create({
-  intro: { gap: spacing.xs, marginTop: spacing.md },
+  intro: { gap: spacing.xs },
   identity: { alignItems: 'center', flexDirection: 'row' },
   avatar: {
     alignItems: 'center',
@@ -181,5 +173,4 @@ const styles = StyleSheet.create({
   rowCopy: { flex: 1 },
   rowLabel: { color: colors.ink, fontFamily: typography.semibold, fontSize: 15 },
   rowValue: { color: colors.muted, fontFamily: typography.body, fontSize: 12 },
-  dataTitle: { color: colors.ink, fontFamily: typography.semibold, fontSize: 17 },
 });

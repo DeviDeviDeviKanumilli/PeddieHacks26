@@ -66,17 +66,22 @@ score. UI copy must preserve that distinction.
 ## Reusable anatomy component
 
 `apps/mobile/src/components/AnatomyMap.tsx` draws front and back figures entirely with
-React Native SVG paths. Its silhouette uses organic human proportions and visible muscle
-divisions for the chest, abdomen, upper and lower back, glutes, arms, thighs, and calves;
-it must not regress to a jointed mannequin or generic body-area blocks. The component
-supports two data modes:
+React Native SVG paths. Each figure is assembled from connected head, neck, torso,
+pelvis, limb, hand, and foot contours, with muscle-specific overlays layered on top;
+there are no screenshot assets, detached joint blocks, or image-specific variants to
+maintain. White gutters divide traps, delts, pecs, a six-pack abdomen, obliques, lats,
+upper and lower back, glutes, arms, split thighs, calves, and ankles/feet. Canonical
+region IDs include `traps`, `lats`, and `obliques`. Upper-back emphasis also lights traps
+and lats on the map; core emphasis also lights obliques. Text chips still list only the
+labels present on the exercise. The component supports two data modes:
 
 1. Movement-profile mode colors each tappable region as focus, limited, avoid, or neutral.
-2. Muscle-emphasis mode colors canonical muscles by role and changes opacity by intensity.
+2. Muscle-emphasis mode colors canonical muscles with a lavender family by role (primary,
+   supporting, stabilizing). Inactive segments stay light grey with white gutters.
 
-The same component is used for onboarding/profile editing, exercise details, combined
-workout previews, and progress coverage. It must not be replaced by screenshots or a
-single flattened anatomy image.
+The same component is used for onboarding/profile editing, exercise details, the Workout
+tab recommendation preview, combined workout coverage, and progress. It must not be
+replaced by screenshots or a single flattened anatomy image.
 
 The visual map always has a text equivalent. Profile editing retains labeled 52-point
 buttons for each selectable region. Exercise and progress maps list highlighted muscle

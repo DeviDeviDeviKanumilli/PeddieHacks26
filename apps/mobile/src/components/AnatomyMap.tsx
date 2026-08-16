@@ -22,263 +22,376 @@ type Shape = {
   side: 'front' | 'back';
 };
 
-const shapes: Shape[] = [
-  // Front: smaller repeated paths create recognisable anatomical divisions while
-  // retaining one stable region ID for interaction and exercise data.
-  {
-    id: 'shoulders',
-    movementRegion: 'shoulders',
-    side: 'front',
-    d: 'M27 58 C32 49 41 47 48 52 L46 66 C38 67 31 64 27 58Z',
-  },
-  {
-    id: 'shoulders',
-    movementRegion: 'shoulders',
-    side: 'front',
-    d: 'M72 52 C79 47 88 49 93 58 C89 64 82 67 74 66Z',
-  },
-  {
-    id: 'chest',
-    movementRegion: 'core',
-    side: 'front',
-    d: 'M47 52 C51 49 56 49 59 52 L59 75 C53 80 47 77 43 72 L43 59Z',
-  },
-  {
-    id: 'chest',
-    movementRegion: 'core',
-    side: 'front',
-    d: 'M61 52 C64 49 69 49 73 52 L77 59 L77 72 C73 77 67 80 61 75Z',
-  },
-  {
-    id: 'biceps',
-    movementRegion: 'arms',
-    side: 'front',
-    d: 'M21 66 C26 61 33 64 35 72 L31 98 C28 104 21 103 18 97Z',
-  },
-  {
-    id: 'biceps',
-    movementRegion: 'arms',
-    side: 'front',
-    d: 'M85 72 C87 64 94 61 99 66 L102 97 C99 103 92 104 89 98Z',
-  },
-  {
-    id: 'forearms',
-    movementRegion: 'arms',
-    side: 'front',
-    d: 'M18 99 C22 103 27 105 31 101 L23 130 C21 137 14 139 11 133Z',
-  },
-  {
-    id: 'forearms',
-    movementRegion: 'arms',
-    side: 'front',
-    d: 'M89 101 C93 105 98 103 102 99 L109 133 C106 139 99 137 97 130Z',
-  },
-  {
-    id: 'core',
-    movementRegion: 'core',
-    side: 'front',
-    d: 'M44 75 C48 79 53 81 59 79 L59 92 L48 92Z',
-  },
-  {
-    id: 'core',
-    movementRegion: 'core',
-    side: 'front',
-    d: 'M61 79 C67 81 72 79 76 75 L72 92 L61 92Z',
-  },
-  { id: 'core', movementRegion: 'core', side: 'front', d: 'M48 94 L59 94 L59 107 L47 107Z' },
-  { id: 'core', movementRegion: 'core', side: 'front', d: 'M61 94 L72 94 L73 107 L61 107Z' },
-  {
-    id: 'core',
-    movementRegion: 'core',
-    side: 'front',
-    d: 'M47 109 L59 109 L59 124 C54 126 49 123 46 119Z',
-  },
-  {
-    id: 'core',
-    movementRegion: 'core',
-    side: 'front',
-    d: 'M61 109 L73 109 L74 119 C71 123 66 126 61 124Z',
-  },
-  {
-    id: 'hip-flexors',
-    movementRegion: 'hips',
-    side: 'front',
-    d: 'M40 122 C47 119 54 124 59 130 L55 149 C47 146 42 140 39 132Z',
-  },
-  {
-    id: 'hip-flexors',
-    movementRegion: 'hips',
-    side: 'front',
-    d: 'M61 130 C66 124 73 119 80 122 L81 132 C78 140 73 146 65 149Z',
-  },
-  {
-    id: 'quadriceps',
-    movementRegion: 'left-knee',
-    side: 'front',
-    d: 'M39 145 C45 143 51 147 55 154 L52 198 C49 207 42 207 37 199Z',
-  },
-  {
-    id: 'quadriceps',
-    movementRegion: 'left-knee',
-    side: 'front',
-    d: 'M56 153 C59 163 58 181 53 201 C50 192 49 169 50 153Z',
-  },
-  {
-    id: 'quadriceps',
-    movementRegion: 'right-knee',
-    side: 'front',
-    d: 'M65 154 C69 147 75 143 81 145 L83 199 C78 207 71 207 68 198Z',
-  },
-  {
-    id: 'quadriceps',
-    movementRegion: 'right-knee',
-    side: 'front',
-    d: 'M64 153 C70 169 70 192 67 201 C62 181 61 163 64 153Z',
-  },
-  {
-    id: 'calves',
-    movementRegion: 'left-knee',
-    side: 'front',
-    d: 'M38 207 C43 202 50 204 52 211 L50 253 C46 261 39 259 36 251Z',
-  },
-  {
-    id: 'calves',
-    movementRegion: 'right-knee',
-    side: 'front',
-    d: 'M68 211 C70 204 77 202 82 207 L84 251 C81 259 74 261 70 253Z',
-  },
-  {
-    id: 'ankles-feet',
-    movementRegion: 'ankles',
-    side: 'front',
-    d: 'M36 251 C40 258 46 260 50 254 L53 272 L33 272Z',
-  },
-  {
-    id: 'ankles-feet',
-    movementRegion: 'ankles',
-    side: 'front',
-    d: 'M70 254 C74 260 80 258 84 251 L87 272 L67 272Z',
-  },
+const outline = '#A9A9B2';
+const bodyFill = '#BDBDC5';
+const inactiveFill = '#D5D5DB';
+const gutter = '#FCFBFD';
 
-  // Back.
+/**
+ * A connected standing figure. The body is assembled from overlapping anatomical
+ * base pieces, then muscle contours are layered over it. This keeps the map readable
+ * at small sizes without turning it into a jointed mannequin or a flat screenshot.
+ */
+const bodyPieces = [
+  // Head and neck.
+  'M60 4 C50 4 43 12 43 22 C43 31 49 38 60 40 C71 38 77 31 77 22 C77 12 70 4 60 4Z',
+  'M52 35 C54 41 55 45 51 49 L60 55 L69 49 C65 45 66 41 68 35 C65 38 63 39 60 40 C57 39 55 38 52 35Z',
+  // Torso and pelvis.
+  'M48 44 C40 44 33 49 28 58 C31 70 35 88 37 105 C38 119 43 132 50 141 L60 148 L70 141 C77 132 82 119 83 105 C85 88 89 70 92 58 C87 49 80 44 72 44 L67 49 C65 53 55 53 53 49Z',
+  'M42 119 C47 116 54 119 60 126 C66 119 73 116 78 119 C80 128 76 139 70 147 L60 154 L50 147 C44 139 40 128 42 119Z',
+  // Arms, including small hands.
+  'M30 51 C23 54 19 61 18 72 L12 112 C11 119 14 124 19 125 C23 124 25 119 26 113 L33 81 C36 68 36 57 30 51Z',
+  'M90 51 C97 54 101 61 102 72 L108 112 C109 119 106 124 101 125 C97 124 95 119 94 113 L87 81 C84 68 84 57 90 51Z',
+  'M17 119 C12 120 9 124 10 129 L14 138 C16 142 20 142 21 138 L18 132 L22 137 C24 139 27 136 25 133 L21 126 C20 122 19 120 17 119Z',
+  'M103 119 C108 120 111 124 110 129 L106 138 C104 142 100 142 99 138 L102 132 L98 137 C96 139 93 136 95 133 L99 126 C100 122 101 120 103 119Z',
+  // Legs and feet.
+  'M44 141 C38 151 37 164 39 179 L42 215 C43 227 40 247 38 267 C37 275 42 280 49 281 L54 277 L55 248 L58 214 L60 154 C55 147 50 143 44 141Z',
+  'M76 141 C82 151 83 164 81 179 L78 215 C77 227 80 247 82 267 C83 275 78 280 71 281 L66 277 L65 248 L62 214 L60 154 C65 147 70 143 76 141Z',
+  'M39 265 C35 270 31 278 33 283 C38 287 48 287 55 283 L54 276 C49 279 44 277 39 273Z',
+  'M81 265 C85 270 89 278 87 283 C82 287 72 287 65 283 L66 276 C71 279 76 277 81 273Z',
+] as const;
+
+const frontShapes: Shape[] = [
+  // Shoulders and chest.
+  {
+    id: 'traps',
+    movementRegion: 'upper-back',
+    side: 'front',
+    d: 'M51 43 C54 40 57 40 60 44 C63 40 66 40 69 43 L67 55 L60 61 L53 55Z',
+  },
   {
     id: 'shoulders',
     movementRegion: 'shoulders',
-    side: 'back',
-    d: 'M27 58 C32 49 41 47 48 52 L46 67 C38 67 31 64 27 58Z',
+    side: 'front',
+    d: 'M29 48 C35 44 43 46 47 53 L43 66 C36 68 29 62 27 56Z',
   },
   {
     id: 'shoulders',
     movementRegion: 'shoulders',
-    side: 'back',
-    d: 'M72 52 C79 47 88 49 93 58 C89 64 82 67 74 67Z',
+    side: 'front',
+    d: 'M91 48 C85 44 77 46 73 53 L77 66 C84 68 91 62 93 56Z',
   },
   {
-    id: 'upper-back',
-    movementRegion: 'upper-back',
-    side: 'back',
-    d: 'M48 51 C52 47 56 45 60 45 C64 45 68 47 72 51 L67 72 L60 82 L53 72Z',
+    id: 'chest',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M45 51 C50 48 56 49 59 54 L59 70 C53 74 47 71 43 65Z',
   },
   {
-    id: 'upper-back',
-    movementRegion: 'upper-back',
-    side: 'back',
-    d: 'M46 65 C51 71 55 77 59 83 L52 101 C45 94 41 82 42 69Z',
+    id: 'chest',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M75 51 C70 48 64 49 61 54 L61 70 C67 74 73 71 77 65Z',
   },
+  // Arms.
   {
-    id: 'upper-back',
-    movementRegion: 'upper-back',
-    side: 'back',
-    d: 'M74 65 C79 82 75 94 68 101 L61 83 C65 77 69 71 74 65Z',
-  },
-  {
-    id: 'triceps',
+    id: 'biceps',
     movementRegion: 'arms',
-    side: 'back',
-    d: 'M21 66 C26 61 33 64 35 72 L31 99 C27 104 21 102 18 97Z',
+    side: 'front',
+    d: 'M25 61 C30 56 36 58 38 66 L34 87 C31 93 25 91 22 84 L23 70Z',
   },
   {
-    id: 'triceps',
+    id: 'biceps',
     movementRegion: 'arms',
-    side: 'back',
-    d: 'M85 72 C87 64 94 61 99 66 L102 97 C99 102 93 104 89 99Z',
+    side: 'front',
+    d: 'M95 61 C90 56 84 58 82 66 L86 87 C89 93 95 91 98 84 L97 70Z',
   },
   {
     id: 'forearms',
     movementRegion: 'arms',
-    side: 'back',
-    d: 'M18 99 C22 103 27 105 31 101 L23 130 C21 137 14 139 11 133Z',
+    side: 'front',
+    d: 'M22 87 C27 84 34 87 34 94 L29 115 C26 121 20 118 18 112 L20 96Z',
   },
   {
     id: 'forearms',
     movementRegion: 'arms',
-    side: 'back',
-    d: 'M89 101 C93 105 98 103 102 99 L109 133 C106 139 99 137 97 130Z',
+    side: 'front',
+    d: 'M98 87 C93 84 86 87 86 94 L91 115 C94 121 100 118 102 112 L100 96Z',
+  },
+  // Obliques and six-pack.
+  {
+    id: 'obliques',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M38 70 C42 67 47 70 48 77 L47 103 C44 108 39 104 37 96 L36 78Z',
   },
   {
-    id: 'lower-back',
-    movementRegion: 'lower-back',
-    side: 'back',
-    d: 'M52 100 L59 84 L59 123 C54 126 49 121 46 116Z',
+    id: 'obliques',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M82 70 C78 67 73 70 72 77 L73 103 C76 108 81 104 83 96 L84 78Z',
   },
   {
-    id: 'lower-back',
-    movementRegion: 'lower-back',
-    side: 'back',
-    d: 'M61 84 L68 100 L74 116 C71 121 66 126 61 123Z',
+    id: 'core',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M49 73 C52 71 56 72 59 74 L59 84 C56 87 52 87 49 84Z',
   },
   {
-    id: 'glutes',
+    id: 'core',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M61 74 C64 72 68 71 71 73 L71 84 C68 87 64 87 61 84Z',
+  },
+  {
+    id: 'core',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M49 87 C52 85 56 85 59 87 L59 98 C56 101 52 101 49 98Z',
+  },
+  {
+    id: 'core',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M61 87 C64 85 68 85 71 87 L71 98 C68 101 64 101 61 98Z',
+  },
+  {
+    id: 'core',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M49 101 C52 99 56 99 59 101 L59 112 C56 115 52 115 49 112Z',
+  },
+  {
+    id: 'core',
+    movementRegion: 'core',
+    side: 'front',
+    d: 'M61 101 C64 99 68 99 71 101 L71 112 C68 115 64 115 61 112Z',
+  },
+  // Hips and quads.
+  {
+    id: 'hip-flexors',
     movementRegion: 'hips',
-    side: 'back',
-    d: 'M40 121 C49 118 56 123 59 131 L57 151 C48 157 40 149 38 138Z',
+    side: 'front',
+    d: 'M40 108 C46 104 54 108 58 116 L54 132 C48 131 42 125 39 118Z',
   },
   {
-    id: 'glutes',
+    id: 'hip-flexors',
     movementRegion: 'hips',
-    side: 'back',
-    d: 'M61 131 C64 123 71 118 80 121 L82 138 C80 149 72 157 63 151Z',
+    side: 'front',
+    d: 'M80 108 C74 104 66 108 62 116 L66 132 C72 131 78 125 81 118Z',
   },
   {
-    id: 'hamstrings',
+    id: 'quadriceps',
     movementRegion: 'left-knee',
-    side: 'back',
-    d: 'M39 149 C46 145 53 149 57 157 L52 201 C48 208 41 206 37 199Z',
+    side: 'front',
+    d: 'M40 139 C45 135 51 137 55 145 L53 174 C50 181 44 182 40 176 L38 151Z',
   },
   {
-    id: 'hamstrings',
+    id: 'quadriceps',
+    movementRegion: 'left-knee',
+    side: 'front',
+    d: 'M47 140 C52 140 57 147 58 155 L56 176 C53 180 50 178 48 173Z',
+  },
+  {
+    id: 'quadriceps',
     movementRegion: 'right-knee',
-    side: 'back',
-    d: 'M63 157 C67 149 74 145 81 149 L83 199 C79 206 72 208 68 201Z',
+    side: 'front',
+    d: 'M80 139 C75 135 69 137 65 145 L67 174 C70 181 76 182 80 176 L82 151Z',
+  },
+  {
+    id: 'quadriceps',
+    movementRegion: 'right-knee',
+    side: 'front',
+    d: 'M73 140 C68 140 63 147 62 155 L64 176 C67 180 70 178 72 173Z',
   },
   {
     id: 'calves',
     movementRegion: 'left-knee',
-    side: 'back',
-    d: 'M38 207 C42 201 49 203 52 211 L49 251 C45 260 38 258 35 250Z',
+    side: 'front',
+    d: 'M40 178 C44 175 49 177 50 184 L49 216 C46 223 41 222 38 216 L38 191Z',
+  },
+  {
+    id: 'calves',
+    movementRegion: 'left-knee',
+    side: 'front',
+    d: 'M50 180 C54 177 58 181 58 188 L56 216 C53 222 50 220 49 215Z',
   },
   {
     id: 'calves',
     movementRegion: 'right-knee',
-    side: 'back',
-    d: 'M68 211 C71 203 78 201 82 207 L85 250 C82 258 75 260 71 251Z',
+    side: 'front',
+    d: 'M80 178 C76 175 71 177 70 184 L71 216 C74 223 79 222 82 216 L82 191Z',
+  },
+  {
+    id: 'calves',
+    movementRegion: 'right-knee',
+    side: 'front',
+    d: 'M70 180 C66 177 62 181 62 188 L64 216 C67 222 70 220 71 215Z',
   },
   {
     id: 'ankles-feet',
     movementRegion: 'ankles',
-    side: 'back',
-    d: 'M35 250 C39 258 45 260 49 252 L53 272 L33 272Z',
+    side: 'front',
+    d: 'M39 264 C42 260 48 261 52 266 L53 278 C48 280 43 278 39 274Z',
   },
   {
     id: 'ankles-feet',
     movementRegion: 'ankles',
-    side: 'back',
-    d: 'M71 252 C75 260 81 258 85 250 L87 272 L67 272Z',
+    side: 'front',
+    d: 'M81 264 C78 260 72 261 68 266 L67 278 C72 280 77 278 81 274Z',
   },
 ];
 
+const backShapes: Shape[] = [
+  // Upper and middle back.
+  {
+    id: 'traps',
+    movementRegion: 'upper-back',
+    side: 'back',
+    d: 'M52 43 C55 39 58 40 60 44 C62 40 65 39 68 43 L73 55 L60 73 L47 55Z',
+  },
+  {
+    id: 'shoulders',
+    movementRegion: 'shoulders',
+    side: 'back',
+    d: 'M29 48 C35 44 43 46 47 53 L43 66 C36 68 29 62 27 56Z',
+  },
+  {
+    id: 'shoulders',
+    movementRegion: 'shoulders',
+    side: 'back',
+    d: 'M91 48 C85 44 77 46 73 53 L77 66 C84 68 91 62 93 56Z',
+  },
+  {
+    id: 'lats',
+    movementRegion: 'upper-back',
+    side: 'back',
+    d: 'M40 59 C46 56 53 63 56 78 L53 106 C47 104 41 97 39 84Z',
+  },
+  {
+    id: 'lats',
+    movementRegion: 'upper-back',
+    side: 'back',
+    d: 'M80 59 C74 56 67 63 64 78 L67 106 C73 104 79 97 81 84Z',
+  },
+  {
+    id: 'upper-back',
+    movementRegion: 'upper-back',
+    side: 'back',
+    d: 'M55 59 L60 69 L65 59 L65 96 L60 105 L55 96Z',
+  },
+  {
+    id: 'lower-back',
+    movementRegion: 'lower-back',
+    side: 'back',
+    d: 'M48 99 L59 91 L59 119 L45 115Z',
+  },
+  {
+    id: 'lower-back',
+    movementRegion: 'lower-back',
+    side: 'back',
+    d: 'M61 91 L72 99 L75 115 L61 119Z',
+  },
+  // Rear arms.
+  {
+    id: 'triceps',
+    movementRegion: 'arms',
+    side: 'back',
+    d: 'M25 61 C30 56 36 58 38 66 L34 87 C31 93 25 91 22 84 L23 70Z',
+  },
+  {
+    id: 'triceps',
+    movementRegion: 'arms',
+    side: 'back',
+    d: 'M95 61 C90 56 84 58 82 66 L86 87 C89 93 95 91 98 84 L97 70Z',
+  },
+  {
+    id: 'forearms',
+    movementRegion: 'arms',
+    side: 'back',
+    d: 'M22 87 C27 84 34 87 34 94 L29 115 C26 121 20 118 18 112 L20 96Z',
+  },
+  {
+    id: 'forearms',
+    movementRegion: 'arms',
+    side: 'back',
+    d: 'M98 87 C93 84 86 87 86 94 L91 115 C94 121 100 118 102 112 L100 96Z',
+  },
+  // Glutes and hamstrings.
+  {
+    id: 'glutes',
+    movementRegion: 'hips',
+    side: 'back',
+    d: 'M40 111 C46 107 54 110 58 118 L55 137 C49 142 42 137 39 128Z',
+  },
+  {
+    id: 'glutes',
+    movementRegion: 'hips',
+    side: 'back',
+    d: 'M80 111 C74 107 66 110 62 118 L65 137 C71 142 78 137 81 128Z',
+  },
+  {
+    id: 'hamstrings',
+    movementRegion: 'left-knee',
+    side: 'back',
+    d: 'M40 140 C45 136 52 139 56 147 L53 176 C50 182 44 181 40 175 L38 151Z',
+  },
+  {
+    id: 'hamstrings',
+    movementRegion: 'left-knee',
+    side: 'back',
+    d: 'M47 141 C52 141 57 148 58 156 L56 177 C53 181 50 179 48 174Z',
+  },
+  {
+    id: 'hamstrings',
+    movementRegion: 'right-knee',
+    side: 'back',
+    d: 'M80 140 C75 136 68 139 64 147 L67 176 C70 182 76 181 80 175 L82 151Z',
+  },
+  {
+    id: 'hamstrings',
+    movementRegion: 'right-knee',
+    side: 'back',
+    d: 'M73 141 C68 141 63 148 62 156 L64 177 C67 181 70 179 72 174Z',
+  },
+  {
+    id: 'calves',
+    movementRegion: 'left-knee',
+    side: 'back',
+    d: 'M40 178 C44 175 49 177 50 184 L49 216 C46 223 41 222 38 216 L38 191Z',
+  },
+  {
+    id: 'calves',
+    movementRegion: 'left-knee',
+    side: 'back',
+    d: 'M50 180 C54 177 58 181 58 188 L56 216 C53 222 50 220 49 215Z',
+  },
+  {
+    id: 'calves',
+    movementRegion: 'right-knee',
+    side: 'back',
+    d: 'M80 178 C76 175 71 177 70 184 L71 216 C74 223 79 222 82 216 L82 191Z',
+  },
+  {
+    id: 'calves',
+    movementRegion: 'right-knee',
+    side: 'back',
+    d: 'M70 180 C66 177 62 181 62 188 L64 216 C67 222 70 220 71 215Z',
+  },
+  {
+    id: 'ankles-feet',
+    movementRegion: 'ankles',
+    side: 'back',
+    d: 'M39 264 C42 260 48 261 52 266 L53 278 C48 280 43 278 39 274Z',
+  },
+  {
+    id: 'ankles-feet',
+    movementRegion: 'ankles',
+    side: 'back',
+    d: 'M81 264 C78 260 72 261 68 266 L67 278 C72 280 77 278 81 274Z',
+  },
+];
+
+const shapes = [...frontShapes, ...backShapes];
+
+const muscleHighlightIds: Partial<Record<MuscleRegionId, MuscleRegionId[]>> = {
+  traps: ['traps', 'upper-back'],
+  lats: ['lats', 'upper-back'],
+  obliques: ['obliques', 'core'],
+};
+
 const movementColors: Record<RegionState, string> = {
-  neutral: '#BDBCC0',
+  neutral: bodyFill,
   focus: colors.success,
   limited: '#D49A2B',
   avoid: '#E8685B',
@@ -286,66 +399,27 @@ const movementColors: Record<RegionState, string> = {
 
 const roleColors = {
   primary: colors.lavenderDark,
-  secondary: '#3B9EA2',
-  stabilizer: '#E58A66',
+  secondary: colors.lavender,
+  stabilizer: '#B8B3DE',
 } as const;
 
-const baseBody = (
+const BaseDetails = ({ side }: { side: 'front' | 'back' }) => (
   <>
     <Path
-      d="M60 3 C49 3 43 11 43 22 C43 31 47 37 53 41 L52 47 L68 47 L67 41 C73 37 77 31 77 22 C77 11 71 3 60 3Z"
-      fill="#B8B7BA"
-      stroke="#96959B"
-      strokeWidth="1.35"
+      d="M52 42 C55 45 57 47 60 48 C63 47 65 45 68 42"
+      fill="none"
+      stroke={gutter}
+      strokeWidth="1.7"
     />
-    <Path
-      d="M52 42 C55 46 57 48 60 48 C63 48 65 46 68 42 L70 51 L50 51Z"
-      fill="#B8B7BA"
-      stroke="#F8F7F8"
-      strokeWidth="1.2"
-    />
-    <Path
-      d="M48 48 C40 48 32 51 27 57 C25 67 30 84 35 96 L39 124 C42 135 50 142 60 143 C70 142 78 135 81 124 L85 96 C90 84 95 67 93 57 C88 51 80 48 72 48 C68 47 64 48 60 50 C56 48 52 47 48 48Z"
-      fill="#B8B7BA"
-      stroke="#96959B"
-      strokeWidth="1.35"
-    />
-    <Path
-      d="M30 55 C22 57 18 64 17 75 L9 124 C7 132 8 139 13 143 C17 144 21 139 23 132 L35 83 C38 70 37 60 30 55Z"
-      fill="#B8B7BA"
-      stroke="#96959B"
-      strokeWidth="1.35"
-    />
-    <Path
-      d="M90 55 C98 57 102 64 103 75 L111 124 C113 132 112 139 107 143 C103 144 99 139 97 132 L85 83 C82 70 83 60 90 55Z"
-      fill="#B8B7BA"
-      stroke="#96959B"
-      strokeWidth="1.35"
-    />
-    <Path
-      d="M13 138 C10 141 8 145 9 151 L11 158 L13 151 L15 162 L17 151 L19 160 L20 149 L22 155 L23 145 L21 137Z"
-      fill="#B8B7BA"
-      stroke="#96959B"
-      strokeWidth="1.05"
-    />
-    <Path
-      d="M107 138 C110 141 112 145 111 151 L109 158 L107 151 L105 162 L103 151 L101 160 L100 149 L98 155 L97 145 L99 137Z"
-      fill="#B8B7BA"
-      stroke="#96959B"
-      strokeWidth="1.05"
-    />
-    <Path
-      d="M40 122 C35 132 35 142 38 151 L36 198 C34 211 35 236 35 253 L32 272 C37 276 45 277 52 273 L51 256 L54 211 L58 150 C57 141 51 129 40 122Z"
-      fill="#B8B7BA"
-      stroke="#96959B"
-      strokeWidth="1.35"
-    />
-    <Path
-      d="M80 122 C85 132 85 142 82 151 L84 198 C86 211 85 236 85 253 L88 272 C83 276 75 277 68 273 L69 256 L66 211 L62 150 C63 141 69 129 80 122Z"
-      fill="#B8B7BA"
-      stroke="#96959B"
-      strokeWidth="1.35"
-    />
+    {side === 'back' ? (
+      <Path
+        d="M60 70 L60 139"
+        fill="none"
+        stroke={gutter}
+        strokeLinecap="round"
+        strokeWidth="1.7"
+      />
+    ) : null}
   </>
 );
 
@@ -356,6 +430,7 @@ export function AnatomyMap({
   compact = false,
   showLegend = true,
   showMuscleLabels = true,
+  showCanvas = true,
 }: {
   activations?: MuscleActivation[];
   movementStates?: Record<string, RegionState>;
@@ -363,62 +438,77 @@ export function AnatomyMap({
   compact?: boolean;
   showLegend?: boolean;
   showMuscleLabels?: boolean;
+  showCanvas?: boolean;
 }) {
   const activationById = new Map(activations.map((activation) => [activation.id, activation]));
   const interactive = Boolean(movementStates && onMovementPress);
+  const activationFor = (id: MuscleRegionId): MuscleActivation | undefined => {
+    for (const candidate of muscleHighlightIds[id] ?? [id]) {
+      const found = activationById.get(candidate);
+      if (found) return found;
+    }
+    return undefined;
+  };
   const fillFor = (shape: Shape): string => {
     if (movementStates) return movementColors[movementStates[shape.movementRegion] ?? 'neutral'];
-    return activationById.has(shape.id)
-      ? roleColors[activationById.get(shape.id)?.role ?? 'stabilizer']
-      : '#DDE2E8';
+    const activation = activationFor(shape.id);
+    return activation ? roleColors[activation.role] : inactiveFill;
   };
+  const opacityFor = (shape: Shape) => {
+    if (movementStates) return 1;
+    const activation = activationFor(shape.id);
+    return activation ? 0.72 + activation.intensity * 0.05 : 0.98;
+  };
+
   return (
     <View style={styles.wrap}>
-      <View style={[styles.canvas, compact && styles.canvasCompact]}>
-        <Svg
-          accessibilityLabel="Front and back muscle map"
-          height="100%"
-          viewBox="0 0 270 310"
-          width="100%"
-        >
-          {(['front', 'back'] as const).map((side, figureIndex) => (
-            <G key={side} transform={`translate(${figureIndex * 145 + 4} 13)`}>
-              {baseBody}
-              {side === 'back' ? (
-                <Path
-                  d="M60 47 C59 69 59 95 60 124"
-                  fill="none"
-                  stroke="#F8F7F8"
-                  strokeLinecap="round"
-                  strokeWidth="1.1"
-                />
-              ) : null}
-              {shapes
-                .filter((shape) => shape.side === side)
-                .map((shape) => {
-                  const activation = activationById.get(shape.id);
-                  return (
+      {showCanvas ? (
+        <View style={[styles.canvas, compact && styles.canvasCompact]}>
+          <Svg
+            accessibilityLabel="Front and back muscle map"
+            height="100%"
+            viewBox="0 0 270 318"
+            width="100%"
+          >
+            {(['front', 'back'] as const).map((side, figureIndex) => (
+              <G key={side} transform={`translate(${figureIndex * 138 + 8} 7)`}>
+                {bodyPieces.map((d, index) => (
+                  <Path
+                    d={d}
+                    fill={bodyFill}
+                    key={`${side}-base-${d}`}
+                    stroke={outline}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    strokeWidth={index === 0 ? 1.2 : 1.05}
+                  />
+                ))}
+                <BaseDetails side={side} />
+                {shapes
+                  .filter((shape) => shape.side === side)
+                  .map((shape) => (
                     <Path
                       d={shape.d}
                       fill={fillFor(shape)}
-                      fillOpacity={activation ? 0.55 + activation.intensity * 0.09 : 0.92}
+                      fillOpacity={opacityFor(shape)}
                       key={`${side}-${shape.id}-${shape.d}`}
                       {...(interactive
                         ? { onPress: () => onMovementPress?.(shape.movementRegion) }
                         : {})}
-                      stroke="#F8F7F8"
+                      stroke={gutter}
                       strokeLinejoin="round"
-                      strokeWidth="1.25"
+                      strokeLinecap="round"
+                      strokeWidth="1.7"
                     />
-                  );
-                })}
-              <SvgText fill={colors.muted} fontSize="10" textAnchor="middle" x="60" y="294">
-                {side === 'front' ? 'FRONT' : 'BACK'}
-              </SvgText>
-            </G>
-          ))}
-        </Svg>
-      </View>
+                  ))}
+                <SvgText fill={colors.muted} fontSize="10" textAnchor="middle" x="60" y="304">
+                  {side === 'front' ? 'FRONT' : 'BACK'}
+                </SvgText>
+              </G>
+            ))}
+          </Svg>
+        </View>
+      ) : null}
       {showLegend ? (
         <View style={styles.legend}>
           {movementStates ? (
@@ -479,14 +569,14 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   canvas: {
-    backgroundColor: '#F8F8FC',
+    backgroundColor: '#F4F3F8',
     borderColor: colors.line,
     borderRadius: radii.lg,
     borderWidth: 1,
-    height: 360,
+    height: 380,
     overflow: 'hidden',
   },
-  canvasCompact: { height: 280 },
+  canvasCompact: { height: 300 },
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
   legendItem: { alignItems: 'center', flexDirection: 'row', gap: 5 },
   legendText: { color: colors.muted, fontFamily: typography.medium, fontSize: 12 },

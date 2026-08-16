@@ -24,6 +24,8 @@ import {
 } from './session-repository.js';
 import type { SupabaseClientFactory } from './supabase-client.js';
 
+// hybrid: prisma for owner reads, supabase rpcs for mutations that must stay transactional.
+
 const dependencyError = (detail: string): ApiError =>
   new ApiError({
     statusCode: 503,
@@ -169,6 +171,7 @@ export class PrismaSessionRepository implements SessionRepository {
     clientFactory?: SupabaseClientFactory,
     _catalog?: CatalogRepository,
   ) {
+    // keep the supabase factory so writes still stamp the user jwt for rls.
     this.rpcRepository = new SupabaseSessionRepository(client, clientFactory);
   }
 
@@ -178,6 +181,7 @@ export class PrismaSessionRepository implements SessionRepository {
     readonly clientRequestId: string;
     readonly accessToken?: string;
   }): Promise<WorkoutSession> {
+    // session create is an rpc so exercise children land in the same commit.
     return this.rpcRepository.createWorkoutSession(input);
   }
 
@@ -188,6 +192,7 @@ export class PrismaSessionRepository implements SessionRepository {
     _accessToken?: string,
   ): Promise<SessionListResult> {
     try {
+      // reads can use prisma; the jwt header is unused because we set role in the txn.
       return await withUserPrismaContext(this.database, userId, async (database) => {
         const where: Prisma.workout_sessionsWhereInput = { user_id: userId };
         if (cursor !== undefined) {
@@ -371,6 +376,7 @@ export class PrismaSessionRepository implements SessionRepository {
     batch: MetricBatchRequest,
     accessToken?: string,
   ): Promise<MetricBatchResponse['data']> {
+    // do not write metrics through prisma; the rpc validates and rebuilds daily progress.
     return this.rpcRepository.ingestMetricBatch(userId, sessionId, batch, accessToken);
   }
 

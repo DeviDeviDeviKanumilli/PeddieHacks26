@@ -33,6 +33,7 @@ const profile = {
   intensityPreference: 'standard',
 };
 
+// generation and compatibility stay in domain; these tests check http + persistence glue.
 describe('profile and workout routes', () => {
   let app: FastifyInstance | undefined;
 
@@ -58,6 +59,7 @@ describe('profile and workout routes', () => {
       payload: { ...profile, expectedVersion: 1 },
     });
 
+    // second put with the old version must 409 so two clients cannot clobber each other.
     expect(initial.statusCode).toBe(200);
     expect(initial.json().data.version).toBe(1);
     expect(updated.statusCode).toBe(200);
@@ -92,6 +94,7 @@ describe('profile and workout routes', () => {
       headers,
       payload,
     });
+    // same clientrequestid, different body: not a retry.
     const conflict = await app.inject({
       method: 'POST',
       url: '/v1/workouts/generate',
@@ -134,6 +137,7 @@ describe('profile and workout routes', () => {
       headers,
       payload: { ...profile, bodyRegions: { upper_arms: 'limited' } },
     });
+    // domain said warning; handler must require the client to echo each reason code.
     const response = await app.inject({
       method: 'POST',
       url: '/v1/workouts',
@@ -184,6 +188,7 @@ describe('profile and workout routes', () => {
       url: `/v1/workouts/${workout.id}/items/${itemId}/alternatives`,
       headers,
     });
+    // rankexercises lives in domain; this route just filters incompatible and caps at 5.
     const patched = await app.inject({
       method: 'PATCH',
       url: `/v1/workouts/${workout.id}/items/${itemId}`,

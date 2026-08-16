@@ -11,6 +11,7 @@ export const progressRanges = [
   { id: '84d', label: 'Last 12 weeks', days: 84 },
 ] as const;
 
+// unknown ids fall back to 28d, the default progress tab window.
 export const getProgressRange = (id: ProgressRangeId) =>
   progressRanges.find((range) => range.id === id) ?? progressRanges[1];
 
@@ -22,6 +23,7 @@ const dateOnly = (date: Date) => date.toISOString().slice(0, 10);
 export const progressRangeBounds = (id: ProgressRangeId, now = new Date()) => {
   const range = getProgressRange(id);
   const end = utcDay(now);
+  // inclusive window: 7d is today plus the previous six utc days.
   const start = new Date(end.getTime() - (range.days - 1) * dayMs);
   return { startDate: dateOnly(start), endDate: dateOnly(end), days: range.days };
 };
@@ -51,6 +53,7 @@ export const localProgressActivity = (
       activityDate,
       sessionCount: (current?.sessionCount ?? 0) + 1,
       exerciseCount: (current?.exerciseCount ?? 0) + item.exercises,
+      // guest history doesn't store sets; leave 0 so we don't invent them.
       setCount: current?.setCount ?? 0,
       repCount: (current?.repCount ?? 0) + item.reps,
       activeSeconds: (current?.activeSeconds ?? 0) + item.durationSeconds,
@@ -70,6 +73,7 @@ export const fillProgressActivity = (
   const { startDate, days } = progressRangeBounds(id, now);
   const start = new Date(`${startDate}T00:00:00.000Z`);
   const byDate = new Map(activity.map((row) => [row.activityDate, row]));
+  // charts need a point per day, including zeros, or the axis compresses.
   return Array.from({ length: days }, (_, index) => {
     const activityDate = dateOnly(new Date(start.getTime() + index * dayMs));
     return (

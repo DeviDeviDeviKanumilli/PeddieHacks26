@@ -1,3 +1,4 @@
+// last gate before a tool runs. phase, shape, media, and duplicates all fail closed.
 import { assertNoMedia } from './privacy.js';
 import {
   FORBIDDEN_PAYLOAD_KEYS,
@@ -9,6 +10,7 @@ import {
   type ToolName,
 } from './types.js';
 
+// which tools can fire in which phase. keep this tight.
 const PHASE_TOOLS: Record<SessionPhase, readonly ToolName[]> = {
   setup: ['profile.read'],
   active: ['feedback.emit', 'speech.speak', 'haptics.pulse', 'adaptation.propose'],
@@ -16,7 +18,7 @@ const PHASE_TOOLS: Record<SessionPhase, readonly ToolName[]> = {
   complete: ['progress.record_exercise', 'profile.note_completion'],
 };
 
-const seen = new Set<string>();
+const seen = new Set<string>(); // call ids we already ran. duplicates are a no-op.
 
 const requiredString = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0;
@@ -43,16 +45,16 @@ const argumentsValid = (call: ToolCall): boolean => {
     case 'progress.record_exercise':
       return requiredString(args.exerciseId) && typeof args.acceptedReps === 'number';
     case 'profile.read':
-      return true;
+      return true; // no args on purpose. extra keys already failed the forbidden-key loop.
     case 'profile.note_completion':
       return requiredString(args.exerciseId) && requiredString(args.outcome);
     default:
-      return false;
+      return false; // unknown tools should have failed earlier; fail closed anyway.
   }
 };
 
 export const resetToolIdempotency = (): void => {
-  seen.clear();
+  seen.clear(); // tests and a new session share this module-level set
 };
 
 export const validateToolCall = (phase: SessionPhase, call: ToolCall): ToolDecision => {
@@ -65,7 +67,7 @@ export const validateToolCall = (phase: SessionPhase, call: ToolCall): ToolDecis
     return { ok: false, code: 'unknown_tool', callId: call.callId };
   }
   if (!PHASE_TOOLS[phase].includes(call.tool)) {
-    return { ok: false, code: 'phase_forbidden', callId: call.callId };
+    return { ok: false, code: 'phase_forbidden', callId: call.callId }; // wrong time of the session
   }
   if (seen.has(call.callId)) {
     return { ok: false, code: 'duplicate_call', callId: call.callId };
@@ -73,6 +75,7 @@ export const validateToolCall = (phase: SessionPhase, call: ToolCall): ToolDecis
   if (!argumentsValid(call)) {
     return { ok: false, code: 'invalid_arguments', callId: call.callId };
   }
+  // rest length is a closed list so we do not invent a duration mid-session
   if (call.tool === 'adaptation.propose' && call.arguments.action === 'insert_rest') {
     const seconds = call.arguments.restSeconds;
     if (typeof seconds === 'number' && !(REST_OPTIONS as readonly number[]).includes(seconds)) {

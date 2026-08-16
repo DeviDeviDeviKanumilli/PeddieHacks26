@@ -28,6 +28,8 @@ import { ApiError } from './errors.js';
 import type { SupabaseClientFactory } from './supabase-client.js';
 import { hashRequest } from './workout-repository.js';
 
+// session storage + domain transitions. derived metrics only — never pose frames or landmarks.
+
 export interface SessionListResult {
   readonly data: readonly WorkoutSession[];
   readonly page: { readonly nextCursor: string | null; readonly hasMore: boolean };
@@ -156,6 +158,7 @@ const invalidSession = (detail: string): ApiError =>
 
 const validateBatch = (batch: MetricBatchRequest): void => {
   try {
+    // domain rejects unknown keys and out-of-range scores. keep that out of the handler.
     validateMetricBatch(batch);
   } catch (error) {
     throw new ApiError({
@@ -221,6 +224,7 @@ const exerciseState = (state: ExerciseSession['state']): DomainExerciseSessionSt
 const workoutState = (state: WorkoutSession['state']): DomainWorkoutSessionState => state;
 const domainMetrics = (metrics: readonly RepMetric[]): readonly DomainRepMetric[] => metrics;
 
+// in-memory twin of the sql rpcs so route tests do not need postgres.
 export class MemorySessionRepository implements SessionRepository {
   private readonly workoutSessions = new Map<string, StoredWorkoutSession>();
   private readonly sessionClientIds = new Map<string, string>();
@@ -345,6 +349,7 @@ export class MemorySessionRepository implements SessionRepository {
       );
     }
     if (request.state === undefined) return row.session;
+    // complete has side effects (progress rebuild). do not sneak it through patch.
     if (request.state === 'completed') {
       throw invalidSession('Use the completion endpoint to complete a workout session.');
     }
@@ -517,6 +522,7 @@ export class MemorySessionRepository implements SessionRepository {
     if (!['active', 'paused', 'resting'].includes(row.session.state)) {
       throw invalidSession('Metrics can only be submitted while an exercise session is open.');
     }
+    // allowlisted derived scores only. raw landmarks never reach this map.
     validateBatch(batch);
     const batchKey = `${sessionId}:${batch.batchId}`;
     const requestHash = hashRequest(batch);
@@ -570,6 +576,7 @@ export class MemorySessionRepository implements SessionRepository {
     const metrics = [...(this.metrics.get(sessionId)?.values() ?? [])].sort(
       (left, right) => (left.recordedOffsetMs ?? 0) - (right.recordedOffsetMs ?? 0),
     );
+    // scoring stays in domain so memory and sql adapters cannot drift.
     const analysis = analyzeExerciseSession({
       targetReps: row.session.targetReps,
       metrics: domainMetrics(metrics),
@@ -877,6 +884,7 @@ const mapMetric = (value: unknown): RepMetric => {
   return metric;
 };
 
+// map postgres codes so clients see our envelope, not a 500 with an sql fragment.
 const rpcError = (
   error: { readonly code?: string; readonly message?: string },
   resource: string,
@@ -907,6 +915,7 @@ export class SupabaseSessionRepository implements SessionRepository {
   ) {}
 
   private clientFor(accessToken?: string): SupabaseClient {
+    // rpcs run as the jwt user. service role would skip owner checks.
     return this.clientFactory?.(accessToken) ?? this.client;
   }
 
@@ -927,6 +936,7 @@ export class SupabaseSessionRepository implements SessionRepository {
     readonly clientRequestId: string;
     readonly accessToken?: string;
   }): Promise<WorkoutSession> {
+    // one rpc creates the workout session plus child exercise sessions.
     const data = await this.rpc<unknown>(
       'create_workout_session',
       {
@@ -1169,6 +1179,7 @@ export class SupabaseSessionRepository implements SessionRepository {
     accessToken?: string,
   ): Promise<MetricBatchResponse['data']> {
     validateBatch(batch);
+    // transactional ingest + progress rebuild live in postgres so retries stay idempotent.
     const data = await this.rpc<unknown>(
       'ingest_metric_batch',
       {

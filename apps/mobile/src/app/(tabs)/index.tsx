@@ -8,6 +8,7 @@ import { historyInProgressRange } from '@/lib/progressRange';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 
+// local weekly target for the home progress chip. not a live-mode quota.
 const WEEKLY_WORKOUT_GOAL = 5;
 
 const timeOfDayGreeting = () => {
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const history = useAppStore((state) => state.history);
   const profile = useAppStore((state) => state.profile);
   const hasWorkout = workout.items.length > 0;
+  // drop orphaned slugs if the catalog changed; don't crash the plan card.
   const planned = workout.items.flatMap((item) => {
     const exercise = catalog.find((candidate) => candidate.slug === item.exerciseSlug);
     return exercise
@@ -82,6 +84,7 @@ export default function HomeScreen() {
         <Button disabled={!hasWorkout} onPress={() => router.push(`/workout/${workout.id}`)}>
           {hasWorkout ? 'Start workout' : 'Build a workout first'}
         </Button>
+        {/* start goes to review, not session/setup — people still get a chance to swap. */}
       </View>
 
       {reasons.length > 0 ? (
@@ -99,6 +102,7 @@ export default function HomeScreen() {
             onPress={() => router.navigate('/(tabs)/profile')}
             style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
           >
+            {/* navigate (not push) so we switch tabs instead of stacking home on profile. */}
             <Text style={styles.link}>View movement profile</Text>
             <ChevronRight color={colors.muted} size={16} />
           </Pressable>
@@ -112,6 +116,7 @@ export default function HomeScreen() {
         onPress={() => router.navigate('/(tabs)/progress')}
         style={({ pressed }) => [styles.week, pressed && styles.pressed]}
       >
+        {/* navigate to the progress tab — don't push a second copy of home. */}
         <View style={styles.weekHeader}>
           <Text style={styles.eyebrow}>This week</Text>
           <View style={styles.linkRow}>

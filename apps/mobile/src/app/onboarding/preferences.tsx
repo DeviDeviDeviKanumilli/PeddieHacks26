@@ -22,6 +22,7 @@ export default function PreferencesScreen() {
   return (
     <Screen>
       <OnboardingHeader step={3} />
+      {/* only focus vs neutral here — not the four-state body map. */}
       <View style={styles.intro}>
         <Eyebrow>Movement preferences</Eyebrow>
         <Title compact>Which movement patterns feel available?</Title>
@@ -34,6 +35,7 @@ export default function PreferencesScreen() {
         <View style={styles.choices}>
           {capabilities.map((item) => {
             const id = item.toLowerCase().replaceAll(' ', '-');
+            // store keys are slugs; labels stay human.
             const selected = values[id] === 'focus';
             return (
               <Chip
@@ -50,6 +52,7 @@ export default function PreferencesScreen() {
       <Button icon={ArrowRight} onPress={() => router.push('/onboarding/equipment')}>
         Continue
       </Button>
+      {/* all-neutral is fine. generation just won't prefer these patterns. */}
     </Screen>
   );
 }

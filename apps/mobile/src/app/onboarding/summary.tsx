@@ -20,6 +20,7 @@ export default function SummaryScreen() {
   ).length;
   const enterApp = () => {
     complete();
+    // replace into tabs so back can't reopen the wizard.
     router.replace('/(tabs)');
   };
   const finish = async () => {
@@ -27,6 +28,7 @@ export default function SummaryScreen() {
       enterApp();
       return;
     }
+    // live tries to persist the profile; guest / missing api just stay on-device.
     setSyncing(true);
     setSyncError(false);
     try {
@@ -78,6 +80,7 @@ export default function SummaryScreen() {
           </Body>
         </Card>
       ) : null}
+      {/* local save already happened; this is just the live upload failing. */}
       <Button icon={Check} loading={syncing} onPress={() => void finish()}>
         Enter AdaptFit
       </Button>
@@ -86,6 +89,7 @@ export default function SummaryScreen() {
           Continue without sync
         </Button>
       ) : null}
+      {/* skip live write; same as guest after onboarding. */}
     </Screen>
   );
 }
@@ -99,6 +103,7 @@ const SummaryRow = ({
   label: string;
   value: string;
 }) => (
+  // snapshot of the draft. not editable here — back through the wizard to change.
   <View style={styles.row}>
     <Icon color={colors.lavenderDark} size={22} />
     <View style={styles.rowCopy}>

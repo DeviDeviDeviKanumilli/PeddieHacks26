@@ -5,6 +5,8 @@ import {
   summarizePoseSession,
 } from '@/lib/tracking/sessionMetrics';
 
+// allowlisted derived fields only. nothing with landmarks or media.
+
 describe('pose session metrics', () => {
   const reps: PoseRepRecord[] = [
     {
@@ -32,6 +34,7 @@ describe('pose session metrics', () => {
   ];
 
   it('summarizes derived ROM without landmarks', () => {
+    // summary is for the complete screen, not an api payload.
     expect(summarizePoseSession(reps)).toEqual({
       counted: 2,
       meanRomDeg: 100,
@@ -43,6 +46,7 @@ describe('pose session metrics', () => {
   });
 
   it('copies only allowlisted metric fields', () => {
+    // live ingest rejects video/image/audio/landmark keys.
     const first = reps[0];
     expect(first).toBeDefined();
     if (first === undefined) return;
@@ -62,6 +66,7 @@ describe('pose session metrics', () => {
   });
 
   it('drops invalid native angles instead of persisting them', () => {
+    // 0-180 is the analyzer contract; junk from native should become null.
     expect(finiteJointAngle(90)).toBe(90);
     expect(finiteJointAngle(undefined)).toBeNull();
     expect(finiteJointAngle(-1)).toBeNull();

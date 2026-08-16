@@ -11,6 +11,7 @@ const tone = {
   incompatible: { label: 'Not recommended', color: colors.danger },
 };
 
+// catalog row. compatibility is profile-based, not medical.
 export const ExerciseCard = ({
   exercise,
   onPress,
@@ -26,6 +27,7 @@ export const ExerciseCard = ({
       accessibilityRole="button"
       onPress={() => (onPress ? onPress() : router.push(`/exercise/${exercise.slug}`))}
     >
+      {/* press override is explore picker mode — don't open detail mid-swap. */}
       {({ pressed }) => (
         <View style={[styles.card, pressed && styles.pressed]}>
           <MovementMark category={exercise.category} />
@@ -40,6 +42,7 @@ export const ExerciseCard = ({
                 ) : (
                   <View style={[styles.statusDot, { backgroundColor: status.color }]} />
                 )}
+                {/* caution/incompatible get an alert icon so color isn't the only cue. */}
                 <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
               </View>
             </View>
@@ -70,6 +73,7 @@ const styles = StyleSheet.create({
     minHeight: 92,
     padding: spacing.sm,
   },
+  // tall enough for a 44pt hit plus two lines of copy.
   copy: { flex: 1, gap: 4 },
   titleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
   status: {

@@ -1,3 +1,4 @@
+// analytics contract tests. no pose fixtures, only the derived-metric shapes the api accepts.
 import { describe, expect, it } from 'vitest';
 import {
   analyzeExerciseSession,
@@ -8,6 +9,7 @@ import {
 } from './index.js';
 
 const metric = (index: number, score = 80, confidence = 0.9): RepMetric => ({
+  // default is a "good" tracked rep. tests that care about junk data override fields.
   setNumber: 1,
   repNumber: index + 1,
   counted: true,
@@ -26,13 +28,13 @@ describe('metrics and analytics', () => {
   it('validates batch size, duplicate reps, and known feedback codes', () => {
     expect(() =>
       validateMetricBatch({ batchId: 'batch', metrics: [metric(0), metric(0)] }),
-    ).toThrow(InvalidMetricBatchError);
+    ).toThrow(InvalidMetricBatchError); // same set+rep, not two different reps that look alike.
     expect(() =>
       validateMetricBatch({
         batchId: 'batch',
         metrics: Array.from({ length: 101 }, (_, index) => ({
           ...metric(index % 50),
-          repNumber: index + 1,
+          repNumber: index + 1, // unique reps so this fails on count, not duplicates.
         })),
       }),
     ).toThrow('at most 100');
@@ -41,7 +43,7 @@ describe('metrics and analytics', () => {
         batchId: 'batch',
         metrics: [{ ...metric(0), feedbackCodes: ['not-a-known-code' as never] }],
       }),
-    ).toThrow('unknown code');
+    ).toThrow('unknown code'); // closed list. free-text feedback is not a thing here.
   });
 
   it('computes completion, form metrics, tempo, and decline indicator', () => {
@@ -52,7 +54,7 @@ describe('metrics and analytics', () => {
       metric(3, 70),
       metric(4, 70),
       metric(5, 70),
-    ];
+    ]; // six reps: first third 90, last third 70. delta -20 is exactly notable_decline.
     const analysis = analyzeExerciseSession({
       targetReps: 10,
       metrics,
@@ -68,6 +70,7 @@ describe('metrics and analytics', () => {
   });
 
   it('excludes low-confidence reps from form analytics but counts completion', () => {
+    // 0.4 is under the 0.6 gate. completion still uses counted, overall score can still be completion-only.
     const analysis = analyzeExerciseSession({
       targetReps: 1,
       metrics: [metric(0, 10, 0.4)],
@@ -76,15 +79,16 @@ describe('metrics and analytics', () => {
 
     expect(analysis.completion.percentage).toBe(100);
     expect(analysis.movementAccuracy).toBeNull();
-    expect(analysis.overallScore).toBe(100);
+    expect(analysis.overallScore).toBe(100); // only completion remains, then weights renormalize to 1.
   });
 
   it('uses the previous three scores as the progress baseline', () => {
+    // first three, not the most recent. [60,70,80] baseline is 70.
     expect(compareProgress(90, [60, 70, 80])).toEqual({
       baselineScore: 70,
       scoreDelta: 20,
       relativePercentage: (20 / 70) * 100,
     });
-    expect(compareProgress(null, [80])).toBeNull();
+    expect(compareProgress(null, [80])).toBeNull(); // no current score means no comparison, not a zero delta.
   });
 });

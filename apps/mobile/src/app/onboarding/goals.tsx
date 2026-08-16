@@ -14,9 +14,11 @@ export default function GoalsScreen() {
     setGoals(
       selected.includes(goal) ? selected.filter((item) => item !== goal) : [...selected, goal],
     );
+  // at least one goal or generation has nothing to rank against.
   return (
     <Screen>
       <OnboardingHeader step={1} />
+      {/* header replace-backs to welcome so the wizard doesn't pile duplicate steps. */}
       <View style={styles.intro}>
         <Eyebrow>Your direction</Eyebrow>
         <Title compact>What would you like movement to support?</Title>
@@ -41,6 +43,7 @@ export default function GoalsScreen() {
       >
         Continue
       </Button>
+      {/* empty goals would make "why this plan" and generation look broken. */}
     </Screen>
   );
 }

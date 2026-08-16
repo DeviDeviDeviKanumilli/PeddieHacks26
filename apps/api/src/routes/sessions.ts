@@ -22,6 +22,8 @@ import { ApiError } from '../errors.js';
 import type { SessionRepository } from '../session-repository.js';
 import type { WorkoutRepository } from '../workout-repository.js';
 
+// session lifecycle + derived metrics. contracts reject raw media; domain owns state machines.
+
 const SessionIdParamsSchema = Type.Object({
   sessionId: Type.String({ minLength: 1, maxLength: 120 }),
 });
@@ -82,6 +84,7 @@ const activityRange = (
       detail: 'startDate must be on or before endDate.',
     });
   }
+  // keep the window bounded so a client cannot dump the entire daily_progress table.
   if (endTime - startTime > 366 * 86400000) {
     throw new ApiError({
       statusCode: 400,
@@ -116,6 +119,7 @@ export const registerSessionRoutes = async (
     async (request, reply) => {
       const auth = requestAuth(request);
       const body = request.body as Static<typeof CreateWorkoutSessionRequestSchema>;
+      // load the owner workout first so we never start a session from a leaked id.
       const workout = await dependencies.workouts.get(
         auth.userId,
         body.workoutId,
@@ -239,6 +243,7 @@ export const registerSessionRoutes = async (
     async (request) => {
       const auth = requestAuth(request);
       const body = request.body as Static<typeof CompleteSessionRequestSchema>;
+      // completion is a dedicated transition; patching state=completed is rejected in the repo.
       return {
         data: await dependencies.sessions.completeWorkoutSession(
           auth.userId,
@@ -328,6 +333,7 @@ export const registerSessionRoutes = async (
           groupId: 'exercise-metrics',
           keyGenerator: (request: FastifyRequest) => {
             const params = request.params as Partial<ExerciseSessionIdParams>;
+            // per session so one noisy client cannot starve other open exercises.
             return `${request.userId ?? request.ip}:${params.exerciseSessionId ?? 'unknown'}`;
           },
         },
@@ -335,6 +341,7 @@ export const registerSessionRoutes = async (
       preHandler: requireUser,
       schema: {
         params: ExerciseSessionIdParamsSchema,
+        // additionalproperties false in the contract; landmarks/media never make it to the repo.
         body: MetricBatchRequestSchema,
         response: { 200: MetricBatchResponseSchema },
       },
@@ -388,6 +395,7 @@ export const registerSessionRoutes = async (
     async (request) => {
       const auth = requestAuth(request);
       return {
+        // analysis is derived from stored metrics, never from pose frames.
         data: await dependencies.sessions.getExerciseAnalysis(
           auth.userId,
           request.params.exerciseSessionId,

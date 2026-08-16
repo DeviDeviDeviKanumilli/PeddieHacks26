@@ -4,6 +4,8 @@ import { ApiError } from './errors.js';
 import type { PrismaClient } from './generated/prisma/client.js';
 import { withUserPrismaContext } from './prisma-client.js';
 
+// owner profile via prisma. set jwt claims in the txn so rls still applies.
+
 const dependencyError = (detail: string): ApiError =>
   new ApiError({
     statusCode: 503,
@@ -21,6 +23,7 @@ export class PrismaMovementProfileRepository implements MovementProfileRepositor
 
   async getMovementProfile(userId: string): Promise<MovementProfile> {
     try {
+      // accesstoken is unused: postgres gets the user from set_config, not a supabase header.
       return await withUserPrismaContext(this.database, userId, async (database) => {
         const [movementProfile, profile, bodyRegions, capabilities, equipment, goals] =
           await Promise.all([
@@ -80,6 +83,7 @@ export class PrismaMovementProfileRepository implements MovementProfileRepositor
   ): Promise<MovementProfile> {
     try {
       return await withUserPrismaContext(this.database, userId, async (database) => {
+        // bump version first so a concurrent writer loses instead of mixing child rows.
         const updated = await database.movement_profiles.updateMany({
           where: { user_id: userId, version: BigInt(expectedVersion) },
           data: { version: { increment: 1 } },
@@ -96,6 +100,7 @@ export class PrismaMovementProfileRepository implements MovementProfileRepositor
           where: { user_id: userId },
           data: { intensity_preference: profile.intensityPreference },
         });
+        // replace child rows inside the same txn so a failed write cannot leave a half profile.
         await Promise.all([
           database.user_body_regions.deleteMany({ where: { user_id: userId } }),
           database.user_capabilities.deleteMany({ where: { user_id: userId } }),

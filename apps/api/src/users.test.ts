@@ -4,6 +4,7 @@ import { buildApp } from './app.js';
 import type { AuthVerifier } from './auth.js';
 import { loadConfig } from './config.js';
 
+// memory repos + fake auth. we are testing http glue, not supabase.
 const authVerifier: AuthVerifier = {
   async verify(token) {
     return token === 'demo-token' ? '20000000-0000-4000-8000-000000000001' : null;
@@ -19,6 +20,7 @@ describe('user profile and settings routes', () => {
   });
 
   it('reads and patches the signed-in user profile', async () => {
+    // owner-only. missing bearer must not leak a guest profile.
     app = await buildApp({ logger: false, authVerifier });
     const headers = { authorization: 'Bearer demo-token' };
     const initial = await app.inject({ method: 'GET', url: '/v1/users/me', headers });
@@ -52,6 +54,7 @@ describe('user profile and settings routes', () => {
     app = await buildApp({ logger: false, authVerifier });
     const unauthorized = await app.inject({ method: 'GET', url: '/v1/settings' });
     const headers = { authorization: 'Bearer demo-token' };
+    // partial nested patch must keep poseoverlayenabled from defaults.
     const updated = await app.inject({
       method: 'PATCH',
       url: '/v1/settings',
@@ -82,10 +85,12 @@ describe('user profile and settings routes', () => {
     const retry = await app.inject({ method: 'DELETE', url: '/v1/users/me', headers });
 
     expect(first.statusCode).toBe(204);
+    // 204 again: hosted adapter treats a missing user as already deleted.
     expect(retry.statusCode).toBe(204);
   });
 
   it('applies the dedicated account-deletion rate limit', async () => {
+    // keep this bucket tiny; general 120/min would let a client hammer delete.
     app = await buildApp({
       logger: false,
       authVerifier,

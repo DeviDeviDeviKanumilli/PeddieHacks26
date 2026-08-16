@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
+// optional camera gate. never required to finish a workout.
 export default function PermissionScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
   const [permission, requestPermission] = useCameraPermissions();
@@ -15,6 +16,7 @@ export default function PermissionScreen() {
   };
   const continueWithout = () =>
     router.replace(`/session/active?${query.replace('tracking=1', 'tracking=0')}`);
+  // replace so permission isn't under active. strip tracking=1 if they skip.
   return (
     <Screen>
       <View style={styles.icon}>
@@ -37,6 +39,7 @@ export default function PermissionScreen() {
           icon={ShieldCheck}
           text="Only derived measurements may be saved in live mode."
         />
+        {/* camera is on-device. live may store derived metrics, never media. */}
       </Card>
       <Button icon={Camera} onPress={() => void continueWithCamera()}>
         Allow camera
@@ -55,6 +58,7 @@ export default function PermissionScreen() {
 
 const PrivacyRow = ({ icon: Icon, text }: { icon: typeof Camera; text: string }) => (
   <View style={styles.row}>
+    {/* copy is the privacy contract. keep it next to allow/skip. */}
     <Icon color={colors.lavenderDark} size={20} />
     <Text style={styles.rowText}>{text}</Text>
   </View>

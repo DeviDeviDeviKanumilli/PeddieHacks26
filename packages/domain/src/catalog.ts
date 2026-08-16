@@ -1,3 +1,5 @@
+// in-memory catalog used by tests and generation. ids are stable uuids, not random.
+// keep this list aligned with supabase/seed.sql. 24 rows, same ids, same tracking keys.
 import type {
   BodyDemand,
   CapabilityDemand,
@@ -6,6 +8,7 @@ import type {
   ExercisePrescription,
 } from './types.js';
 
+// tiny builders so the table below stays readable. they do not validate ids against a registry.
 const body = (
   regionId: string,
   involvement: BodyDemand['involvement'],
@@ -21,11 +24,13 @@ const capability = (
 const required = (equipmentId: string, orGroup?: string): EquipmentOption =>
   orGroup === undefined
     ? { equipmentId, mode: 'required' }
-    : { equipmentId, mode: 'required', orGroup };
+    : { equipmentId, mode: 'required', orGroup }; // same orGroup = pick one of these, not all
 
 const optional = (equipmentId: string): EquipmentOption => ({ equipmentId, mode: 'optional' });
+// never fails compatibility. ranking may still prefer a shorter required list.
 
 interface ExerciseInput {
+  // write shape. omitted difficulty, prescription, and equipment get defaults in exercise().
   readonly id: string;
   readonly slug: string;
   readonly familyKey: string;
@@ -51,10 +56,10 @@ const exercise = (input: ExerciseInput): ExerciseCandidate => {
     name: input.name,
     category: input.category,
     position: input.position,
-    difficulty: input.difficulty ?? 1,
-    active: true,
+    difficulty: input.difficulty ?? 1, // omitted means easiest. low intensity still accepts 1-2.
+    active: true, // curated rows stay active. retire by deleting, not by flipping this here.
     defaultPrescription: input.defaultPrescription ?? { sets: 2, reps: 10, restSeconds: 45 },
-    estimatedSecondsPerSet: input.estimatedSecondsPerSet ?? 45,
+    estimatedSecondsPerSet: input.estimatedSecondsPerSet ?? 45, // generation uses this, not a live timer.
     bodyDemands: input.bodyDemands,
     capabilityDemands: input.capabilityDemands,
     equipmentOptions: input.equipmentOptions ?? [],
@@ -64,13 +69,14 @@ const exercise = (input: ExerciseInput): ExerciseCandidate => {
 
   return input.trackingProfileKey === undefined
     ? base
-    : { ...base, trackingProfileKey: input.trackingProfileKey };
+    : { ...base, trackingProfileKey: input.trackingProfileKey }; // omit the key instead of sending undefined
 };
 
 const id = (number: number): string =>
-  `00000000-0000-4000-8000-${number.toString().padStart(12, '0')}`;
+  `00000000-0000-4000-8000-${number.toString().padStart(12, '0')}`; // deterministic so seed sql can match
 
 export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
+  // first few have tracking keys. later ones are still valid, just manual-count.
   exercise({
     id: id(1),
     slug: 'seated-biceps-curl',
@@ -89,7 +95,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
     ],
     equipmentOptions: [
       required('dumbbells', 'curl-load'),
-      required('resistance_band', 'curl-load'),
+      required('resistance_band', 'curl-load'), // either load is enough. do not require both.
     ],
     primaryRegionIds: ['upper_arms'],
     goalIds: ['upper_body', 'strength'],
@@ -118,7 +124,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
   }),
   exercise({
     id: id(3),
-    slug: 'seated-march',
+    slug: 'seated-march', // no equipment row on purpose. empty options means nothing required.
     familyKey: 'hip-flexion',
     name: 'Seated march',
     category: 'cardio',
@@ -138,7 +144,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
     position: 'seated',
     bodyDemands: [body('knees', 'primary', 'high'), body('thighs', 'secondary', 'moderate')],
     capabilityDemands: [capability('seated_posture', 'moderate', true)],
-    equipmentOptions: [optional('ankle-weight')],
+    equipmentOptions: [optional('ankle-weight')], // extra load only. the movement is still valid without it.
     primaryRegionIds: ['knees'],
     goalIds: ['lower_body', 'strength'],
     trackingProfileKey: 'seated-knee-extension-v1',
@@ -157,7 +163,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
       capability('left_lower_body_weight_bearing', 'high', true),
       capability('right_lower_body_weight_bearing', 'high', true),
     ],
-    equipmentOptions: [required('stable-chair')],
+    equipmentOptions: [required('stable-chair')], // start position, not optional support.
     primaryRegionIds: ['hips', 'knees'],
     goalIds: ['lower_body', 'strength', 'balance'],
     trackingProfileKey: 'sit-to-stand-v1',
@@ -176,14 +182,14 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
       capability('left_upper_body_weight_bearing', 'moderate', true),
       capability('right_upper_body_weight_bearing', 'moderate', true),
     ],
-    equipmentOptions: [required('wall')],
+    equipmentOptions: [required('wall')], // wall is equipment here so a home without one fails cleanly.
     primaryRegionIds: ['shoulders'],
     goalIds: ['upper_body', 'strength'],
     trackingProfileKey: 'wall-push-up-v1',
   }),
   exercise({
     id: id(7),
-    slug: 'seated-shoulder-press',
+    slug: 'seated-shoulder-press', // no tracking key: overhead press is manual-count in v1.
     familyKey: 'vertical-push',
     name: 'Seated shoulder press',
     category: 'strength',
@@ -294,7 +300,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
       capability('left_single_leg_balance', 'moderate', false),
       capability('right_single_leg_balance', 'moderate', false),
     ],
-    equipmentOptions: [required('stable-chair', 'support'), required('wall', 'support')],
+    equipmentOptions: [required('stable-chair', 'support'), required('wall', 'support')], // chair or wall, not both
     primaryRegionIds: ['hips'],
     goalIds: ['lower_body', 'balance', 'strength'],
   }),
@@ -309,7 +315,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
     bodyDemands: [body('hips', 'primary', 'high'), body('lower_back', 'stabilizing', 'minimal')],
     capabilityDemands: [
       capability('standing', 'moderate', true),
-      capability('standing_balance', 'moderate', false),
+      capability('standing_balance', 'moderate', false), // optional: they can hold the chair
     ],
     equipmentOptions: [required('stable-chair', 'support'), required('wall', 'support')],
     primaryRegionIds: ['hips'],
@@ -375,7 +381,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
   exercise({
     id: id(18),
     slug: 'seated-band-chest-press',
-    familyKey: 'horizontal-push',
+    familyKey: 'horizontal-push', // same family as wall push-up. generation tries not to stack these.
     name: 'Seated resistance-band chest press',
     category: 'strength',
     position: 'seated',
@@ -410,7 +416,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
   }),
   exercise({
     id: id(20),
-    slug: 'seated-glute-squeeze',
+    slug: 'seated-glute-squeeze', // low seated demand. useful when standing and floor are off the table.
     familyKey: 'hip-isometric',
     name: 'Seated glute squeeze',
     category: 'strength',
@@ -422,7 +428,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
   }),
   exercise({
     id: id(21),
-    slug: 'supine-heel-slide',
+    slug: 'supine-heel-slide', // floor block starts here. transfer is the hard requirement.
     familyKey: 'supine-knee-flexion',
     name: 'Supine heel slide',
     category: 'mobility',
@@ -430,7 +436,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
     bodyDemands: [body('knees', 'primary', 'moderate'), body('hips', 'secondary', 'moderate')],
     capabilityDemands: [
       capability('supine', 'moderate', true),
-      capability('floor_transfer', 'high', true),
+      capability('floor_transfer', 'high', true), // getting down is the hard part, not the slide itself
     ],
     equipmentOptions: [optional('exercise-mat')],
     primaryRegionIds: ['knees'],
@@ -443,7 +449,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
     name: 'Supine bridge',
     category: 'strength',
     position: 'floor',
-    difficulty: 3,
+    difficulty: 3, // floor + high hip demand. low intensity (max 2) will exclude these.
     bodyDemands: [body('hips', 'primary', 'high'), body('lower_back', 'stabilizing', 'moderate')],
     capabilityDemands: [
       capability('supine', 'moderate', true),
@@ -467,7 +473,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
     ],
     capabilityDemands: [
       capability('floor_transfer', 'high', true),
-      capability('left_lower_body_weight_bearing', 'minimal', false),
+      capability('left_lower_body_weight_bearing', 'minimal', false), // on their side, not standing on it.
       capability('right_lower_body_weight_bearing', 'minimal', false),
     ],
     equipmentOptions: [optional('resistance_band'), optional('exercise-mat')],
@@ -481,7 +487,7 @@ export const CURATED_EXERCISES: readonly ExerciseCandidate[] = [
     name: 'Prone hip extension',
     category: 'strength',
     position: 'floor',
-    difficulty: 3,
+    difficulty: 3, // same intensity gate as the bridge. low preference will drop this too.
     bodyDemands: [body('hips', 'primary', 'high'), body('lower_back', 'stabilizing', 'moderate')],
     capabilityDemands: [
       capability('prone', 'high', true),

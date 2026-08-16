@@ -21,6 +21,7 @@ import {
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
+// four heat levels for the activity grid. 0 is empty, 3 is a long day.
 const activityLevel = (seconds: number) => {
   if (seconds === 0) return 0;
   if (seconds < 600) return 1;
@@ -37,6 +38,7 @@ const formatActiveTime = (seconds: number) => {
 };
 
 const formatDate = (value: string) =>
+  // utc so a local offset doesn't slide a "day" into the previous cell.
   new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(
     new Date(value),
   );
@@ -50,6 +52,7 @@ const RangeSelector = ({
 }) => {
   const [open, setOpen] = useState(false);
   const selected = getProgressRange(value);
+  // custom menu instead of a picker — keeps 44pt rows and matches the rest of the app.
   return (
     <View style={styles.rangeWrap}>
       <Pressable
@@ -92,6 +95,7 @@ const RangeSelector = ({
 
 const Stat = ({ label, value }: { label: string; value: string }) => (
   <View style={styles.stat}>
+    {/* shrink-to-fit so four stats share a row on small phones. */}
     <Text adjustsFontSizeToFit numberOfLines={1} style={styles.statValue}>
       {value}
     </Text>
@@ -103,6 +107,7 @@ const Stat = ({ label, value }: { label: string; value: string }) => (
 
 export default function ProgressScreen() {
   const [rangeId, setRangeId] = useState<ProgressRangeId>('28d');
+  // 28d default: enough cells to look like a heatmap without crowding the map.
   const history = useAppStore((state) => state.history);
   const mode = useAppStore((state) => state.mode);
   const range = getProgressRange(rangeId);
@@ -117,12 +122,14 @@ export default function ProgressScreen() {
       }),
     enabled: mode === 'live' && hasApiConfig,
   });
+  // guest reads local history. live waits on this query — don't fall back mid-fetch.
 
   const rangeHistory = useMemo(() => historyInProgressRange(history, rangeId), [history, rangeId]);
   const sourceActivity =
     mode === 'live' && hasApiConfig
       ? (liveActivity.data ?? [])
       : localProgressActivity(history, rangeId);
+  // don't mix live + local rows; empty live response still means "wait for the query".
   const activity = useMemo(
     () => fillProgressActivity(sourceActivity, rangeId),
     [rangeId, sourceActivity],
@@ -252,6 +259,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
   },
   rangeWrap: { position: 'relative', zIndex: 10 },
+  // menu is absolute; stacking keeps it above the heatmap. 44pt trigger.
   rangeButton: {
     alignItems: 'center',
     backgroundColor: colors.surface,

@@ -1,5 +1,7 @@
 package expo.modules.adaptfitpose
 
+// frames stay on-device. js only gets left/right angles plus confidence.
+
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -40,6 +42,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
   private var cameraProvider: ProcessCameraProvider? = null
   private var trackingEnabled = false
   private var useFrontCamera = true
+  // default curl joints until the recipe props arrive.
   private var leftLandmarks = intArrayOf(11, 13, 15)
   private var rightLandmarks = intArrayOf(12, 14, 16)
   private var lastTimestampMs = 0L
@@ -78,6 +81,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
   }
 
   override fun onDetachedFromWindow() {
+    // navigation away or background: release the camera session.
     stopCamera()
     super.onDetachedFromWindow()
   }
@@ -88,6 +92,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
       != PackageManager.PERMISSION_GRANTED
     ) {
+      // permission is requested in js. don't prompt from native.
       return
     }
 
@@ -117,6 +122,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
       it.setSurfaceProvider(previewView.surfaceProvider)
     }
     val analysis = ImageAnalysis.Builder()
+      // drop stale frames so we don't queue a backlog off-thread.
       .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
       .build()
       .also { imageAnalysis ->
@@ -132,6 +138,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
           } catch (error: Exception) {
             Log.w(TAG, "Pose analysis failed", error)
           } finally {
+            // close every frame. never persist bitmaps or landmarks.
             imageProxy.close()
           }
         }
@@ -160,6 +167,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
     return try {
       val options = PoseLandmarker.PoseLandmarkerOptions.builder()
         .setBaseOptions(
+          // baked into the apk at compile time. never download a model at runtime.
           BaseOptions.builder().setModelAssetPath("pose_landmarker_lite.task").build(),
         )
         .setRunningMode(RunningMode.LIVE_STREAM)
@@ -182,6 +190,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
   }
 
   private fun emitAngles(result: PoseLandmarkerResult, width: Int, height: Int) {
+    // landmarks never go over the bridge.
     val pose = result.landmarks().firstOrNull() ?: run {
       onAngles(
         mapOf(
@@ -218,7 +227,7 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
     val vertex = landmarks.getOrNull(indices[1]) ?: return null
     val point2 = landmarks.getOrNull(indices[2]) ?: return null
     val visibilities = listOf(point1, vertex, point2).map { it.visibility().orElse(0f) }
-    if (visibilities.any { it < VISIBILITY_THRESHOLD }) return null
+    if (visibilities.any { it < VISIBILITY_THRESHOLD }) return null // occluded joints would invent a fake angle.
 
     val vector1x = (point1.x() - vertex.x()) * width
     val vector1y = (point1.y() - vertex.y()) * height
@@ -233,6 +242,6 @@ class AdaptfitPoseView(context: Context, appContext: AppContext) : ExpoView(cont
 
   companion object {
     private const val TAG = "AdaptfitPose"
-    private const val VISIBILITY_THRESHOLD = 0.5f
+    private const val VISIBILITY_THRESHOLD = 0.5f // below this, skip the angle instead of guessing.
   }
 }

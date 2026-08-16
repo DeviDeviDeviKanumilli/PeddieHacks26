@@ -1,3 +1,4 @@
+// closed lists only. if it is not in here, the runtime should ignore it.
 export const FEEDBACK_CODES = [
   'low_tracking_confidence',
   'tempo_too_slow',
@@ -22,6 +23,7 @@ export type EquipmentToken = (typeof EQUIPMENT_TOKENS)[number];
 export const SESSION_PHASES = ['setup', 'active', 'rest', 'complete'] as const;
 export type SessionPhase = (typeof SESSION_PHASES)[number];
 
+// tools the local orchestrator is even allowed to name
 export const TOOL_NAMES = [
   'profile.read',
   'feedback.emit',
@@ -43,6 +45,7 @@ export type AccessibilityFlags = {
   oneHanded: boolean;
 };
 
+// this is the whole profile we care about. no free text, no diagnoses.
 export type MovementProfile = {
   goals: readonly string[];
   regions: Readonly<Record<string, RegionState>>;
@@ -56,7 +59,7 @@ export type CatalogExercise = {
   name: string;
   position: Position;
   equipment: readonly EquipmentToken[];
-  equipmentOrGroup: boolean;
+  equipmentOrGroup: boolean; // true = any of the bits, false = all of them
   impact: 'none' | 'low' | 'jump';
   primaryRegion: string;
   defaultSets: number;
@@ -78,6 +81,7 @@ export type WorkoutItem = {
   restSeconds: number;
 };
 
+// js may see angles. it may not see landmarks. ever.
 export type AllowedPoseSample = {
   angleDeg: number;
   confidence: number;
@@ -86,6 +90,7 @@ export type AllowedPoseSample = {
 };
 
 export type FeatureSample = {
+  // derived from the rolling window. still no coordinates.
   angleDeg: number;
   velocityDegPerSec: number;
   rangeOfMotionDeg: number;
@@ -101,6 +106,7 @@ export type TrackerState =
   | 'rest'
   | 'exercise_complete';
 
+// per-exercise thresholds. calibrate these, do not train a new net.
 export type ExerciseRecipe = {
   exerciseId: string;
   targetAngleDeg: number;
@@ -136,7 +142,7 @@ export type MotionEvent = {
 
 export type ToolCall = {
   tool: ToolName;
-  callId: string;
+  callId: string; // uniqueness is how we no-op retries. mint it from event time + type.
   arguments: Readonly<Record<string, unknown>>;
 };
 
@@ -160,6 +166,7 @@ export type OrchestratorInput = {
   nativeInference: boolean;
 };
 
+// if any of these keys show up, drop the payload. do not get clever.
 export const FORBIDDEN_PAYLOAD_KEYS = [
   'landmarks',
   'keypoints',
@@ -175,6 +182,7 @@ export const FORBIDDEN_PAYLOAD_KEYS = [
   'feedback',
 ] as const;
 
+// documented cap for the isolated runtime. not a model we load.
 export const ORCHESTRATOR_PARAMETER_BUDGET = 125_000_000;
 
-export const REST_OPTIONS = [30, 45, 60, 90] as const;
+export const REST_OPTIONS = [30, 45, 60, 90] as const; // closed list. tools.ts rejects anything else.

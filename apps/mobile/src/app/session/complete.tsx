@@ -12,6 +12,7 @@ import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 export default function CompleteScreen() {
+  // end of an exercise. save once, then either next setup hop or leave the session stack.
   const params = useLocalSearchParams<Record<string, string>>();
   const catalog = useAppStore((state) => state.catalog);
   const workout = useAppStore((state) => state.recommendedWorkout);
@@ -20,6 +21,7 @@ export default function CompleteScreen() {
   const mode = useAppStore((state) => state.mode);
   const saved = useRef(false);
   const syncStarted = useRef(false);
+  // refs so remounts / strict mode don't double-write history or fire complete twice.
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const poseReps = usePoseSession((state) => state.reps);
   const poseSummary = summarizePoseSession(poseReps);
@@ -52,6 +54,7 @@ export default function CompleteScreen() {
   const saveGuestSummary = useCallback(() => {
     if (saved.current || !exercise) return;
     saved.current = true;
+    // local history always. live still writes this so progress works offline.
     const completedItems = inPlan ? workout.items.slice(0, accExercises) : [];
     completeWorkout({
       title: inPlan ? workout.title : exercise.name,
@@ -83,6 +86,7 @@ export default function CompleteScreen() {
     if (!exercise || next) return;
     saveGuestSummary();
   }, [exercise, next, saveGuestSummary]);
+  // wait until the plan is done (or this was a solo move) before recording the workout.
   useEffect(() => {
     if (
       syncStarted.current ||
@@ -111,6 +115,7 @@ export default function CompleteScreen() {
       .then(() => setSyncState('synced'))
       .catch(() => setSyncState('error'));
   }, [completedReps, elapsed, mode, next, params, poseReps, repsPerSet]);
+  // derived metrics only — never frames. guest sim reps never land in the pose buffer.
   if (!exercise) return null;
   const query = compactSearchParams({
     ...params,
@@ -134,6 +139,7 @@ export default function CompleteScreen() {
       })}`,
     );
   };
+  // replace into setup with accumulated totals. don't push or complete stacks up.
   const endWorkout = () => {
     saveGuestSummary();
     if (mode === 'live' && liveContext && next) {
@@ -141,6 +147,7 @@ export default function CompleteScreen() {
     }
     router.replace('/(tabs)');
   };
+  // early exit still saves local history, then replace home so session isn't behind tabs.
   return (
     <Screen>
       <View style={styles.hero}>

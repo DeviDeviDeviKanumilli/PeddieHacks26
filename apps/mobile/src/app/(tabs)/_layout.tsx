@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { Dumbbell, Home, Search, TrendingUp, UserRound } from 'lucide-react-native';
 import { colors, typography } from '@/theme/tokens';
 
+// lucide names match the five tab files. unknown routes fall back to home.
 const icons = {
   index: Home,
   explore: Search,
@@ -11,6 +12,7 @@ const icons = {
 };
 
 export default function TabsLayout() {
+  // five product tabs. height includes home-indicator padding; keep labels above it.
   return (
     <Tabs
       screenOptions={({ route }) => {
@@ -26,6 +28,7 @@ export default function TabsLayout() {
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopColor: colors.line,
+            // 82 leaves room for the home indicator; labels still clear the 44pt icon hit area.
             height: 82,
             paddingBottom: 16,
             paddingTop: 9,

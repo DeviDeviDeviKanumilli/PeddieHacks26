@@ -17,6 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { selectionHaptic, useAccessibility } from '@/lib/accessibility';
 import { colors, radii, shadow, spacing, typography } from '@/theme/tokens';
 
+// shared chrome. keep hit targets ≥44pt and honor reduced-motion / one-handed.
 export const Screen = ({
   children,
   scroll = true,
@@ -26,6 +27,7 @@ export const Screen = ({
   const insets = useSafeAreaInsets();
   const inTabs = useSegments()[0] === '(tabs)';
   const { oneHanded } = useAccessibility();
+  // only pin the top inset. tabs already have a bar; stacks need extra bottom padding.
   const content = (
     <View
       style={[
@@ -37,6 +39,7 @@ export const Screen = ({
         style,
       ]}
     >
+      {/* one-handed scoots content up so primary buttons sit in thumb reach. */}
       {children}
     </View>
   );
@@ -51,6 +54,7 @@ export const Screen = ({
           overScrollMode="never"
           showsVerticalScrollIndicator={false}
         >
+          {/* bounce off: short screens shouldn't rubber-band over the canvas. */}
           {content}
         </ScrollView>
       ) : (
@@ -62,6 +66,7 @@ export const Screen = ({
 
 export const Eyebrow = ({ children }: PropsWithChildren) => {
   const { highContrast, textScale } = useAccessibility();
+  // uppercase label; high contrast drops the lavender so it still reads.
   return (
     <Text
       style={[
@@ -78,6 +83,7 @@ export const Eyebrow = ({ children }: PropsWithChildren) => {
 export const Title = ({ children, compact = false }: PropsWithChildren<{ compact?: boolean }>) => {
   const { textScale } = useAccessibility();
   const size = (compact ? 34 : 42) * textScale;
+  // scale type ourselves — system font scaling alone would clip the display size.
   return (
     <Text
       accessibilityRole="header"
@@ -94,6 +100,7 @@ export const Title = ({ children, compact = false }: PropsWithChildren<{ compact
 
 export const Body = ({ children, muted = false }: PropsWithChildren<{ muted?: boolean }>) => {
   const { highContrast, textScale } = useAccessibility();
+  // muted + high contrast stays ink. don't fade copy that people need.
   return (
     <Text
       style={[
@@ -116,6 +123,7 @@ export const Card = ({
   style?: ViewStyle;
 }>) => {
   const { highContrast } = useAccessibility();
+  // tone is background only. high contrast adds a 2pt ink border.
   return (
     <View style={[styles.card, cardTones[tone], highContrast && styles.highContrastBorder, style]}>
       {children}
@@ -132,6 +140,7 @@ export const AccessiblePressable = ({ onPress, ...props }: PressableProps) => (
     }}
   />
 );
+// haptic on every press. no-ops if the preference is off.
 
 export const Button = ({
   children,
@@ -173,6 +182,7 @@ export const Button = ({
         style,
       ]}
     >
+      {/* reduced motion skips the scale so the press state isn't a bounce. */}
       {loading ? (
         <ActivityIndicator color={variant === 'primary' ? colors.surface : colors.lavenderDark} />
       ) : (
@@ -224,6 +234,7 @@ export const Chip = ({
         pressed && (reducedMotion ? styles.pressedStatic : styles.pressed),
       ]}
     >
+      {/* checkbox role: these are toggles, not navigation. floor is 46pt. */}
       <Text
         style={[styles.chipText, selected && styles.chipTextSelected, { fontSize: 14 * textScale }]}
       >
@@ -250,6 +261,7 @@ export const Field = (props: TextInputProps) => {
     />
   );
 };
+// 52pt field so the tap target survives text scale.
 
 export const SectionHeading = ({ title, action }: { title: string; action?: ReactNode }) => (
   <View style={styles.sectionHeading}>
@@ -268,6 +280,7 @@ export const Metric = ({ value, label }: { value: string; label: string }) => (
     <Text style={styles.metricLabel}>{label}</Text>
   </View>
 );
+// shrink-to-fit so 3-up metrics don't wrap on small phones.
 
 const cardTones = StyleSheet.create({
   default: { backgroundColor: colors.surface },
@@ -337,6 +350,7 @@ const styles = StyleSheet.create({
     minHeight: 54,
     paddingHorizontal: spacing.lg,
   },
+  // 54pt default; one-handed can raise the min height further.
   buttonText: { fontFamily: typography.semibold, fontSize: 16 },
   pressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
   pressedStatic: { opacity: 0.76 },

@@ -1,13 +1,15 @@
+// maps motion events to tool drafts. validation still happens in tools.ts.
 import { validateToolCall } from './tools.js';
 import type { MotionEvent, OrchestratorInput, ToolCall, ToolDecision } from './types.js';
 import { ORCHESTRATOR_PARAMETER_BUDGET } from './types.js';
 
 const id = (prefix: string, event: MotionEvent): string => `${prefix}:${event.atMs}:${event.type}`;
 
-export const parameterBudget = ORCHESTRATOR_PARAMETER_BUDGET;
+export const parameterBudget = ORCHESTRATOR_PARAMETER_BUDGET; // documented cap, not a loaded model
 
 export const orchestrate = (input: OrchestratorInput): ToolDecision[] => {
   const { event, phase, accessibility, prescription, nativeInference } = input;
+  // set/exercise complete belong to rest/complete even if the caller is still in active
   const toolPhase =
     event.type === 'set_complete'
       ? 'rest'
@@ -21,13 +23,13 @@ export const orchestrate = (input: OrchestratorInput): ToolDecision[] => {
     drafts.push({
       tool: 'feedback.emit',
       callId: id('feedback', event),
-      arguments: { code, channel: 'visual', priority },
+      arguments: { code, channel: 'visual', priority }, // visual is always ok
     });
     if (accessibility.spokenFeedback) {
       drafts.push({
         tool: 'speech.speak',
         callId: id('speech', event),
-        arguments: { utteranceId: code, interrupt: priority === 'high' },
+        arguments: { utteranceId: code, interrupt: priority === 'high' }, // only talk if they asked for it
       });
     }
     if (accessibility.hapticFeedback && priority === 'high') {
@@ -42,7 +44,7 @@ export const orchestrate = (input: OrchestratorInput): ToolDecision[] => {
         tool: 'adaptation.propose',
         callId: id('adapt', event),
         arguments: {
-          action: 'reduce_range',
+          action: 'reduce_range', // shrink the envelope, do not rewrite the catalog
           reasonCode: code,
           exerciseId: prescription.exerciseId,
         },
@@ -56,6 +58,7 @@ export const orchestrate = (input: OrchestratorInput): ToolDecision[] => {
       arguments: { pattern: 'success' },
     });
   }
+  // set complete is recorded even if haptics are off. progress is not a sensory channel.
   if (event.type === 'set_complete') {
     drafts.push({
       tool: 'progress.record_set',
@@ -68,6 +71,7 @@ export const orchestrate = (input: OrchestratorInput): ToolDecision[] => {
     });
   }
   if (event.type === 'exercise_complete') {
+    // two tools on purpose: set totals vs a completion mark. different call ids so neither is a duplicate.
     drafts.push({
       tool: 'progress.record_exercise',
       callId: id('progress-ex', event),

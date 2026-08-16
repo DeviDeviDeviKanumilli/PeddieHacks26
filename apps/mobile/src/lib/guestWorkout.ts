@@ -5,6 +5,7 @@ const usesAny = (exercise: Exercise, terms: readonly string[]): boolean => {
   return terms.some((term) => text.includes(term));
 };
 
+// hard filters for guest mode. avoid is not a score penalty — the move is out.
 const conflictsWithProfile = (exercise: Exercise, profile: MovementProfile): boolean => {
   const avoided = Object.entries(profile.regions)
     .filter(([, state]) => state === 'avoid')
@@ -54,6 +55,7 @@ export const usesExtraEquipment = (exercises: readonly Pick<Exercise, 'equipment
   exercises.some((exercise) =>
     exercise.equipment.some((item) => {
       const label = item.toLowerCase();
+      // chair is everyday furniture, not "extra kit" for the guest plan copy.
       return label.length > 0 && !label.includes('none') && !label.includes('chair');
     }),
   );
@@ -94,6 +96,7 @@ export const planFitReasons = (
 
 const equipmentAvailable = (exercise: Exercise, selected: ReadonlySet<string>): boolean => {
   const needs = exercise.equipment.join(' ').toLowerCase();
+  // "none" still implies a chair — that's the guest adapter's everyday-furniture rule.
   const hasChair = selected.has('Stable chair') || selected.has('None') || selected.size === 0;
   const hasBand = selected.has('Resistance band');
   const hasDumbbells = selected.has('Dumbbells');
@@ -118,6 +121,7 @@ const goalScore = (exercise: Exercise, profile: MovementProfile): number => {
     .filter(([, state]) => state === 'focus')
     .map(([region]) => region.replace('-', ' '));
   if (usesAny(exercise, focused)) score += 3;
+  // slight seated bias; matches the product's default supported path.
   score += exercise.position === 'seated' ? 1 : 0;
   return score;
 };
@@ -132,6 +136,7 @@ export const buildGuestWorkout = (
     .filter((exercise) => equipmentAvailable(exercise, selectedEquipment))
     .map((exercise, index) => ({ exercise, index, score: goalScore(exercise, profile) }))
     .sort((left, right) => right.score - left.score || left.index - right.index)
+    // four moves keeps the guest demo short without a server generator.
     .slice(0, 4)
     .map(({ exercise }) => exercise);
   const items = selected.map((exercise, index) => ({

@@ -13,6 +13,7 @@ export default function MovementScreen() {
   return (
     <Screen>
       <OnboardingHeader step={2} />
+      {/* taps cycle preference, not a diagnosis. unmarked regions stay neutral. */}
       <View style={{ gap: spacing.sm }}>
         <Eyebrow>Your movement map</Eyebrow>
         <Title compact>Tell us what feels available today.</Title>
@@ -22,9 +23,11 @@ export default function MovementScreen() {
         </Body>
       </View>
       <BodyMap onChange={setRegion} regions={regions} />
+      {/* list rows under the map are the a11y path; svg taps are extra. */}
       <Button icon={ArrowRight} onPress={() => router.push('/onboarding/preferences')}>
         Continue
       </Button>
+      {/* empty map is valid — generation treats missing regions as unconstrained. */}
     </Screen>
   );
 }

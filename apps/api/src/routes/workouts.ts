@@ -33,6 +33,8 @@ import {
   type WorkoutRepository,
 } from '../workout-repository.js';
 
+// generation and compatibility come from domain. handlers only auth, persist, and map errors.
+
 const WorkoutIdParamsSchema = Type.Object({
   workoutId: Type.String({ minLength: 1, maxLength: 120 }),
 });
@@ -85,6 +87,7 @@ const generationInput = (
 const validatePrescription = (item: CreateManualWorkoutRequest['items'][number]): void => {
   const hasReps = item.reps !== undefined;
   const hasHold = item.holdSeconds !== undefined;
+  // catalog items are reps xor hold. both/neither would break session targets later.
   if (hasReps === hasHold) {
     throw new ApiError({
       statusCode: 422,
@@ -126,6 +129,7 @@ const manualDraftFor = async (
         detail: 'Manual workouts cannot include a hard-incompatible exercise.',
       });
     }
+    // warnings are allowed only after the client echoes each reason code.
     const acknowledgements = new Set(item.cautionAcknowledgements ?? []);
     const missingAcknowledgements = compatibility.reasons
       .filter((reason) => reason.severity === 'warning')
@@ -308,6 +312,7 @@ export const registerWorkoutRoutes = async (
     '/v1/workouts/generate',
     {
       config: {
+        // generation is cpu-heavy. keep this bucket well below the general limiter.
         rateLimit: {
           max: dependencies.rateLimits.generation,
           timeWindow: '1 minute',
@@ -329,6 +334,7 @@ export const registerWorkoutRoutes = async (
       try {
         generated = generateWorkout(generationInput(request.body, profile, candidates));
       } catch (error) {
+        // domain throws a typed shortage; map it so clients can show the suggestions.
         if (error instanceof InsufficientCompatibleExercisesError) {
           throw new ApiError({
             statusCode: 422,
@@ -353,6 +359,7 @@ export const registerWorkoutRoutes = async (
         generated,
         accessToken: auth.accessToken,
       });
+      // persist assigns item ids; stitch them onto the domain payload for the 201 body.
       const items = generated.items.map((item, index) => {
         const storedItem = workout.items[index];
         if (storedItem === undefined) {
@@ -459,6 +466,7 @@ export const registerWorkoutRoutes = async (
         previousExerciseFamilyKeys: [currentCandidate.familyKey],
         previousPrimaryRegionIds: currentCandidate.primaryRegionIds,
       }).filter((candidate) => candidate.compatibility.status !== 'incompatible');
+      // cap at 5 so the client can swap without another generation round trip.
       const alternatives = [];
       for (const candidate of ranked.slice(0, 5)) {
         const exercise = await dependencies.catalog.getExercise(candidate.exercise.id);
@@ -492,6 +500,7 @@ export const registerWorkoutRoutes = async (
         request.params.workoutId,
         auth.accessToken,
       );
+      // re-score the replacement in this handler; the repo only stores the already-checked item.
       const item = await patchedItemFor(
         userId,
         auth.accessToken,
@@ -587,6 +596,7 @@ export const registerWorkoutRoutes = async (
     async (request) => {
       const auth = requestAuth(request);
       return {
+        // archive, not hard delete, so history and sessions can still resolve the plan.
         data: await dependencies.workouts.archive(
           auth.userId,
           request.params.workoutId,

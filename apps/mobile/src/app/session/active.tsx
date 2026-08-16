@@ -27,6 +27,8 @@ const feedback = [
   'Use the range that feels comfortable',
 ];
 
+// live set. params carry totals across rest hops. replace, never back.
+
 export default function ActiveSessionScreen() {
   const params = useLocalSearchParams<{
     exercise: string;
@@ -69,6 +71,7 @@ export default function ActiveSessionScreen() {
   const nativePose = tracking && isPoseTrackingAvailable();
   const nativeCounting = nativePose && calibratedRecipe !== undefined;
   const demoTracking = tracking && mode === 'guest' && !nativeCounting;
+  // guest without a calibrated recipe fakes the count. don't treat that as form data.
   const recordPoseRep = usePoseSession((state) => state.recordPoseRep);
   const beginPoseSession = usePoseSession((state) => state.beginPoseSession);
   const trackerRef = useRef(
@@ -91,6 +94,7 @@ export default function ActiveSessionScreen() {
     setStartedAt.current = Date.now();
     setReps(0);
   }, [beginPoseSession, calibratedRecipe, currentSet, targetReps]);
+  // reset per set. pose buffer only starts on set 1 so later sets append.
   const recordNativeRep = useCallback(
     (
       partial: Omit<PoseRepRecord, 'setNumber' | 'repNumber' | 'recordedOffsetMs'> & {
@@ -181,6 +185,7 @@ export default function ActiveSessionScreen() {
     }, 600);
     return () => clearTimeout(timer);
   }, [currentSet, elapsed, params, priorCompleted, priorElapsed, reps, targetReps, totalSets]);
+  // replace so you can't swipe back into a finished set.
   const feedbackText = useMemo(() => {
     if (nativeCounting) return poseCue;
     return feedback[Math.floor(reps / 2) % feedback.length] ?? feedback[0];
@@ -210,6 +215,7 @@ export default function ActiveSessionScreen() {
         completedTotal: String(priorCompleted + reps),
       })}`,
     );
+  // early stop still carries totals. replace so active isn't behind complete.
   return (
     <Screen padded={false} scroll={false} style={styles.screen}>
       <View style={styles.top}>
@@ -234,6 +240,7 @@ export default function ActiveSessionScreen() {
           )
         ) : (
           <View style={styles.noCamera}>
+            {/* camera off / paused / backgrounded: no preview, just the muscle map. */}
             <View style={styles.noCameraMap}>
               <AnatomyMap
                 activations={exercise.muscleActivations}
@@ -296,6 +303,7 @@ export default function ActiveSessionScreen() {
           onPress={countRep}
           style={styles.count}
         >
+          {/* always available. native pose still records a manual tap as counted. */}
           <Plus color={colors.surface} size={28} />
           <Text style={styles.countText}>Count rep</Text>
         </Pressable>

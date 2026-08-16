@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { ApiError } from './errors.js';
 import type { SupabaseClientFactory } from './supabase-client.js';
 
+// owner profile/settings. nested patches merge; never replace the whole json blob blindly.
 export interface UserRepository {
   getProfile(userId: string, accessToken?: string): Promise<UserProfile>;
   patchProfile(userId: string, patch: UserProfilePatch, accessToken?: string): Promise<UserProfile>;
@@ -17,6 +18,7 @@ const defaultSettings = (): Settings => ({
   defaultRestDurationSeconds: 60,
 });
 
+// guest/test store. missing rows look like a fresh onboarding profile, not 404.
 export class MemoryUserRepository implements UserRepository {
   private readonly profiles = new Map<string, UserProfile>();
   private readonly settings = new Map<string, Settings>();
@@ -60,6 +62,7 @@ export class MemoryUserRepository implements UserRepository {
       ...(patch.accessibilityPreferences === undefined
         ? {}
         : {
+            // merge nested maps so a spoken-feedback patch does not wipe reduced-motion.
             accessibilityPreferences: {
               ...current.accessibilityPreferences,
               ...patch.accessibilityPreferences,
@@ -93,6 +96,7 @@ const dependencyError = (detail: string): ApiError =>
     detail,
   });
 
+// stamp the request jwt or hosted rls will hide the row even when userid is correct.
 export class SupabaseUserRepository implements UserRepository {
   constructor(
     private readonly client: SupabaseClient,
@@ -193,6 +197,7 @@ export class SupabaseUserRepository implements UserRepository {
     accessToken?: string,
   ): Promise<Settings> {
     const client = this.clientFactory?.(accessToken) ?? this.client;
+    // read-merge-write so a partial patch cannot clobber the other preference object.
     const current = await this.getSettings(userId, accessToken);
     const next = {
       ...current,

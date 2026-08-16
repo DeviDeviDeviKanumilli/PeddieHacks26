@@ -1,3 +1,4 @@
+// on-device port of the python analyzer. angles in, derived stats out — no landmarks stored.
 export type RangeOfMotionStats = {
   sampleCount: number;
   meanAngleDegrees: number;
@@ -24,11 +25,13 @@ export class RangeOfMotionTracker {
   }
 
   addAngle(angleDegrees: number | null): boolean {
+    // missing detection is common; skip instead of poisoning min/max.
     if (angleDegrees === null) return false;
     if (!isAngle(angleDegrees)) {
       throw new Error('angle_degrees must be between 0 and 180');
     }
     this.#sampleCount += 1;
+    // running mean so we don't keep every sample in memory.
     this.#meanAngle += (angleDegrees - this.#meanAngle) / this.#sampleCount;
     this.#minAngle =
       this.#minAngle === null ? angleDegrees : Math.min(this.#minAngle, angleDegrees);
@@ -60,6 +63,7 @@ export class RepCounter {
   readonly landmarkIndices: readonly [number, number, number];
   readonly targetAngleDegrees: number;
   readonly returnAngleDegrees: number;
+  // curl: target 40 is lower than return 160. extension recipes flip this.
   readonly #targetIsLower: boolean;
   #state: MoveState = MoveState.START;
   #repCount = 0;
@@ -103,6 +107,7 @@ export class RepCounter {
   }
 
   update(angleDegrees: number | null): boolean {
+    // hold state across dropped frames so a blink doesn't cancel a half-rep.
     if (angleDegrees === null) return false;
     if (!isAngle(angleDegrees)) {
       throw new Error('angle_degrees must be between 0 and 180');
@@ -115,6 +120,7 @@ export class RepCounter {
       : angleDegrees < this.returnAngleDegrees;
 
     if (this.#state === MoveState.START && targetReached) {
+      // peak first; counting happens on the way back so we don't double-count holds.
       this.#state = MoveState.TARGET_REACHED;
       return false;
     }
@@ -225,6 +231,7 @@ export class ExerciseSetTracker {
     }
     if (this.#phase === ExercisePhase.COMPLETE) return false;
     if (this.#phase === ExercisePhase.RESTING) {
+      // rest is a timer, not pose. don't count reps until it expires.
       if (this.#restEndsAtSeconds !== null && nowSeconds >= this.#restEndsAtSeconds) {
         this.#currentSet += 1;
         this.#repsInSet = 0;
@@ -241,6 +248,7 @@ export class ExerciseSetTracker {
     }
     this.#repsInSet = Math.min(
       this.repsPerSet,
+      // both limbs must finish; the lagging side is the official count.
       Math.min(...Object.values(this.limbCounters).map((counter) => counter.repCount)),
     );
     const repCompleted = this.#repsInSet > previousReps;
@@ -273,6 +281,7 @@ const completedCounts = (tracker: ExerciseSetTracker): readonly [number, number]
     return [tracker.totalSets, tracker.totalSets * tracker.repsPerSet];
   }
   if (tracker.phase === ExercisePhase.RESTING) {
+    // current set still names the set we just finished.
     return [tracker.currentSet, tracker.currentSet * tracker.repsPerSet];
   }
   return [
@@ -287,6 +296,7 @@ export const analyzeExercise = (
   exerciseTracker: ExerciseSetTracker,
   motionTrackers: Record<string, RangeOfMotionTracker>,
 ): ExerciseStats => {
+  // snapshot for the complete screen. still derived stats, never a pose dump.
   if (exerciseName.trim().length === 0) {
     throw new Error('exercise_name must be a non-empty string');
   }

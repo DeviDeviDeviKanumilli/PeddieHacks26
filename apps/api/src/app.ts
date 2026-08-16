@@ -1,3 +1,5 @@
+// composition root: pick adapters from env, keep handlers free of storage and scoring.
+// tests inject fakes here so we never need a live supabase or postgres.
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
@@ -75,6 +77,7 @@ export type AppOptions = {
 
 export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstance> => {
   const config = options.config ?? loadConfig();
+  // hosted rls only sees the caller if we stamp their jwt onto a request-scoped client.
   const hasSupabase = config.supabaseUrl !== undefined && config.supabaseAnonKey !== undefined;
   const supabaseFactory = hasSupabase
     ? createSupabaseClientFactory(config.supabaseUrl, config.supabaseAnonKey)
@@ -82,6 +85,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   const supabase = supabaseFactory?.();
   const prisma =
     config.databaseUrl === undefined ? undefined : createPrismaClient(config.databaseUrl);
+  // service role bypasses rls. keep it off request paths; account deletion is the exception.
   const serviceSupabase =
     hasSupabase && config.supabaseServiceRoleKey !== undefined
       ? createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
@@ -93,6 +97,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
         })
       : undefined;
   const memoryRepository = new MemoryCatalogRepository();
+  // prisma wins when database_url is set; otherwise supabase, then in-memory for local tests.
   const catalog =
     options.catalog ??
     (prisma !== undefined
@@ -121,6 +126,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
       : supabase === undefined
         ? new MemoryUserRepository()
         : new SupabaseUserRepository(supabase, supabaseFactory));
+  // session lifecycle rpcs still live in postgres; prisma reads, supabase writes those mutations.
   const sessions =
     options.sessions ??
     (prisma !== undefined && supabase !== undefined
@@ -128,6 +134,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
       : supabase === undefined
         ? new MemorySessionRepository(catalog)
         : new SupabaseSessionRepository(supabase, supabaseFactory));
+  // live supabase without a service key must fail closed rather than delete as the anon role.
   const accounts =
     options.accounts ??
     (serviceSupabase !== undefined
@@ -142,6 +149,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
       : supabase === undefined
         ? new MemoryReadinessCheck()
         : new SupabaseReadinessCheck(supabase));
+  // no supabase => every bearer is invalid. public catalog routes still skip requireuser.
   const authVerifier =
     options.authVerifier ??
     (supabase === undefined ? new RejectingAuthVerifier() : new SupabaseAuthVerifier(supabase));
@@ -155,6 +163,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
           ...(config.deploymentId === undefined ? {} : { deploymentId: config.deploymentId }),
         },
         redact: {
+          // tokens and emails must never show up in railway logs.
           paths: [
             'req.headers.authorization',
             'req.headers.cookie',
@@ -171,6 +180,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     logController: new LogController({ disableRequestLogging: true }),
     trustProxy: config.trustProxy,
     requestIdHeader: 'x-request-id',
+    // keep extra fields so we 400 on landmarks/media instead of silently stripping them.
     ajv: { customOptions: { removeAdditional: false } },
   });
   if (prisma !== undefined) {
@@ -184,6 +194,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     max: config.rateLimits.general,
     timeWindow: '1 minute',
     hook: 'preHandler',
+    // prefer userid so a nat-shared ip does not lock out signed-in people.
     keyGenerator: (request) => request.userId ?? request.ip,
     errorResponseBuilder: (_request, context) =>
       new ApiError({
@@ -222,6 +233,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   await app.register(swaggerUi, { routePrefix: '/docs' });
   app.decorateRequest('userId', null);
   app.decorateRequest('accessToken', null);
+  // verify a bearer if present; do not require auth globally or the public catalog breaks.
   app.addHook('onRequest', async (request) => authenticateRequest(request, authVerifier));
   app.addHook('onResponse', async (request, reply) => {
     request.log.info(
@@ -237,6 +249,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
   });
   registerErrorHandling(app);
 
+  // liveness only. do not ping postgres here or a slow db takes the process down.
   app.get(
     '/healthz',
     {
@@ -249,6 +262,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     async () => ({ data: { service: 'api' as const, status: 'ok' as const } }),
   );
 
+  // bounded catalog ping so orchestrators can mark us degraded without a query storm.
   app.get(
     '/readyz',
     { schema: { response: { 200: ReadyResponseSchema, 503: ReadyResponseSchema } } },
@@ -265,6 +279,7 @@ export const buildApp = async (options: AppOptions = {}): Promise<FastifyInstanc
     },
   );
 
+  // routes stay http glue. scoring, compatibility, and persistence live in domain/repos.
   await registerCatalogRoutes(app, { catalog, profiles, rateLimits: config.rateLimits });
   await registerProfileRoutes(app, { profiles });
   await registerUserRoutes(app, { users, accounts, rateLimits: config.rateLimits });

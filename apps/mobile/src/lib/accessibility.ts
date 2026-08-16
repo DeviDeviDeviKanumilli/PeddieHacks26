@@ -17,6 +17,7 @@ const hasPreference = (preference: AccessibilityPreference): boolean =>
   useAppStore.getState().profile.accessibility.includes(preference);
 
 export const selectionHaptic = async (): Promise<void> => {
+  // opt-in only. default onboarding should stay quiet.
   if (!hasPreference('Haptic feedback')) return;
   await Haptics.selectionAsync();
 };
@@ -34,6 +35,7 @@ export const notifyHaptic = async (type: 'success' | 'warning' | 'error'): Promi
 
 export const speakFeedback = (text: string): void => {
   if (!hasPreference('Spoken feedback') || text.trim().length === 0) return;
+  // stop first so overlapping cues don't stack during a set.
   Speech.stop();
   Speech.speak(text, { rate: 0.92 });
 };
@@ -52,7 +54,9 @@ export const useAccessibility = () => {
     spoken: enabled.has('Spoken feedback'),
     haptics: enabled.has('Haptic feedback'),
     oneHanded: enabled.has('One-handed controls'),
+    // modest bump; screens still own layout, this just scales type.
     textScale: enabled.has('Larger text') ? 1.18 : 1,
+    // bigger hit targets when one-handed or larger text is on.
     controlMinHeight: enabled.has('One-handed controls') || enabled.has('Larger text') ? 56 : 48,
     selectionHaptic,
     notifyHaptic,

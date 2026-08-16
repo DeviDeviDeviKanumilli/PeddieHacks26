@@ -20,6 +20,7 @@ export const muscleLabels: Record<MuscleRegionId, string> = {
   'ankles-feet': 'Ankles and feet',
 };
 
+// catalog labels, api snake_case, and casual synonyms all need to land on the same ids.
 const aliases: Record<string, MuscleRegionId[]> = {
   shoulders: ['shoulders'],
   delts: ['shoulders'],
@@ -72,6 +73,7 @@ export const muscleIdsForLabel = (value: string): MuscleRegionId[] => {
 export const inferMuscleActivations = (muscles: string[]): MuscleActivation[] => {
   const seen = new Set<MuscleRegionId>();
   return muscles.flatMap((muscle, index) => {
+    // list order is the guest heatmap's only signal; first muscle reads as primary.
     const role: MuscleRole = index === 0 ? 'primary' : index === 1 ? 'secondary' : 'stabilizer';
     const intensity = (index === 0 ? 4 : index === 1 ? 3 : 2) as 2 | 3 | 4;
     return muscleIdsForLabel(muscle).flatMap((id) => {
@@ -91,6 +93,7 @@ export const inferVisualKey = ({
   position: string;
   category: string;
 }): ExerciseVisualKey => {
+  // reuse four illustration families so new catalog rows don't need photos.
   if (slug.includes('row') || slug.includes('pull')) return 'seated-pull';
   if (slug.includes('wall') || position === 'standing') return 'wall-supported';
   if (
@@ -123,6 +126,7 @@ export const activationsFromLoad = (
   const highest = Math.max(0, ...Object.values(load));
   if (highest === 0) return [];
   return Object.entries(load).map(([id, value]) => {
+    // relative to the hottest region in this workout, not an absolute medical scale.
     const ratio = value / highest;
     const role: MuscleRole = ratio >= 0.72 ? 'primary' : ratio >= 0.4 ? 'secondary' : 'stabilizer';
     const intensity = Math.max(1, Math.min(5, Math.round(ratio * 5))) as 1 | 2 | 3 | 4 | 5;

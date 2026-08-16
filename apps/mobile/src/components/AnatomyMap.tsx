@@ -28,23 +28,22 @@ const inactiveFill = '#D5D5DB';
 const gutter = '#FCFBFD';
 
 /**
- * A connected standing figure. The body is assembled from overlapping anatomical
- * base pieces, then muscle contours are layered over it. This keeps the map readable
- * at small sizes without turning it into a jointed mannequin or a flat screenshot.
+ * overlapping body pieces + muscle contours. readable at small sizes without
+ * looking like a jointed mannequin. paths are viewbox 120-wide, then translated.
  */
 const bodyPieces = [
-  // Head and neck.
+  // head and neck.
   'M60 4 C50 4 43 12 43 22 C43 31 49 38 60 40 C71 38 77 31 77 22 C77 12 70 4 60 4Z',
   'M52 35 C54 41 55 45 51 49 L60 55 L69 49 C65 45 66 41 68 35 C65 38 63 39 60 40 C57 39 55 38 52 35Z',
-  // Torso and pelvis.
+  // torso and pelvis.
   'M48 44 C40 44 33 49 28 58 C31 70 35 88 37 105 C38 119 43 132 50 141 L60 148 L70 141 C77 132 82 119 83 105 C85 88 89 70 92 58 C87 49 80 44 72 44 L67 49 C65 53 55 53 53 49Z',
   'M42 119 C47 116 54 119 60 126 C66 119 73 116 78 119 C80 128 76 139 70 147 L60 154 L50 147 C44 139 40 128 42 119Z',
-  // Arms, including small hands.
+  // arms, including small hands.
   'M30 51 C23 54 19 61 18 72 L12 112 C11 119 14 124 19 125 C23 124 25 119 26 113 L33 81 C36 68 36 57 30 51Z',
   'M90 51 C97 54 101 61 102 72 L108 112 C109 119 106 124 101 125 C97 124 95 119 94 113 L87 81 C84 68 84 57 90 51Z',
   'M17 119 C12 120 9 124 10 129 L14 138 C16 142 20 142 21 138 L18 132 L22 137 C24 139 27 136 25 133 L21 126 C20 122 19 120 17 119Z',
   'M103 119 C108 120 111 124 110 129 L106 138 C104 142 100 142 99 138 L102 132 L98 137 C96 139 93 136 95 133 L99 126 C100 122 101 120 103 119Z',
-  // Legs and feet.
+  // legs and feet.
   'M44 141 C38 151 37 164 39 179 L42 215 C43 227 40 247 38 267 C37 275 42 280 49 281 L54 277 L55 248 L58 214 L60 154 C55 147 50 143 44 141Z',
   'M76 141 C82 151 83 164 81 179 L78 215 C77 227 80 247 82 267 C83 275 78 280 71 281 L66 277 L65 248 L62 214 L60 154 C65 147 70 143 76 141Z',
   'M39 265 C35 270 31 278 33 283 C38 287 48 287 55 283 L54 276 C49 279 44 277 39 273Z',
@@ -52,7 +51,7 @@ const bodyPieces = [
 ] as const;
 
 const frontShapes: Shape[] = [
-  // Shoulders and chest.
+  // shoulders and chest. traps here light up with upper-back load too.
   {
     id: 'traps',
     movementRegion: 'upper-back',
@@ -83,7 +82,7 @@ const frontShapes: Shape[] = [
     side: 'front',
     d: 'M75 51 C70 48 64 49 61 54 L61 70 C67 74 73 71 77 65Z',
   },
-  // Arms.
+  // arms. left/right share an id so one activation paints both sides.
   {
     id: 'biceps',
     movementRegion: 'arms',
@@ -108,7 +107,7 @@ const frontShapes: Shape[] = [
     side: 'front',
     d: 'M98 87 C93 84 86 87 86 94 L91 115 C94 121 100 118 102 112 L100 96Z',
   },
-  // Obliques and six-pack.
+  // obliques and six-pack. intensity is relative emphasis 1–5, not pain.
   {
     id: 'obliques',
     movementRegion: 'core',
@@ -157,7 +156,7 @@ const frontShapes: Shape[] = [
     side: 'front',
     d: 'M61 101 C64 99 68 99 71 101 L71 112 C68 115 64 115 61 112Z',
   },
-  // Hips and quads.
+  // hips and quads. quads map to knee regions for the onboarding cycle.
   {
     id: 'hip-flexors',
     movementRegion: 'hips',
@@ -233,7 +232,7 @@ const frontShapes: Shape[] = [
 ];
 
 const backShapes: Shape[] = [
-  // Upper and middle back.
+  // upper and middle back. lats also light traps/upper-back via highlight aliases.
   {
     id: 'traps',
     movementRegion: 'upper-back',
@@ -282,7 +281,7 @@ const backShapes: Shape[] = [
     side: 'back',
     d: 'M61 91 L72 99 L75 115 L61 119Z',
   },
-  // Rear arms.
+  // rear arms. same outlines as front — role color is what changes.
   {
     id: 'triceps',
     movementRegion: 'arms',
@@ -307,7 +306,7 @@ const backShapes: Shape[] = [
     side: 'back',
     d: 'M98 87 C93 84 86 87 86 94 L91 115 C94 121 100 118 102 112 L100 96Z',
   },
-  // Glutes and hamstrings.
+  // glutes and hamstrings. hamstrings share left-knee / right-knee with quads.
   {
     id: 'glutes',
     movementRegion: 'hips',
@@ -389,6 +388,7 @@ const muscleHighlightIds: Partial<Record<MuscleRegionId, MuscleRegionId[]>> = {
   lats: ['lats', 'upper-back'],
   obliques: ['obliques', 'core'],
 };
+// nearby shapes share a highlight so a single activation doesn't look like a hole.
 
 const movementColors: Record<RegionState, string> = {
   neutral: bodyFill,
@@ -440,6 +440,7 @@ export function AnatomyMap({
   showMuscleLabels?: boolean;
   showCanvas?: boolean;
 }) {
+  // two modes: movement states = onboarding cycle; activations = workout emphasis.
   const activationById = new Map(activations.map((activation) => [activation.id, activation]));
   const interactive = Boolean(movementStates && onMovementPress);
   const activationFor = (id: MuscleRegionId): MuscleActivation | undefined => {
@@ -454,6 +455,7 @@ export function AnatomyMap({
     const activation = activationFor(shape.id);
     return activation ? roleColors[activation.role] : inactiveFill;
   };
+  // movement mode wins. otherwise role color; idle fill is the gray silhouette.
   const opacityFor = (shape: Shape) => {
     if (movementStates) return 1;
     const activation = activationFor(shape.id);
@@ -501,6 +503,7 @@ export function AnatomyMap({
                       strokeWidth="1.7"
                     />
                   ))}
+                {/* path taps are bonus; bodymap list is the reliable control. */}
                 <SvgText fill={colors.muted} fontSize="10" textAnchor="middle" x="60" y="304">
                   {side === 'front' ? 'FRONT' : 'BACK'}
                 </SvgText>
@@ -548,6 +551,7 @@ export function AnatomyMap({
           ))}
         </View>
       ) : null}
+      {/* chips are the text equivalent of the svg — keep them when the canvas is hidden. */}
       {interactive ? (
         <View accessible style={styles.tapHint}>
           <Text style={styles.tapHintText}>
@@ -561,6 +565,7 @@ export function AnatomyMap({
 
 const LegendItem = ({ color, label }: { color: string; label: string }) => (
   <View style={styles.legendItem}>
+    {/* color + word. don't rely on hue alone. */}
     <View style={[styles.dot, { backgroundColor: color }]} />
     <Text style={styles.legendText}>{label}</Text>
   </View>

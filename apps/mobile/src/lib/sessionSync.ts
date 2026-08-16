@@ -10,6 +10,7 @@ export type LiveSessionContext = {
   remainingSessions: string;
 };
 
+// counted-only fallback when pose never ran. live mode must not invent rom or confidence.
 export const buildCountedRepMetrics = (
   completedReps: number,
   repsPerSet: number,
@@ -45,6 +46,7 @@ const parseRemainingSessions = (encoded: string) =>
       return { id, version: Number(version) };
     });
 
+// live path only. guest sessions stay on the local store and never hit these routes.
 export const startLiveSession = async (
   workoutId: string,
   exerciseId: string,
@@ -63,6 +65,7 @@ export const startLiveSession = async (
     workoutSessionVersion: workoutSession.version,
     exerciseSessionId: active.id,
     exerciseSessionVersion: active.version,
+    // pack sibling ids so finish can skip them without another list round-trip.
     remainingSessions: remainingFromChildren(children, selected.id),
   };
 };
@@ -127,10 +130,12 @@ export const completeLiveSession = async (input: {
   metrics?: RepMetric[];
   finishWorkout?: boolean;
 }): Promise<void> => {
+  // prefer on-device pose metrics when the native module produced them.
   const metrics =
     input.metrics !== undefined && input.metrics.length > 0
       ? input.metrics
       : buildCountedRepMetrics(input.completedReps, input.repsPerSet, input.elapsedSeconds);
+  // api caps a batch at 100 derived rows. never include media or landmarks.
   for (let index = 0; index < metrics.length; index += 100) {
     await mobileApi.ingestMetrics(input.context.exerciseSessionId, {
       batchId: Crypto.randomUUID(),

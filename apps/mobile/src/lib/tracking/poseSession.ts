@@ -8,11 +8,13 @@ type PoseSessionStore = {
   clearPoseSession: () => void;
 };
 
+// in-memory only. never persist landmarks, frames, or this list to disk.
 export const usePoseSession = create<PoseSessionStore>((set) => ({
   reps: [],
-  beginPoseSession: () => set({ reps: [] }),
+  beginPoseSession: () => set({ reps: [] }), // wipe derived reps only; nothing is on disk.
   recordPoseRep: (rep) =>
     set((state) => {
+      // native can emit the same rep twice; keep the first derived row.
       if (
         state.reps.some(
           (existing) =>

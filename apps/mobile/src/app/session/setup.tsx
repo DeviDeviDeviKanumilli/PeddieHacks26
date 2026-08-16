@@ -39,6 +39,7 @@ const REST_OPTIONS = [30, 45, 60, 90] as const;
 const PEEK = 16;
 const CARD_GAP = 10;
 
+// live workout ids are uuids. guest / local plans skip the sync path.
 type SetupPage = {
   key: string;
   item?: WorkoutItem;
@@ -46,6 +47,7 @@ type SetupPage = {
 };
 
 export default function SessionSetupScreen() {
+  // hub for the session flow. query params carry totals across exercises.
   const params = useLocalSearchParams<{
     exercise?: string;
     workout?: string;
@@ -83,6 +85,7 @@ export default function SessionSetupScreen() {
     params.tracking === '1' ||
       (params.tracking !== '0' && Boolean(starting?.exercise.trackingSupported)),
   );
+  // default on only if this move supports camera. tracking=0 wins if they already opted out.
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<FlatList<SetupPage>>(null);
@@ -101,6 +104,7 @@ export default function SessionSetupScreen() {
     }
     router.replace('/(tabs)/workout');
   };
+  // replace, not back — don't re-enter a half-finished session via history.
   const scrollToPage = (index: number) => {
     const next = Math.max(0, Math.min(pages.length - 1, index));
     listRef.current?.scrollToOffset({
@@ -156,6 +160,7 @@ export default function SessionSetupScreen() {
     });
     router.push(useCamera ? `/session/permission?${query}` : `/session/active?${query}`);
   };
+  // camera on → permission first. camera off skips straight to active.
   const begin = async (localOnly = false) => {
     const canSync =
       !localOnly &&
@@ -167,6 +172,7 @@ export default function SessionSetupScreen() {
       routeToSession();
       return;
     }
+    // guest / non-uuid workouts stay on-device. pose buffer always resets per exercise.
     setLoading(true);
     setError(null);
     try {
@@ -280,6 +286,7 @@ export default function SessionSetupScreen() {
             onPress={() => setTracking((value) => !value)}
             style={styles.cameraRow}
           >
+            {/* optional. off skips permission and never opens the camera. */}
             <Camera color={colors.lavenderDark} size={20} />
             <Text style={styles.cameraTitle}>Form feedback</Text>
             <View
@@ -325,6 +332,7 @@ export default function SessionSetupScreen() {
             Continue on this device
           </Button>
         ) : null}
+        {/* local-only skip: don't create a live session after a sync failure. */}
       </View>
     </Screen>
   );
@@ -339,6 +347,7 @@ const ExerciseSetupCard = ({
   values: { sets: number; reps: number; rest: number };
   onChange: (patch: { sets?: number; reps?: number; restSeconds?: number }) => void;
 }) => (
+  // plan items write through the store; solo sessions keep local state.
   <Card style={styles.exerciseCard}>
     <View style={styles.exerciseHeader}>
       <MovementMark category={exercise.category} size={36} />
@@ -400,6 +409,7 @@ const Counter = ({
   max: number;
   onChange: (value: number) => void;
 }) => (
+  // 44pt plus/minus. clamp here so the store never sees out-of-range sets/reps.
   <View style={styles.counter}>
     <Icon color={colors.lavenderDark} size={18} />
     <Text style={styles.counterLabel}>{label}</Text>
@@ -585,6 +595,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44,
   },
+  // 44pt plus/minus. rest chips match.
   counterValue: {
     color: colors.ink,
     fontFamily: typography.display,

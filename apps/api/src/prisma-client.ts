@@ -18,6 +18,7 @@ const setRequestContext = async (
   context: PrismaRoleContext,
 ): Promise<void> => {
   const userId = context.role === 'authenticated' ? context.userId : '';
+  // postgres rls reads these the same way supabase jwt claims do. skip them and policies see no user.
   await transaction.$executeRaw`select set_config('request.jwt.claim.sub', ${userId}, true)`;
   await transaction.$executeRaw`select set_config('request.jwt.claim.role', ${context.role}, true)`;
   await transaction.$executeRawUnsafe(`set local role ${context.role}`);
@@ -29,6 +30,7 @@ export const withPrismaContext = async <T>(
   callback: (transaction: PrismaTransaction) => Promise<T>,
 ): Promise<T> =>
   database.$transaction(async (transaction) => {
+    // local to this txn so the next request cannot inherit another user's role.
     await setRequestContext(transaction, context);
     return callback(transaction);
   });
@@ -38,6 +40,7 @@ export const withAnonymousPrismaContext = <T>(
   callback: (transaction: PrismaTransaction) => Promise<T>,
 ): Promise<T> => withPrismaContext(database, { role: 'anon' }, callback);
 
+// owner path. never pass the service role here or rls becomes a no-op.
 export const withUserPrismaContext = <T>(
   database: PrismaDatabase,
   userId: string,

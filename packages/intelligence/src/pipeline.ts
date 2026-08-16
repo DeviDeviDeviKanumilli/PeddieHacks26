@@ -1,3 +1,4 @@
+// one ingest path for a session. still isolated — product apps should not call this.
 import { MotionEventBus } from './bus.js';
 import { FeatureEngine } from './features.js';
 import { orchestrate } from './orchestrator.js';
@@ -13,6 +14,7 @@ import type {
   WorkoutItem,
 } from './types.js';
 
+// glue only. the app still should not import this.
 export class IsolatedPipeline {
   readonly bus = new MotionEventBus();
   private readonly features = new FeatureEngine();
@@ -28,14 +30,15 @@ export class IsolatedPipeline {
   }
 
   start(atMs: number): void {
+    // tracker stays idle until this. samples before start are ignored.
     this.tracker.start(atMs);
   }
 
   ingest(sample: AllowedPoseSample, phase: SessionPhase): ToolDecision[] {
-    if (!isAllowedPoseSample(sample)) return [];
+    if (!isAllowedPoseSample(sample)) return []; // bad shape or forbidden keys: drop, do not throw
     const feature = this.features.ingest(sample);
-    const backpressure = sample.atMs - this.lastAt < 8 && this.lastAt !== 0;
-    this.lastAt = sample.atMs;
+    const backpressure = sample.atMs - this.lastAt < 8 && this.lastAt !== 0; // drop extras if they come in hot
+    this.lastAt = sample.atMs; // still advance so a burst does not keep publishing after the first drop
     this.bus.publish(
       {
         type: 'feature_sample',
@@ -48,6 +51,7 @@ export class IsolatedPipeline {
     const lifecycle = this.tracker.ingest(feature);
     const issues = inspectMotion(this.recipe, feature);
     const decisions: ToolDecision[] = [];
+    // lifecycle first, then form issues. both go through the same tool gate.
     for (const event of [...lifecycle, ...issues]) {
       this.bus.publish(event);
       decisions.push(

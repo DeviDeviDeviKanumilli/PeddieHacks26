@@ -21,6 +21,8 @@ import type { Exercise } from '@/types';
 
 const categories = ['All', 'Strength', 'Mobility', 'Cardio', 'Balance'];
 
+// browse + pick. `add` / `replace` query params turn this into a workout picker.
+
 const CollectionRow = ({
   collection,
   count,
@@ -28,6 +30,7 @@ const CollectionRow = ({
   collection: ExerciseCollection;
   count: number;
 }) => (
+  // count is already profile-filtered. empty collections still open so people see why.
   <Pressable
     accessibilityHint="Opens this exercise collection"
     accessibilityLabel={`${collection.title}. ${count} exercises.`}
@@ -52,6 +55,7 @@ export default function ExploreScreen() {
   const [personalized, setPersonalized] = useState(true);
   const { add, replace } = useLocalSearchParams<{ add?: string; replace?: string }>();
   const picking = add === '1' || Boolean(replace);
+  // picker mode: hide collections and jump back into the review screen.
   const regions = useAppStore((state) => state.profile.regions);
   const catalog = useAppStore((state) => state.catalog);
   const mergeExercises = useAppStore((state) => state.mergeExercises);
@@ -65,6 +69,7 @@ export default function ExploreScreen() {
     enabled: mode === 'live' && hasApiConfig,
     staleTime: 5 * 60_000,
   });
+  // guest stays on the bundled catalog. live only merges reviewed api rows.
 
   useEffect(() => {
     if (!liveCatalog.data) return;
@@ -96,6 +101,7 @@ export default function ExploreScreen() {
 
   const pickExercise = (exercise: Exercise) => {
     if (replace) {
+      // swap keeps the same item id so session params still point at this slot.
       setRecommendedWorkout({
         ...workout,
         items: workout.items.map((item) =>
@@ -113,6 +119,7 @@ export default function ExploreScreen() {
     } else {
       addWorkoutExercise(exercise);
     }
+    // replace, not back: explore shouldn't sit under the review screen after a pick.
     router.replace(`/workout/${workout.id}`);
   };
 
@@ -120,6 +127,7 @@ export default function ExploreScreen() {
     setPersonalized(forMe);
     setCategory('All');
   };
+  // switching "for me" / "all" resets category so filters don't leak across tabs.
 
   return (
     <Screen style={styles.screen}>
@@ -130,6 +138,7 @@ export default function ExploreScreen() {
           onPress={() => router.replace(`/workout/${workout.id}`)}
           style={styles.back}
         >
+          {/* 44pt back; replace so we don't keep a picker copy of explore on the stack. */}
           <ArrowLeft color={colors.ink} size={22} />
         </Pressable>
       ) : null}

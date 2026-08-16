@@ -17,6 +17,8 @@ import type {
 import type { RateLimitConfig } from '../config.js';
 import { ApiError } from '../errors.js';
 
+// public catalog + one authenticated compatibility lookup. scoring stays in domain.
+
 const ExerciseListResponseSchema = Type.Object({
   data: Type.Array(ExerciseSummarySchema),
   page: PageSchema,
@@ -53,6 +55,7 @@ const boolQuery = (value: string | undefined): boolean | undefined => {
 
 const listFilters = (query: ExerciseListQuery): ExerciseListFilters => {
   const limit = Number.parseInt(query.limit ?? '20', 10);
+  // querystrings are strings; clamp here so the repo never sees a 10k page.
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
     throw new ApiError({
       statusCode: 400,
@@ -90,6 +93,7 @@ export const registerCatalogRoutes = async (
     readonly rateLimits: RateLimitConfig;
   },
 ): Promise<void> => {
+  // catalog is unauthenticated, so key by ip. user-keyed limits would let guests share a bucket.
   const publicCatalogLimit = {
     max: dependencies.rateLimits.catalog,
     timeWindow: '1 minute',
@@ -161,9 +165,11 @@ export const registerCatalogRoutes = async (
           detail: 'The requested exercise is not available.',
         });
       }
+      // jwt goes with the profile read so hosted rls sees the owner, not the anon key.
       const auth = requestAuth(request);
       const profile = await dependencies.profiles.getMovementProfile(auth.userId, auth.accessToken);
       const trackingRequired = boolQuery(request.query.trackingRequired);
+      // domain owns the rules. this handler only loads inputs and maps the result.
       const compatibility = evaluateCompatibility(candidate, profile, {
         ...(trackingRequired === undefined ? {} : { trackingRequired }),
       });

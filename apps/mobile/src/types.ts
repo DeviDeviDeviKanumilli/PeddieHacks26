@@ -1,5 +1,8 @@
+// guest-shaped types. live api payloads get mapped in adapters (exercises, profilesync).
+
 export type RegionState = 'neutral' | 'focus' | 'limited' | 'avoid';
 export type Compatibility = 'compatible' | 'caution' | 'incompatible';
+// guest = on-device store only. live = supabase auth + fastify, still no raw media.
 export type AppMode = 'guest' | 'live';
 export type MuscleRole = 'primary' | 'secondary' | 'stabilizer';
 export type MuscleRegionId =
@@ -20,6 +23,7 @@ export type MuscleRegionId =
   | 'hamstrings'
   | 'calves'
   | 'ankles-feet';
+// four illustration families so new catalog rows reuse art instead of shipping photos.
 export type ExerciseVisualKey =
   | 'seated-strength'
   | 'seated-pull'
@@ -61,6 +65,7 @@ export type Exercise = {
   adaptations: string[];
   compatibility: Compatibility;
   compatibilityReason: string;
+  // catalog flag: a recipe exists. does not mean the camera is running.
   trackingSupported: boolean;
 };
 
@@ -88,5 +93,6 @@ export type WorkoutHistory = {
   exercises: number;
   reps: number;
   averageScore: number | null;
+  // optional heatmap from on-device activations; never pose landmarks.
   muscleLoad?: Partial<Record<MuscleRegionId, number>>;
 };

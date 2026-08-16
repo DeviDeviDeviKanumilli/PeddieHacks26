@@ -21,6 +21,7 @@ import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function AnalysisScreen() {
+  // post-session numbers. live analysis if we have a session id; else on-device summary.
   const params = useLocalSearchParams<Record<string, string>>();
   const catalog = useAppStore((state) => state.catalog);
   const mode = useAppStore((state) => state.mode);
@@ -51,6 +52,7 @@ export default function AnalysisScreen() {
         onPress={() => router.replace('/(tabs)/workout')}
         style={styles.back}
       >
+        {/* replace out of the session stack. 44pt back. */}
         <ArrowLeft color={colors.ink} size={22} />
       </Pressable>
       <View style={styles.intro}>
@@ -102,6 +104,7 @@ export default function AnalysisScreen() {
                   : 'Turn on supported tracking to measure range.'
           }
         />
+        {/* guest sim never invents rom/control/stability. missing = not measured. */}
         <AnalysisCard
           icon={Gauge}
           label="Control"
@@ -156,6 +159,7 @@ export default function AnalysisScreen() {
       >
         Do this exercise again
       </Button>
+      {/* solo rematch — drops workout session ids so we don't resume a finished live row. */}
       <Button onPress={() => router.replace('/(tabs)/progress')}>View progress</Button>
     </Screen>
   );
@@ -172,6 +176,7 @@ const AnalysisCard = ({
   value: string;
   detail: string;
 }) => (
+  // "not measured" is honest. never invent a score from counted reps.
   <Card style={styles.analysisCard}>
     <View style={styles.cardIcon}>
       <Icon color={colors.lavenderDark} size={21} />

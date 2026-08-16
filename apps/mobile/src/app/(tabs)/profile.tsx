@@ -26,11 +26,13 @@ export default function ProfileScreen() {
   const clearLocalData = useAppStore((state) => state.clearLocalData);
   const editProfile = () => {
     reset();
+    // replace into the wizard so back from goals isn't this profile screen mid-reset.
     router.replace('/onboarding/goals');
   };
   const signOut = async () => {
     await getSupabaseClient()?.auth.signOut();
     clearLocalData();
+    // guest after sign-out; welcome is the only safe re-entry.
     router.replace('/onboarding/welcome');
   };
   const deleteAccount = () => {
@@ -79,6 +81,7 @@ export default function ProfileScreen() {
           <Text style={styles.email}>
             {mode === 'guest' ? 'Saved only on this device' : (accountEmail ?? 'Synced account')}
           </Text>
+          {/* guest never hits the api; live shows email once supabase session exists. */}
         </View>
       </Card>
       {mode === 'guest' ? (
@@ -113,6 +116,7 @@ export default function ProfileScreen() {
           Delete synced account
         </Button>
       ) : null}
+      {/* delete is live-only — guest has no server row to wipe. */}
     </Screen>
   );
 }
@@ -126,6 +130,7 @@ const ProfileRow = ({
   label: string;
   value: string;
 }) => (
+  // display-only for now. edit goes through the wizard, not these rows.
   <Pressable accessibilityRole="button" style={styles.row}>
     <View style={styles.rowIcon}>
       <Icon color={colors.lavenderDark} size={20} />

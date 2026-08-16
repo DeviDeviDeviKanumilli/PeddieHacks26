@@ -9,6 +9,7 @@ import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function WorkoutScreen() {
+  // same recommended workout as home. this tab is the "build / review" entry.
   const workout = useAppStore((state) => state.recommendedWorkout);
   const catalog = useAppStore((state) => state.catalog);
   const plannedExercises = workout.items.flatMap((item) => {
@@ -55,6 +56,7 @@ export default function WorkoutScreen() {
           onPress={() => router.push(`/workout/${workout.id}`)}
           style={styles.reviewButton}
         >
+          {/* review, not start — session/setup is the next hop from /workout/[id]. */}
           {workout.items.length === 0 ? 'No matching exercises yet' : 'Review recommendation'}
         </Button>
       </Card>
@@ -64,7 +66,9 @@ export default function WorkoutScreen() {
         <Button onPress={() => router.push('/(tabs)/explore')} variant="quiet">
           Browse exercises
         </Button>
+        {/* browse is the catalog, not picker mode — no add/replace query. */}
       </Card>
+      {/* empty recommendation still lets people assemble a session by hand. */}
     </Screen>
   );
 }

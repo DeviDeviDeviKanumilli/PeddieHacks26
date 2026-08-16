@@ -8,6 +8,7 @@ import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 export default function RestScreen() {
+  // between sets. auto-advances; skip is replace so rest isn't under the next set.
   const params = useLocalSearchParams<Record<string, string>>();
   const [remaining, setRemaining] = useState(Number(params.rest ?? 45));
   const catalog = useAppStore((state) => state.catalog);
@@ -25,6 +26,7 @@ export default function RestScreen() {
     const timer = setTimeout(() => setRemaining((value) => value - 1), 1000);
     return () => clearTimeout(timer);
   });
+  // no dep array on purpose — each tick reschedules. skip rest calls next() immediately.
   return (
     <Screen style={styles.screen}>
       <View style={styles.center}>
@@ -50,9 +52,11 @@ export default function RestScreen() {
       <Button icon={FastForward} onPress={next}>
         Skip rest
       </Button>
+      {/* skip still replace-routes so rest isn't sitting under the next set. */}
       <Button onPress={() => setRemaining(30)} variant="quiet">
         Set rest to 30 seconds
       </Button>
+      {/* clamp the timer in place; don't rewrite params.rest. */}
     </Screen>
   );
 }

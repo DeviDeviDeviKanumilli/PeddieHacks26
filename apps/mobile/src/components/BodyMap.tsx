@@ -18,6 +18,7 @@ const nextState = (state: RegionState): RegionState => {
   return 'neutral';
 };
 
+// onboarding map. list rows are the real a11y controls; svg taps are extra.
 export const BodyMap = ({
   regions,
   onChange,
@@ -26,10 +27,12 @@ export const BodyMap = ({
   onChange: (id: string, state: RegionState) => void;
 }) => {
   const cycle = (id: string) => onChange(id, nextState(regions[id] ?? 'neutral'));
+  // missing id = neutral. order is focus → limited → avoid → back to unconstrained.
   return (
     <View style={styles.wrap}>
       <AnatomyMap movementStates={regions} onMovementPress={cycle} />
       <View accessibilityLabel="Body region controls" style={styles.regionList}>
+        {/* labeled rows stay usable if the svg paths are hard to hit. ~52pt. */}
         {bodyRegions.map((region) => {
           const state = regions[region.id] ?? 'neutral';
           return (

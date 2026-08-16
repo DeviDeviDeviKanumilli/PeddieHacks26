@@ -6,8 +6,11 @@ import {
   muscleIdsForLabel,
 } from '@/lib/anatomy';
 
+// aliases keep catalog labels and api snake_case on the same region ids.
+
 describe('anatomy data adapters', () => {
   it('turns exercise muscle labels into stable reusable regions', () => {
+    // first listed muscle is treated as primary for the guest heatmap.
     expect(inferMuscleActivations(['Quadriceps', 'Glutes'])).toEqual([
       { id: 'quadriceps', role: 'primary', intensity: 4 },
       { id: 'glutes', role: 'secondary', intensity: 3 },
@@ -39,6 +42,7 @@ describe('anatomy data adapters', () => {
   });
 
   it('reuses movement-family art for future exercises', () => {
+    // four illustration families, no fetched exercise photos.
     expect(
       inferVisualKey({ slug: 'new-seated-row', position: 'seated', category: 'strength' }),
     ).toBe('seated-pull');

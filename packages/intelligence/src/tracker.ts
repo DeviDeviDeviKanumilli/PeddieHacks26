@@ -1,5 +1,6 @@
 import type { ExerciseRecipe, FeatureSample, MotionEvent, TrackerState } from './types.js';
 
+// this is just a state machine. it does not grade form.
 export class RepetitionTracker {
   state: TrackerState = 'idle';
   setIndex = 1;
@@ -16,9 +17,10 @@ export class RepetitionTracker {
 
   ingest(feature: FeatureSample): MotionEvent[] {
     if (this.state === 'idle' || this.state === 'exercise_complete' || this.state === 'rest') {
-      return [];
+      return []; // rest and done do not count samples
     }
     if (feature.confidence < this.recipe.confidenceGate) {
+      // stay in the same seek state so a later good sample can still finish the cycle
       return [
         {
           type: 'tracking_unavailable',
@@ -30,14 +32,14 @@ export class RepetitionTracker {
     }
     if (this.state === 'seeking_target' && feature.angleDeg >= this.recipe.targetAngleDeg) {
       this.state = 'seeking_return';
-      this.cycleStartedAt = feature.atMs;
+      this.cycleStartedAt = feature.atMs; // clock starts once they hit the top. this is not a rep yet.
       return [];
     }
     if (this.state === 'seeking_return' && feature.angleDeg <= this.recipe.returnAngleDeg) {
       const started = this.cycleStartedAt ?? feature.atMs;
       const duration = feature.atMs - started;
       if (duration < this.recipe.minCycleMs || duration > this.recipe.maxCycleMs) {
-        this.state = 'seeking_target';
+        this.state = 'seeking_target'; // too fast or too slow, just try again
         return [];
       }
       this.acceptedReps += 1;
@@ -70,7 +72,7 @@ export class RepetitionTracker {
           return events;
         }
         this.state = 'rest';
-        this.acceptedReps = 0;
+        this.acceptedReps = 0; // setIndex stays until endRest. do not bump it here or rest is skipped.
         events.push({
           type: 'rest_started',
           atMs: feature.atMs,
@@ -87,7 +89,7 @@ export class RepetitionTracker {
   }
 
   endRest(atMs: number): void {
-    if (this.state !== 'rest') return;
+    if (this.state !== 'rest') return; // ignore if they tap continue while still seeking
     this.setIndex += 1;
     this.cycleStartedAt = atMs;
     this.state = 'seeking_target';

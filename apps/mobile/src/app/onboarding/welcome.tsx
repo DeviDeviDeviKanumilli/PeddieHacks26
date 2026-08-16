@@ -10,6 +10,7 @@ export default function WelcomeScreen() {
   return (
     <Screen scroll={false}>
       <Brand />
+      {/* first-run pitch. guest is the default; sign-in is optional. */}
       <View style={styles.hero}>
         <Eyebrow>Movement, made yours</Eyebrow>
         <Title>Fitness that starts with what you can do.</Title>
@@ -24,10 +25,12 @@ export default function WelcomeScreen() {
           source={welcomeIllustration}
           style={styles.illustration}
         />
+        {/* bundled asset. not user media — we're allowed to ship illustrations. */}
       </View>
       <Button icon={ArrowRight} onPress={() => router.push('/onboarding/goals')}>
         Build my movement profile
       </Button>
+      {/* push is fine here — welcome is the stack root after index redirect. */}
       <Button onPress={() => router.push('/auth/sign-in')} variant="quiet">
         I already have an account
       </Button>

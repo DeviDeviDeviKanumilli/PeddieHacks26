@@ -9,6 +9,7 @@ import { getTrackingRecipe } from '@/lib/tracking/recipes';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function CameraSetupScreen() {
+  // framing preview only. nothing is recorded here.
   const params = useLocalSearchParams<Record<string, string>>();
   const appIsActive = useAppIsActive();
   const query = new URLSearchParams(params).toString();
@@ -32,6 +33,7 @@ export default function CameraSetupScreen() {
             <CameraView facing="front" mirror style={StyleSheet.absoluteFill} />
           )
         ) : null}
+        {/* drop the camera when backgrounded. expo go has no native pose, just preview. */}
         <View style={styles.guide}>
           <View style={styles.head} />
           <View style={styles.torso} />
@@ -50,6 +52,7 @@ export default function CameraSetupScreen() {
       <Button icon={Check} onPress={() => router.replace(`/session/active?${query}`)}>
         Framing looks good
       </Button>
+      {/* replace into active with the same query. skip tracking by flipping the flag. */}
       <Button
         icon={RotateCcw}
         onPress={() =>
@@ -59,6 +62,7 @@ export default function CameraSetupScreen() {
       >
         Continue without tracking
       </Button>
+      {/* same as permission skip: flip the flag so active doesn't open the camera. */}
     </Screen>
   );
 }

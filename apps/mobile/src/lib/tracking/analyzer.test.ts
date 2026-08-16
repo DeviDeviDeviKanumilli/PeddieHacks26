@@ -8,6 +8,8 @@ import {
 } from '@/lib/tracking/analyzer';
 import { createSetTracker, getCalibratedRecipe, getTrackingRecipe } from '@/lib/tracking/recipes';
 
+// on-device analyzer. angles in, derived stats out.
+
 describe('RangeOfMotionTracker', () => {
   it('calculates mean min max and range', () => {
     const tracker = new RangeOfMotionTracker();
@@ -23,6 +25,7 @@ describe('RangeOfMotionTracker', () => {
   });
 
   it('ignores missing detection', () => {
+    // dropped frames are common; don't poison min/max.
     const tracker = new RangeOfMotionTracker();
     tracker.addAngle(null);
     tracker.addAngle(45);
@@ -43,6 +46,7 @@ describe('RepCounter', () => {
   const makeCurl = () => new RepCounter([11, 13, 15], 40, 160);
 
   it('counts a decreasing then increasing elbow rep', () => {
+    // peak first, count on the return so holds don't double-count.
     const counter = makeCurl();
     expect(counter.update(180)).toBe(false);
     expect(counter.update(40)).toBe(false);
@@ -90,6 +94,7 @@ describe('ExerciseSetTracker', () => {
     );
 
   it('requires both limbs to complete a rep', () => {
+    // lagging side is the official count. one arm finishing is not a rep.
     const tracker = makeTracker(2);
     tracker.update({ left: 40, right: 40 }, 0);
     expect(tracker.moveState).toBe(MoveState.TARGET_REACHED);
@@ -129,12 +134,14 @@ describe('ExerciseSetTracker', () => {
 
 describe('tracking recipes', () => {
   it('marks seated biceps curl as the calibrated Android-first recipe', () => {
+    // other recipes exist as placeholders; don't treat them as accepted.
     expect(getCalibratedRecipe('seated-biceps-curl')?.key).toBe('seated-biceps-curl-v1');
     expect(getCalibratedRecipe('wall-push-up')).toBeUndefined();
     expect(getTrackingRecipe('wall-push-up')?.calibrated).toBe(false);
   });
 
   it('builds a one-set tracker for the active session screen', () => {
+    // rest lives in the rest route, so the tracker uses 0 rest seconds.
     const recipe = getCalibratedRecipe('seated-biceps-curl');
     expect(recipe).toBeDefined();
     if (recipe === undefined) return;

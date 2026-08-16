@@ -1,3 +1,4 @@
+// public surface. keep it small. product code should not import this package anyway.
 export {
   controlMinHeight,
   enabledChannels,

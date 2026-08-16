@@ -17,6 +17,7 @@ jest.mock('lucide-react-native', () => ({
 
 describe('ExerciseCard', () => {
   it('announces compatibility in words and opens the native detail route', async () => {
+    // default press opens the detail route. picker mode passes its own handler.
     const exercise = exercises[0];
     if (!exercise) throw new Error('The demo catalog must include an exercise.');
     const view = await render(<ExerciseCard exercise={exercise} />);
@@ -25,5 +26,6 @@ describe('ExerciseCard', () => {
     fireEvent.press(card);
 
     expect(router.push).toHaveBeenCalledWith('/exercise/seated-biceps-curl');
+    // lucide mocked so the card can render in jest without native svg.
   });
 });

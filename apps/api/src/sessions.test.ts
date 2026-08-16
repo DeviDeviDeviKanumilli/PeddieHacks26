@@ -35,6 +35,7 @@ const profile = {
   intensityPreference: 'standard',
 };
 
+// derived metrics only. if a landmark sneaks into the contract, the 400 test below should fail.
 describe('session, metrics, and progress routes', () => {
   let app: FastifyInstance | undefined;
 
@@ -126,6 +127,7 @@ describe('session, metrics, and progress routes', () => {
       headers,
       payload: batch,
     });
+    // same batchid must be a duplicate replay, not a second insert.
     const replay = await app.inject({
       method: 'POST',
       url: `/v1/exercise-sessions/${exerciseSessionId}/metrics`,
@@ -169,6 +171,7 @@ describe('session, metrics, and progress routes', () => {
   it('rejects raw pose fields and invalid progress ranges', async () => {
     app = await buildApp({ logger: false, authVerifier });
     const headers = { authorization: 'Bearer demo-token' };
+    // additionalproperties: false on the contract. landmarks must never persist.
     const rawMetric = await app.inject({
       method: 'POST',
       url: '/v1/exercise-sessions/00000000-0000-4000-8000-000000000099/metrics',

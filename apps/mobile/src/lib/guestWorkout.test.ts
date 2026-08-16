@@ -2,6 +2,8 @@ import { exercises } from '@/data/catalog';
 import { buildGuestWorkout, planFitReasons } from '@/lib/guestWorkout';
 import type { MovementProfile } from '@/types';
 
+// guest adapter: local ranking, no live generate-v1.
+
 const profile = (overrides: Partial<MovementProfile> = {}): MovementProfile => ({
   goals: ['Build strength'],
   regions: {},
@@ -13,6 +15,7 @@ const profile = (overrides: Partial<MovementProfile> = {}): MovementProfile => (
 });
 
 describe('buildGuestWorkout', () => {
+  // avoid is a hard filter, not a score penalty.
   it('removes knee-loading and standing exercises when those movements are avoided', () => {
     const workout = buildGuestWorkout(
       profile({ regions: { 'left-knee': 'avoid' }, capabilities: { standing: 'avoid' } }),
@@ -25,6 +28,7 @@ describe('buildGuestWorkout', () => {
   });
 
   it('does not recommend band or wall work when the user only selected none', () => {
+    // bands/walls are extra kit. chair still counts as everyday furniture.
     const workout = buildGuestWorkout(profile({ equipment: ['None'] }), exercises);
     const slugs = workout.items.map(({ exerciseSlug }) => exerciseSlug);
 
@@ -34,6 +38,7 @@ describe('buildGuestWorkout', () => {
   });
 
   it('still fills a four-exercise plan when only none is selected, using a chair as everyday furniture', () => {
+    // 'none' must not empty the guest plan.
     const workout = buildGuestWorkout(profile({ equipment: ['None'] }), exercises);
     const slugs = workout.items.map(({ exerciseSlug }) => exerciseSlug);
 
@@ -43,6 +48,7 @@ describe('buildGuestWorkout', () => {
 });
 
 describe('planFitReasons', () => {
+  // copy for the guest summary card, capped at three reasons.
   it('explains seated, no-jumping, and saved knee limits', () => {
     const workout = buildGuestWorkout(
       profile({ regions: { 'left-knee': 'avoid' }, capabilities: { standing: 'avoid' } }),

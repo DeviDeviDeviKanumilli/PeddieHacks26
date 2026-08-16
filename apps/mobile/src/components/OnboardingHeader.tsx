@@ -13,6 +13,7 @@ const previousStep: Record<number, Href> = {
   6: '/onboarding/accessibility',
 };
 
+// wizard chrome. replace (not back) so steps don't pile up on the stack.
 export const OnboardingHeader = ({ step, total = 6 }: { step: number; total?: number }) => (
   <View style={styles.wrap}>
     <AccessiblePressable
@@ -22,6 +23,7 @@ export const OnboardingHeader = ({ step, total = 6 }: { step: number; total?: nu
       onPress={() => router.replace(previousStep[step] ?? '/onboarding/welcome')}
       style={styles.back}
     >
+      {/* 44pt. missing map entry falls through to welcome. */}
       <ArrowLeft accessibilityElementsHidden color={colors.ink} size={21} />
     </AccessiblePressable>
     <View
@@ -30,6 +32,7 @@ export const OnboardingHeader = ({ step, total = 6 }: { step: number; total?: nu
       accessibilityValue={{ min: 0, max: total, now: step }}
       style={styles.progress}
     >
+      {/* visual fill is decorative; the progressbar label is the a11y source. */}
       <View style={[styles.fill, { width: `${Math.round((step / total) * 100)}%` }]} />
     </View>
     <Text accessibilityElementsHidden style={styles.count}>

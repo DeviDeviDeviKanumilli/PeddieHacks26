@@ -3,6 +3,8 @@ import { CURATED_EXERCISES, type ExerciseCandidate, type MovementProfile } from 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ApiError } from './errors.js';
 
+// public catalog + movement-profile interface. scoring does not live here.
+
 export interface ReferenceEntry {
   readonly id: string;
   readonly label: string;
@@ -53,6 +55,7 @@ export interface CatalogRepository {
 }
 
 export interface MovementProfileRepository {
+  // accesstoken is for rls on hosted supabase. memory/prisma adapters ignore it.
   getMovementProfile(userId: string, accessToken?: string): Promise<MovementProfile>;
   putMovementProfile(
     userId: string,
@@ -65,6 +68,7 @@ export interface MovementProfileRepository {
 const encodeCursor = (slug: string): string =>
   Buffer.from(JSON.stringify({ slug }), 'utf8').toString('base64url');
 
+// opaque on purpose so clients do not depend on slug-as-offset. garbage in => 400, not empty page.
 const decodeCursor = (cursor: string): string => {
   try {
     const value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
@@ -250,6 +254,7 @@ const referenceData: ReferenceData = {
   ].map((id, index) => ({ id, label: id.replaceAll('_', ' '), sortOrder: (index + 1) * 10 })),
 };
 
+// in-memory catalog for tests. also implements profiles so one fake covers guest mode.
 export class MemoryCatalogRepository implements CatalogRepository, MovementProfileRepository {
   private readonly candidates = CURATED_EXERCISES;
   private readonly profiles = new Map<string, MovementProfile>();
@@ -347,6 +352,7 @@ export class MemoryCatalogRepository implements CatalogRepository, MovementProfi
   }
 
   async getMovementProfile(userId: string): Promise<MovementProfile> {
+    // empty default so compatibility still runs before onboarding finishes.
     return (
       this.profiles.get(userId) ?? {
         version: 1,
@@ -365,6 +371,7 @@ export class MemoryCatalogRepository implements CatalogRepository, MovementProfi
     profile: Omit<MovementProfile, 'version'>,
   ): Promise<MovementProfile> {
     const current = await this.getMovementProfile(userId);
+    // same 409 as the sql rpc so clients do not need a memory-vs-hosted branch.
     if (current.version !== expectedVersion) {
       throw new ApiError({
         statusCode: 409,
@@ -477,6 +484,7 @@ const mapSupabaseDetail = (row: Row): ExerciseDetail => {
   };
 };
 
+// public tables, anon client is enough. do not stamp a user jwt here or we mix auth into catalog.
 export class SupabaseCatalogRepository implements CatalogRepository {
   constructor(private readonly client: SupabaseClient) {}
 
@@ -648,6 +656,7 @@ export class SupabaseCatalogRepository implements CatalogRepository {
         'id,slug,name,summary,category,position,difficulty,default_prescription,instructions,safety_cues,adaptations,content_version,exercise_tracking_profiles(tracking_key,version),exercise_body_demands(body_region_id,involvement,demand),exercise_capability_demands(capability_id,demand,required),exercise_equipment_options(equipment_id,mode,or_group),exercise_muscles(muscle_group_id,role,intensity),exercise_source_links(exercise_sources(title,publisher,url,publication_year))',
       )
       .eq('active', true);
+    // uuid vs slug: same public lookup the mobile client uses.
     const result = await (isUuid(idOrSlug)
       ? query.eq('id', idOrSlug)
       : query.eq('slug', idOrSlug)

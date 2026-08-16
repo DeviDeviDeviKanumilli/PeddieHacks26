@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+// cream + lavender product palette. keep hex here so screens don't invent one-off colors.
 export const colors = {
   canvas: '#F7F4F0',
   surface: '#FFFFFF',
@@ -20,6 +21,7 @@ export const colors = {
   black: '#11121A',
 } as const;
 
+// 4px grid. keep screens on these steps so density stays even.
 export const spacing = {
   xxs: 4,
   xs: 8,
@@ -30,6 +32,7 @@ export const spacing = {
   xxl: 48,
 } as const;
 
+// large radii match the cream cards; pill is for chips.
 export const radii = {
   sm: 12,
   md: 18,
@@ -37,6 +40,7 @@ export const radii = {
   pill: 999,
 } as const;
 
+// fonts load in the root layout. names must match the expo-google-fonts packages.
 export const typography = {
   display: 'Newsreader_600SemiBold',
   displayItalic: 'Newsreader_600SemiBold_Italic',
@@ -46,6 +50,7 @@ export const typography = {
   bold: 'DMSans_700Bold',
 } as const;
 
+// ios wants opacity shadows; android ignores those and uses elevation. default is web/tests.
 export const shadow = Platform.select({
   ios: {
     shadowColor: colors.ink,

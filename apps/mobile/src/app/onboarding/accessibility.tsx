@@ -14,12 +14,14 @@ export default function AccessibilityScreen() {
     const enabling = !selected.includes(item);
     const next = enabling ? [...selected, item] : selected.filter((value) => value !== item);
     setAccessibility(next);
+    // fire a sample so people know the preference actually hooked up.
     if (item === 'Haptic feedback' && enabling) void selectionHaptic();
     if (item === 'Spoken feedback' && enabling) speakFeedback('Spoken feedback on.');
   };
   return (
     <Screen>
       <OnboardingHeader step={5} />
+      {/* presentation only — these never filter the catalog. */}
       <View style={styles.intro}>
         <Eyebrow>Make it yours</Eyebrow>
         <Title compact>How should AdaptFit communicate?</Title>
@@ -41,6 +43,7 @@ export default function AccessibilityScreen() {
       <Button icon={ArrowRight} onPress={() => router.push('/onboarding/summary')}>
         Review my profile
       </Button>
+      {/* reduced motion is read in root layout to kill stack animation. */}
     </Screen>
   );
 }

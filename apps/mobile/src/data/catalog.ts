@@ -1,6 +1,7 @@
 import { inferMuscleActivations, inferVisualKey } from '@/lib/anatomy';
 import type { Exercise } from '@/types';
 
+// offline seed for guest mode. live merge overlays this by slug; don't persist the catalog.
 const base = {
   sets: 2,
   restSeconds: 45,
@@ -13,6 +14,7 @@ type CatalogExercise = Omit<Exercise, 'muscleActivations' | 'visualKey'>;
 const catalogExercises: CatalogExercise[] = [
   {
     ...base,
+    // ids match supabase/seed.sql so live lookups don't fork a second catalog.
     id: '00000000-0000-4000-8000-000000000001',
     slug: 'seated-biceps-curl',
     name: 'Seated biceps curl',
@@ -30,6 +32,7 @@ const catalogExercises: CatalogExercise[] = [
     ],
     safetyCues: ['Keep breathing.', 'Stop for sharp pain, dizziness, or new symptoms.'],
     adaptations: ['Use no load or a lighter object.', 'Work one arm at a time.'],
+    // first calibrated android recipe. expo go still falls back to the timer.
     trackingSupported: true,
   },
   {
@@ -101,6 +104,7 @@ const catalogExercises: CatalogExercise[] = [
     id: '00000000-0000-4000-8000-000000000005',
     slug: 'sit-to-stand',
     name: 'Supported sit-to-stand',
+    // discovery marks this incompatible when either knee is avoided.
     summary: 'Practice a functional rise using a stable chair.',
     category: 'strength',
     position: 'standing',
@@ -156,6 +160,7 @@ const catalogExercises: CatalogExercise[] = [
     instructions: ['Sit tall.', 'Reach gently to one side.', 'Return to center and change sides.'],
     safetyCues: ['Avoid collapsing through the trunk.', 'Keep the neck comfortable.'],
     adaptations: ['Keep one hand supported.', 'Use a smaller reach.'],
+    // no recipe yet. camera optional path still works without tracking.
     trackingSupported: false,
   },
   {
@@ -220,6 +225,7 @@ export const exercises: Exercise[] = catalogExercises.map((exercise) => ({
   visualKey: inferVisualKey(exercise),
 }));
 
+// onboarding chips. ids must stay aligned with profilesync region maps.
 export const bodyRegions = [
   { id: 'shoulders', label: 'Shoulders' },
   { id: 'arms', label: 'Arms' },
@@ -242,6 +248,7 @@ export const goals = [
 ] as const;
 
 export const equipment = [
+  // guest treats "none" as still having a chair. see the equipment helper.
   'None',
   'Stable chair',
   'Wall',

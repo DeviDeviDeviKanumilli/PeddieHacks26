@@ -7,6 +7,7 @@ import type { MovementProfileRepository } from '../catalog-repository.js';
 const MovementProfileResponseSchema = Type.Object({ data: MovementProfileSchema });
 type UpdateMovementProfileRequest = Static<typeof UpdateMovementProfileRequestSchema>;
 
+// owner-only movement profile. optimistic version lives on the body, not if-match.
 export const registerProfileRoutes = async (
   app: FastifyInstance,
   dependencies: { readonly profiles: MovementProfileRepository },
@@ -36,6 +37,7 @@ export const registerProfileRoutes = async (
     },
     async (request) => {
       const auth = requestAuth(request);
+      // repo replaces nested rows atomically; we just peel expectedversion off the contract.
       const { expectedVersion, ...profile } = request.body;
       return {
         data: await dependencies.profiles.putMovementProfile(

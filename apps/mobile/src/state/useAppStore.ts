@@ -13,6 +13,8 @@ import type {
   WorkoutItem,
 } from '@/types';
 
+// guest adapter: profile, plan, and history live on device until live mode is on.
+
 const defaultProfile: MovementProfile = {
   goals: [],
   regions: {},
@@ -63,6 +65,7 @@ export const useAppStore = create<AppStore>()(
       setAccountEmail: (accountEmail) => set({ accountEmail }),
       mergeExercises: (incoming) =>
         set((state) => {
+          // live catalog overlays the seed by slug so guest copy isn't wiped.
           const merged = new Map(state.catalog.map((exercise) => [exercise.slug, exercise]));
           for (const exercise of incoming) merged.set(exercise.slug, exercise);
           return { catalog: [...merged.values()] };
@@ -91,12 +94,14 @@ export const useAppStore = create<AppStore>()(
           const profile = { ...state.profile, onboardingComplete: true };
           return {
             profile,
+            // bake a local plan now so home isn't empty before live generate.
             recommendedWorkout: buildGuestWorkout(profile, state.catalog),
           };
         }),
       resetOnboarding: () => set({ profile: defaultProfile }),
       clearLocalData: () =>
         set({
+          // account delete / sign-out: drop local history, stay in guest.
           mode: 'guest',
           accountEmail: null,
           catalog: exercises,
@@ -142,6 +147,7 @@ export const useAppStore = create<AppStore>()(
               item.id === itemId
                 ? {
                     ...item,
+                    // clamp guest edits so a typo can't request 200 reps.
                     ...(patch.sets === undefined
                       ? {}
                       : { sets: Math.min(5, Math.max(1, patch.sets)) }),
@@ -158,6 +164,7 @@ export const useAppStore = create<AppStore>()(
         })),
       completeWorkout: (summary) =>
         set((state) => ({
+          // guest history: counts and duration only. no pose payloads.
           history: [
             {
               ...summary,
@@ -173,6 +180,7 @@ export const useAppStore = create<AppStore>()(
       version: 2,
       storage: createJSONStorage(() => Storage),
       partialize: (state) => ({
+        // catalog stays in the bundle so seed updates ship with the app.
         mode: state.mode,
         accountEmail: state.accountEmail,
         profile: state.profile,
@@ -187,6 +195,7 @@ export const useAppStore = create<AppStore>()(
         if (version >= 2) return state;
         return {
           ...state,
+          // v1 plans didn't follow the current avoid/equipment rules.
           recommendedWorkout: buildGuestWorkout(state.profile ?? defaultProfile, exercises),
         };
       },

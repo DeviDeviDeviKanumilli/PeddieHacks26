@@ -8,6 +8,7 @@ import type { MovementProfile, RegionState } from '@/types';
 
 type CapabilityState = 'unknown' | 'available' | 'limited' | 'avoid';
 
+// onboarding uses display ids; the api expects the reviewed reference slugs.
 const regionIds: Record<string, string> = {
   shoulders: 'shoulders',
   arms: 'upper_arms',
@@ -43,11 +44,13 @@ const goalIds: Record<string, string> = {
   'Improve mobility': 'mobility',
   'Increase endurance': 'cardio',
   'Improve balance': 'balance',
+  // these two collapse onto existing goal ids so we don't invent new references.
   'General fitness': 'strength',
   'Return to movement': 'mobility',
 };
 
 const capabilityState = (value: RegionState): CapabilityState => {
+  // api capabilities have no "focus"; treat it as available.
   if (value === 'focus') return 'available';
   if (value === 'neutral') return 'unknown';
   return value;
@@ -61,6 +64,7 @@ const remap = <T>(
   Object.fromEntries(
     Object.entries(values).flatMap(([key, value]) => {
       const target = ids[key];
+      // drop unknown keys rather than sending onboarding labels to the api.
       return target ? [[target, mapValue(value)]] : [];
     }),
   );
@@ -88,6 +92,7 @@ export const settingsPatch = (profile: MovementProfile): SettingsPatch => {
     feedbackPreferences: {
       spokenFeedback: selected.has('Spoken feedback'),
       hapticFeedback: selected.has('Haptic feedback'),
+      // visual is always on; we don't offer a "silent ui" toggle.
       visualFeedback: true,
     },
   };
@@ -96,6 +101,7 @@ export const settingsPatch = (profile: MovementProfile): SettingsPatch => {
 export const syncMovementProfile = async (
   profile: MovementProfile,
 ): Promise<ApiMovementProfile> => {
+  // read version first so put doesn't 409 against a profile written on another device.
   const current = await mobileApi.getMovementProfile();
   const updated = await mobileApi.putMovementProfile(
     movementProfileRequest(profile, current.version),

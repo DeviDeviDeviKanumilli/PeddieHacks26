@@ -1,7 +1,9 @@
+// compatibility-v1 cases. first curated row is seated biceps curl (upper_arms, curl-load or-group).
 import { describe, expect, it } from 'vitest';
 import { CURATED_EXERCISES, evaluateCompatibility } from './index.js';
 import type { MovementProfile } from './types.js';
 
+// full capability map so tests are about the one field they change, not missing keys.
 const allCapabilities = [
   'seated_posture',
   'standing',
@@ -34,13 +36,13 @@ const profile = (overrides: Partial<MovementProfile> = {}): MovementProfile => (
 const firstExercise = CURATED_EXERCISES.at(0);
 if (firstExercise === undefined) {
   throw new Error('The curated catalog must contain at least one exercise.');
-}
+} // fail the file, not each test, if someone empties the catalog.
 
 describe('exercise compatibility', () => {
   it('accepts an available exercise and its OR equipment group', () => {
     const result = evaluateCompatibility(
       firstExercise,
-      profile({ equipmentIds: ['resistance_band'] }),
+      profile({ equipmentIds: ['resistance_band'] }), // band only. dumbbells in the same or-group are not required.
     );
 
     expect(result.status).toBe('compatible');
@@ -50,7 +52,7 @@ describe('exercise compatibility', () => {
   it('hard-fails when a primary region is avoided', () => {
     const result = evaluateCompatibility(
       firstExercise,
-      profile({ bodyRegions: { upper_arms: 'avoid' } }),
+      profile({ bodyRegions: { upper_arms: 'avoid' } }), // primary + moderate demand. not the stabilizing warning path.
     );
 
     expect(result.status).toBe('incompatible');
@@ -60,7 +62,7 @@ describe('exercise compatibility', () => {
   it('returns caution for a limited moderate-demand region', () => {
     const result = evaluateCompatibility(
       firstExercise,
-      profile({ bodyRegions: { upper_arms: 'limited' } }),
+      profile({ bodyRegions: { upper_arms: 'limited' } }), // moderate demand => caution. high would conflict.
     );
 
     expect(result.status).toBe('caution');
@@ -68,6 +70,7 @@ describe('exercise compatibility', () => {
   });
 
   it('requires explicit confirmation for required capabilities', () => {
+    // spreading a partial capabilities object wipes the defaults. unknown is a conflict, not a skip.
     const result = evaluateCompatibility(
       firstExercise,
       profile({ capabilities: { seated_posture: 'available' } }),

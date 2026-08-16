@@ -18,6 +18,7 @@ export default function CollectionScreen() {
     () => discoverExercises({ catalog, regions, personalized: true, category: 'All', query: '' }),
     [catalog, regions],
   );
+  // already filtered to the profile — this isn't the full catalog dump.
   const exercises = collection ? exercisesInCollection(compatibleCatalog, collection) : [];
 
   return (
@@ -28,6 +29,7 @@ export default function CollectionScreen() {
         onPress={() => router.replace('/(tabs)/explore')}
         style={({ pressed }) => [styles.back, pressed && styles.pressed]}
       >
+        {/* replace to explore so collections don't stack. 44pt pill. */}
         <ChevronLeft color={colors.ink} size={22} />
         <Text style={styles.backText}>Explore</Text>
       </Pressable>
@@ -42,6 +44,7 @@ export default function CollectionScreen() {
           <Text accessibilityLiveRegion="polite" style={styles.count}>
             {exercises.length} exercise{exercises.length === 1 ? '' : 's'} selected for your profile
           </Text>
+          {/* live region so search/filter changes get announced. */}
           <View style={styles.list}>
             {exercises.map((exercise) => (
               <ExerciseCard exercise={exercise} key={exercise.slug} />
@@ -55,6 +58,7 @@ export default function CollectionScreen() {
           <Body muted>Return to Explore to choose another movement collection.</Body>
         </View>
       )}
+      {/* unknown id still renders chrome so back isn't a dead end. */}
     </Screen>
   );
 }

@@ -13,6 +13,7 @@ import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
+// optional supabase auth. guest still works if keys aren't in this build.
 export default function SignInScreen() {
   const [authMode, setAuthMode] = useState<AuthMode>('sign-in');
   const [email, setEmail] = useState('');
@@ -28,6 +29,7 @@ export default function SignInScreen() {
   const continueAsGuest = () => {
     void notifyHaptic('success');
     speakFeedback('Continuing as guest.');
+    // replace: don't leave auth under tabs. unfinished profiles resume at goals.
     router.replace(profileComplete ? '/(tabs)' : '/onboarding/goals');
   };
 
@@ -70,6 +72,7 @@ export default function SignInScreen() {
       speakFeedback(detail);
       return;
     }
+    // live mode flips in root layout from the auth listener. still no camera upload.
     void notifyHaptic('success');
     speakFeedback(signingUp ? 'Account created.' : 'Signed in.');
     router.replace(profileComplete ? '/(tabs)' : '/onboarding/goals');
@@ -89,6 +92,7 @@ export default function SignInScreen() {
             onPress={() => router.replace('/onboarding/welcome')}
             style={styles.back}
           >
+            {/* replace, not back — welcome is the known parent, avoids stacking auth. */}
             <ArrowLeft accessibilityElementsHidden color={colors.ink} size={22} />
           </AccessiblePressable>
           <Brand />
@@ -141,6 +145,7 @@ export default function SignInScreen() {
                   highContrast && styles.highContrastBorder,
                 ]}
               >
+                {/* 44pt tabs; one-handed bumps to 48. */}
                 <Text
                   style={[
                     styles.modeTabText,
@@ -271,6 +276,7 @@ export default function SignInScreen() {
           <Check accessibilityElementsHidden color={colors.success} size={16} strokeWidth={2.2} />
           <Text style={styles.privacyText}>Camera and pose stay on this device.</Text>
         </View>
+        {/* even after sign-in we never send media. live only gets derived metrics. */}
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -290,6 +296,7 @@ const AuthField = ({
 } & ComponentProps<typeof Field>) => {
   const [focused, setFocused] = useState(false);
   const { highContrast, textScale } = useAccessibility();
+  // local focus ring so the inner field can stay borderless.
   return (
     <View style={styles.fieldBlock}>
       <Text style={[styles.label, { fontSize: 13 * textScale }]}>{label}</Text>
@@ -335,6 +342,7 @@ const styles = StyleSheet.create({
     marginLeft: -10,
     width: 44,
   },
+  // 44pt back. negative margin lines it up with the brand.
   intro: { gap: spacing.xs },
   eyebrow: {
     color: colors.muted,

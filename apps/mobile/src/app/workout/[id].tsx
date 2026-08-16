@@ -8,6 +8,7 @@ import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 export default function WorkoutReviewScreen() {
+  // last stop before session/setup. swap/add bounce through explore picker mode.
   const workout = useAppStore((state) => state.recommendedWorkout);
   const catalog = useAppStore((state) => state.catalog);
   return (
@@ -18,6 +19,7 @@ export default function WorkoutReviewScreen() {
         onPress={() => router.replace('/(tabs)/workout')}
         style={styles.back}
       >
+        {/* replace to the tab so review doesn't linger under itself. 44pt target. */}
         <ArrowLeft color={colors.ink} size={22} />
       </AccessiblePressable>
       <View style={styles.intro}>
@@ -64,6 +66,7 @@ export default function WorkoutReviewScreen() {
                 >
                   Swap exercise
                 </Button>
+                {/* replace=item.id puts explore in picker mode. */}
               </Card>
             </View>
           );
@@ -80,6 +83,7 @@ export default function WorkoutReviewScreen() {
       <Button icon={Plus} onPress={() => router.push('/(tabs)/explore?add=1')} variant="secondary">
         Add exercise
       </Button>
+      {/* add=1 is picker mode without a slot to overwrite. */}
       <Button
         disabled={workout.items.length === 0}
         icon={Play}
@@ -93,6 +97,7 @@ export default function WorkoutReviewScreen() {
               exercise: first.exerciseSlug,
             })}`,
           );
+          // session flow starts here: setup → (permission) → active → rest → complete.
         }}
       >
         {workout.items.length === 0 ? 'Adjust profile first' : 'Start workout'}

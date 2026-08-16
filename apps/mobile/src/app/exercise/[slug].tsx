@@ -14,6 +14,7 @@ import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 type Tab = 'overview' | 'how-to' | 'muscles';
 
+// catalog card + optional live detail overlay. from=workout changes how we leave.
 export default function ExerciseDetailScreen() {
   const {
     slug,
@@ -36,6 +37,7 @@ export default function ExerciseDetailScreen() {
   const catalog = useAppStore((state) => state.catalog);
   const leave = () =>
     router.replace(from === 'workout' ? `/workout/${workout.id}` : '/(tabs)/explore');
+  // replace, not back — keeps the session/review stack from growing through explore.
   const fallback = catalog.find((item) => item.slug === slug);
   const mode = useAppStore((state) => state.mode);
   const liveDetail = useQuery({
@@ -43,6 +45,7 @@ export default function ExerciseDetailScreen() {
     queryFn: () => mobileApi.getExercise(slug),
     enabled: Boolean(slug && mode === 'live' && hasApiConfig),
   });
+  // guest uses bundled copy; live hydrates sources/instructions when the api is up.
   const exercise = liveDetail.data ? exerciseFromApi(liveDetail.data, fallback) : fallback;
   if (!exercise)
     return (
@@ -85,6 +88,7 @@ export default function ExerciseDetailScreen() {
             <Text style={styles.trackingText}>
               {exercise.trackingSupported ? 'Camera tracking optional' : 'Manual tracking'}
             </Text>
+            {/* camera is always optional. unsupported moves skip permission entirely. */}
           </View>
         </View>
       </View>
@@ -219,12 +223,14 @@ export default function ExerciseDetailScreen() {
       <Button icon={Play} onPress={() => router.push(`/session/setup?exercise=${exercise.slug}`)}>
         Set up exercise
       </Button>
+      {/* solo session — no workout id, so setup won't try to start a live workout. */}
     </Screen>
   );
 }
 
 const Bullet = ({ text }: { text: string }) => (
   <View style={styles.bullet}>
+    {/* check mark is decorative; the body text is what gets read. */}
     <Check color={colors.lavenderDark} size={18} />
     <Body>{text}</Body>
   </View>

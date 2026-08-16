@@ -16,6 +16,7 @@ export type TrackingRecipe = {
   limbs: readonly TrackingLimb[];
 };
 
+// mediapipe pose: 11-13-15 left elbow, 12-14-16 right elbow.
 const curlLimbs = (
   targetAngleDegrees: number,
   returnAngleDegrees: number,
@@ -34,6 +35,7 @@ const curlLimbs = (
   },
 ];
 
+// 23-25-27 left hip/knee, 24-26-28 right. used for marches and sit-to-stand.
 const hipLimbs = (
   targetAngleDegrees: number,
   returnAngleDegrees: number,
@@ -53,6 +55,7 @@ const hipLimbs = (
 ];
 
 const TRACKING_RECIPES: Record<string, TrackingRecipe> = {
+  // android-first calibrated recipe. do not treat the others as accepted yet.
   'seated-biceps-curl': {
     key: 'seated-biceps-curl-v1',
     slug: 'seated-biceps-curl',
@@ -75,6 +78,7 @@ const TRACKING_RECIPES: Record<string, TrackingRecipe> = {
     key: 'seated-knee-extension-v1',
     slug: 'seated-knee-extension',
     calibrated: false,
+    // target is the straighter knee; return is the seated flex.
     limbs: hipLimbs(160, 70),
   },
   'sit-to-stand': {
@@ -111,6 +115,7 @@ export const createSetTracker = (
       limb.returnAngleDegrees,
     );
   }
+  // session screen tracks one set at a time; rest lives in the rest route.
   return new ExerciseSetTracker(limbCounters, 1, repsPerSet, 0);
 };
 
@@ -122,6 +127,7 @@ export const recipeLandmarkProps = (
 } => {
   const left = recipe.limbs.find((limb) => limb.name === 'left');
   const right = recipe.limbs.find((limb) => limb.name === 'right');
+  // curl joints if a recipe is missing a side. never send a full pose skeleton.
   return {
     leftLandmarks: left?.landmarkIndices ?? [11, 13, 15],
     rightLandmarks: right?.landmarkIndices ?? [12, 14, 16],

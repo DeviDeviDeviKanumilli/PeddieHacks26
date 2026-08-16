@@ -20,6 +20,7 @@ import type {
 import { mobileConfig } from '@/lib/config';
 import { getSupabaseClient } from '@/lib/supabase';
 
+// live mode talks to fastify. we never query supabase tables from the client.
 type DataEnvelope<T> = { data: T };
 type ExercisePage = {
   data: ExerciseSummary[];
@@ -57,6 +58,7 @@ export class MobileApiError extends Error {
 
 const bearerToken = async (): Promise<string | null> => {
   const supabase = getSupabaseClient();
+  // guest mode has no client. don't send a fake bearer.
   if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
@@ -75,12 +77,14 @@ const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
   const headers = new Headers(init.headers);
   headers.set('accept', 'application/json');
   if (init.body) headers.set('content-type', 'application/json');
+  // supabase access token only. never a service-role key.
   if (token) headers.set('authorization', `Bearer ${token}`);
 
   let response: Response;
   try {
     response = await fetch(`${mobileConfig.apiBaseUrl}${path}`, { ...init, headers });
   } catch {
+    // keep guest usable when the phone is offline or the api isn't running.
     throw new MobileApiError(
       'AdaptFit could not reach the backend. Your on-device experience is still available.',
       0,
@@ -101,6 +105,7 @@ const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
     throw new MobileApiError(problem.detail, response.status, problem.code, problem.requestId);
   }
 
+  // account delete returns 204. don't try to parse a body.
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 };
@@ -140,6 +145,7 @@ export const mobileApi = {
     });
     return response.data;
   },
+  // live generation. guest plans use the local builder instead.
   generateWorkout: async (
     input: GenerateWorkoutRequest,
   ): Promise<GenerateWorkoutResponse['data']> => {
@@ -165,6 +171,7 @@ export const mobileApi = {
     return response.data;
   },
   deleteAccount: async (): Promise<void> => request<void>('/v1/users/me', { method: 'DELETE' }),
+  // session lifecycle uses expected version; stale patches 409 instead of clobbering.
   createWorkoutSession: async (input: CreateWorkoutSessionRequest): Promise<WorkoutSession> => {
     const response = await request<DataEnvelope<WorkoutSession>>(
       '/v1/workout-sessions',
@@ -188,6 +195,7 @@ export const mobileApi = {
     );
     return response.data;
   },
+  // derived metrics only. raw video, images, audio, and landmarks are rejected server-side.
   ingestMetrics: async (
     exerciseSessionId: string,
     input: MetricBatchRequest,

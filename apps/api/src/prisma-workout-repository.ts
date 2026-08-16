@@ -15,6 +15,8 @@ import type {
   WorkoutRepository,
 } from './workout-repository.js';
 
+// owner workouts through postgres rls. accesstoken is unused because claims are set in-txn.
+
 const dependencyError = (detail: string): ApiError =>
   new ApiError({
     statusCode: 503,
@@ -128,6 +130,7 @@ export class PrismaWorkoutRepository implements WorkoutRepository {
     userId: string,
     workoutId: string,
   ): Promise<Workout | null> {
+    // rls is the real owner check; user_id here is defense in depth.
     const row = await database.workouts.findFirst({
       where: { id: workoutId, user_id: userId, status: { not: 'archived' } },
       include: {
@@ -151,6 +154,7 @@ export class PrismaWorkoutRepository implements WorkoutRepository {
       select: { id: true, request_hash: true },
     });
     if (existing === null) return null;
+    // unique (user, client_request_id) is the retry key. hash mismatch is not a retry.
     if (existing.request_hash !== requestHash) {
       throw conflict(
         'The client request ID was already used with different content.',
@@ -217,6 +221,7 @@ export class PrismaWorkoutRepository implements WorkoutRepository {
       });
     } catch (error) {
       if (error instanceof ApiError) throw error;
+      // race with another insert of the same clientrequestid.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw conflict(
           'The client request ID was already used with different content.',

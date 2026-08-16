@@ -4,6 +4,8 @@ import type { MovementProfileRepository } from './catalog-repository.js';
 import { ApiError } from './errors.js';
 import type { SupabaseClientFactory } from './supabase-client.js';
 
+// owner-scoped profile. always build a client from the request jwt so rls sees auth.uid().
+
 type Row = Record<string, unknown>;
 const rowRecord = (value: unknown): Row =>
   typeof value === 'object' && value !== null ? (value as Row) : {};
@@ -39,6 +41,7 @@ export class SupabaseMovementProfileRepository implements MovementProfileReposit
   ) {}
 
   async getMovementProfile(userId: string, accessToken?: string): Promise<MovementProfile> {
+    // without the factory we fall back to the anon client, which rls will treat as public.
     const client = this.clientFactory?.(accessToken) ?? this.client;
     const [movementProfile, profile, bodyRegions, capabilities, equipment, goals] =
       await Promise.all([
@@ -89,6 +92,7 @@ export class SupabaseMovementProfileRepository implements MovementProfileReposit
     accessToken?: string,
   ): Promise<MovementProfile> {
     const client = this.clientFactory?.(accessToken) ?? this.client;
+    // replace_movement_profile is the atomic write; do not delete/insert child rows from here.
     const result = await client.rpc('replace_movement_profile', {
       p_user_id: userId,
       p_expected_version: expectedVersion,
@@ -108,6 +112,7 @@ export class SupabaseMovementProfileRepository implements MovementProfileReposit
           detail: 'The movement profile changed since it was loaded.',
         });
       }
+      // rpc enforces owner even if we passed the wrong userid. keep that as 403, not 503.
       if (message.includes('not owner')) {
         throw new ApiError({
           statusCode: 403,

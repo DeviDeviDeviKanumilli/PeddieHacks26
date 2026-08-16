@@ -22,6 +22,8 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { useAppStore } from '@/state/useAppStore';
 import { colors } from '@/theme/tokens';
 
+// root shell. fonts, guest vs live, and a stack that refuses swipe-back.
+// hold the native splash until fonts are in, otherwise the first frame flashes system type.
 void SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient({
@@ -49,6 +51,7 @@ export default function RootLayout() {
     hideExpoDevMenuFab();
   }, []);
 
+  // guest vs live is just "do we have a supabase session". no session = stay local.
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -62,6 +65,7 @@ export default function RootLayout() {
       useAppStore.getState().setMode(session ? 'live' : 'guest');
       useAppStore.getState().setAccountEmail(session?.user.email ?? null);
     });
+    // pause token refresh in background so we aren't burning radio for a workout app.
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') supabase.auth.startAutoRefresh();
       else supabase.auth.stopAutoRefresh();
@@ -72,6 +76,7 @@ export default function RootLayout() {
     };
   }, []);
 
+  // fonts are a hard gate — returning null keeps splash up instead of a broken layout.
   if (!loaded) return null;
 
   return (
@@ -83,6 +88,7 @@ export default function RootLayout() {
             screenOptions={{
               animation: reducedMotion ? 'none' : 'slide_from_right',
               contentStyle: { backgroundColor: colors.canvas },
+              // swipe-back would dump people out of onboarding/session mid-flow.
               gestureEnabled: false,
               headerShown: false,
             }}

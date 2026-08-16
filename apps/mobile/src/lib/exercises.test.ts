@@ -1,6 +1,9 @@
 import type { ExerciseDetail } from '@peddie/contracts';
 import { exerciseFromApi } from '@/lib/exercises';
 
+// contract -> guest-shaped exercise the ui already understands.
+
+// fixture matches the public contract, not a pose payload.
 const detail: ExerciseDetail = {
   id: '00000000-0000-4000-8000-000000000001',
   slug: 'seated-band-row',
@@ -32,6 +35,7 @@ const detail: ExerciseDetail = {
 
 describe('exerciseFromApi', () => {
   it('maps the public contract into native display data', () => {
+    // visual key inferred from slug so we don't ship photos.
     expect(exerciseFromApi(detail)).toMatchObject({
       slug: 'seated-band-row',
       sets: 3,

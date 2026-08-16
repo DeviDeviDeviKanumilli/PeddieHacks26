@@ -14,6 +14,7 @@ export type ExerciseCollection = {
 const hasMuscle = (exercise: Exercise, names: readonly string[]) =>
   exercise.muscles.some((muscle) => names.some((name) => muscle.toLowerCase().includes(name)));
 
+// views over the catalog, not a second list to keep in sync.
 export const exerciseCollections: readonly ExerciseCollection[] = [
   {
     id: 'upper-body',
@@ -29,6 +30,7 @@ export const exerciseCollections: readonly ExerciseCollection[] = [
     title: 'Lower body',
     description: 'Hips, legs, ankles, and supported standing movement.',
     mark: 'strength',
+    // cardio tone so the chip doesn't look identical to upper body.
     tone: 'cardio',
     matches: (exercise) =>
       hasMuscle(exercise, ['quadriceps', 'glutes', 'calves', 'ankles', 'hip flexor']),
@@ -47,10 +49,12 @@ export const exerciseCollections: readonly ExerciseCollection[] = [
     description: 'Exercises designed around a stable seated base.',
     mark: 'mobility',
     tone: 'mobility',
+    // position is the source of truth; don't infer from equipment.
     matches: (exercise) => exercise.position === 'seated',
   },
 ] as const;
 
+// unknown ids return undefined so the collection screen can 404.
 export const getExerciseCollection = (id: string | undefined) =>
   exerciseCollections.find((collection) => collection.id === id);
 

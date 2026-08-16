@@ -10,6 +10,7 @@ import { requestAuth, requireUser } from '../auth.js';
 import type { RateLimitConfig } from '../config.js';
 import type { UserRepository } from '../user-repository.js';
 
+// /me and settings. nested patches merge in the repo; deletion uses the service-role adapter.
 export const registerUserRoutes = async (
   app: FastifyInstance,
   dependencies: {
@@ -26,6 +27,7 @@ export const registerUserRoutes = async (
     },
     async (request) => {
       const auth = requestAuth(request);
+      // jwt still goes to the repo even though userid is in the path-less /me url.
       return { data: await dependencies.users.getProfile(auth.userId, auth.accessToken) };
     },
   );
@@ -61,6 +63,7 @@ export const registerUserRoutes = async (
       preHandler: requireUser,
     },
     async (request, reply) => {
+      // do not pass the user jwt. admin delete needs the service role and is retry-safe on 404.
       await dependencies.accounts.deleteAccount(requestAuth(request).userId);
       return reply.status(204).send();
     },
@@ -90,6 +93,7 @@ export const registerUserRoutes = async (
     async (request) => {
       const auth = requestAuth(request);
       const body = request.body as import('@peddie/contracts').SettingsPatch;
+      // pass the jwt so rls still evaluates the owner on hosted supabase.
       return {
         data: await dependencies.users.patchSettings(auth.userId, body, auth.accessToken),
       };

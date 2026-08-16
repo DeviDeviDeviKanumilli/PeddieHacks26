@@ -6,6 +6,8 @@ import {
 } from '@/lib/sessionFlow';
 import type { Workout } from '@/types';
 
+// expo-router query strings. junk values must not skip the first item.
+
 const workout: Workout = {
   id: 'guest-workout-1',
   title: 'Your focused movement',
@@ -31,6 +33,7 @@ const workout: Workout = {
 
 describe('sessionFlow', () => {
   it('parses item indexes without dropping later exercises', () => {
+    // negatives and undefined fall back to 0 so rest/complete still work.
     expect(parseNonNegativeInt(undefined)).toBe(0);
     expect(parseNonNegativeInt('1')).toBe(1);
     expect(parseNonNegativeInt('-4', 0)).toBe(0);
@@ -46,6 +49,7 @@ describe('sessionFlow', () => {
   });
 
   it('omits empty session query values so later screens keep a clean route', () => {
+    // leftover empty keys leak into camera-setup and look like live session ids.
     expect(
       compactSearchParams({
         workout: 'guest-workout-1',

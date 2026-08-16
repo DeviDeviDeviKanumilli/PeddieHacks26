@@ -13,6 +13,8 @@ import { ApiError } from './errors.js';
 import type { Prisma, PrismaClient } from './generated/prisma/client.js';
 import { withAnonymousPrismaContext } from './prisma-client.js';
 
+// public catalog through postgres rls as anon. no user jwt needed.
+
 const dependencyError = (detail: string): ApiError =>
   new ApiError({
     statusCode: 503,
@@ -167,6 +169,7 @@ export class PrismaCatalogRepository implements CatalogRepository {
 
   async getReferenceData(): Promise<ReferenceData> {
     try {
+      // anon role: catalog is public. using authenticated here would still work but hides intent.
       return await withAnonymousPrismaContext(this.database, async (database) => {
         const [bodyRegions, capabilities, equipment, goals, muscleGroups] = await Promise.all([
           database.body_regions.findMany({
@@ -240,6 +243,7 @@ export class PrismaCatalogRepository implements CatalogRepository {
 
   async listExercises(filters: ExerciseListFilters): Promise<ExercisePage> {
     try {
+      // filter in sql where we can; cursor still uses slug so it matches the memory adapter.
       return await withAnonymousPrismaContext(this.database, async (database) => {
         const where: Prisma.exercisesWhereInput = { active: true };
         if (filters.category !== undefined) where.category = filters.category;

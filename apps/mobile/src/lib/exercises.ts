@@ -8,6 +8,7 @@ const humanize = (value: string): string =>
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');
 
+// map public contract rows onto the guest-shaped exercise the ui already understands.
 export const exerciseFromApi = (detail: ExerciseDetail, fallback?: Exercise): Exercise => ({
   id: detail.id,
   slug: detail.slug,
@@ -17,6 +18,7 @@ export const exerciseFromApi = (detail: ExerciseDetail, fallback?: Exercise): Ex
   position: detail.position,
   difficulty: detail.difficulty,
   sets: detail.defaultPrescription.sets,
+  // timed holds can omit reps; keep a local default so guest math still works.
   reps: detail.defaultPrescription.reps ?? fallback?.reps ?? 1,
   restSeconds: detail.defaultPrescription.restSeconds,
   muscles: detail.muscles.map(({ muscleGroupId }) => humanize(muscleGroupId)),
@@ -24,6 +26,7 @@ export const exerciseFromApi = (detail: ExerciseDetail, fallback?: Exercise): Ex
     muscleIdsForLabel(muscleGroupId).map((id) => ({
       id,
       role,
+      // heatmap only knows 1–5; clamp so a future contract bump doesn't break types.
       intensity: Math.max(1, Math.min(5, intensity)) as MuscleActivation['intensity'],
     })),
   ),
@@ -35,6 +38,7 @@ export const exerciseFromApi = (detail: ExerciseDetail, fallback?: Exercise): Ex
   instructions: detail.instructions,
   safetyCues: detail.safetyCues,
   adaptations: detail.adaptations,
+  // live list endpoints don't score compatibility; keep the local overlay if we have one.
   compatibility: fallback?.compatibility ?? 'compatible',
   compatibilityReason:
     fallback?.compatibilityReason ?? 'Available in the reviewed AdaptFit exercise catalog.',
@@ -55,6 +59,7 @@ export const exerciseSummaryFromApi = (
   sets: summary.defaultPrescription.sets,
   reps: summary.defaultPrescription.reps ?? fallback?.reps ?? 1,
   restSeconds: summary.defaultPrescription.restSeconds,
+  // summaries omit copy-heavy fields. reuse the seed so cards don't go blank.
   muscles: fallback?.muscles ?? [],
   muscleActivations: fallback?.muscleActivations ?? inferMuscleActivations([]),
   visualKey: fallback?.visualKey ?? inferVisualKey(summary),

@@ -1,10 +1,13 @@
+// derived metrics and analysis. no pose frames, no free text, no landmarks.
+// validate throws; analyze returns nulls. do not mix those styles.
 import { clamp } from './utils.js';
 
-export const MIN_TRACKING_CONFIDENCE = 0.6;
-export const MAX_METRICS_PER_BATCH = 100;
-export const MAX_METRICS_BATCH_BYTES = 64 * 1024;
+export const MIN_TRACKING_CONFIDENCE = 0.6; // below this, still count the rep if they marked it, skip form stats
+export const MAX_METRICS_PER_BATCH = 100; // count cap. the byte cap still applies even under 100 reps.
+export const MAX_METRICS_BATCH_BYTES = 64 * 1024; // json size cap so a client cannot dump a session tape
 
 export const KNOWN_FEEDBACK_CODES = [
+  // keep in sync with intelligence FEEDBACK_CODES. unknown codes fail the batch.
   'low_tracking_confidence',
   'tempo_too_slow',
   'range_of_motion_short',
@@ -19,7 +22,7 @@ export type FeedbackCode = (typeof KNOWN_FEEDBACK_CODES)[number];
 export interface RepMetric {
   readonly setNumber: number;
   readonly repNumber: number;
-  readonly counted: boolean;
+  readonly counted: boolean; // completion uses this even when trackingConfidence is junk
   readonly durationMs?: number;
   readonly rangeOfMotionDeg?: number;
   readonly targetPositionReached?: boolean;
@@ -33,7 +36,7 @@ export interface RepMetric {
 }
 
 export interface MetricBatch {
-  readonly batchId: string;
+  readonly batchId: string; // idempotency lives in the api. we only size and validate the payload.
   readonly metrics: readonly RepMetric[];
 }
 
@@ -44,6 +47,7 @@ export class InvalidMetricBatchError extends Error {
     | 'duplicate_rep_in_batch'
     | 'invalid_metric_value'
     | 'unknown_feedback_code';
+  // closed set so the api can map without parsing the message string.
 
   constructor(code: InvalidMetricBatchError['code'], message: string) {
     super(message);
@@ -54,8 +58,10 @@ export class InvalidMetricBatchError extends Error {
 
 const isFiniteInRange = (value: number | undefined, minimum: number, maximum: number): boolean =>
   value === undefined || (Number.isFinite(value) && value >= minimum && value <= maximum);
+// omitted optional fields pass. nan/infinity do not.
 
 export const validateMetricBatch = (batch: MetricBatch): void => {
+  // throw, do not return a result object. the route maps this error to 400.
   if (batch.metrics.length > MAX_METRICS_PER_BATCH) {
     throw new InvalidMetricBatchError(
       'metric_batch_too_many_reps',
@@ -71,7 +77,7 @@ export const validateMetricBatch = (batch: MetricBatch): void => {
   }
   const seen = new Set<string>();
   for (const metric of batch.metrics) {
-    const key = `${metric.setNumber}:${metric.repNumber}`;
+    const key = `${metric.setNumber}:${metric.repNumber}`; // same set+rep twice is almost always a retry bug
     if (seen.has(key)) {
       throw new InvalidMetricBatchError(
         'duplicate_rep_in_batch',
@@ -82,7 +88,7 @@ export const validateMetricBatch = (batch: MetricBatch): void => {
     if (!Number.isInteger(metric.setNumber) || metric.setNumber < 1 || metric.setNumber > 5) {
       throw new InvalidMetricBatchError(
         'invalid_metric_value',
-        'setNumber must be an integer from 1 through 5.',
+        'setNumber must be an integer from 1 through 5.', // matches prescription max sets
       );
     }
     if (!Number.isInteger(metric.repNumber) || metric.repNumber < 1 || metric.repNumber > 50) {
@@ -92,6 +98,7 @@ export const validateMetricBatch = (batch: MetricBatch): void => {
       );
     }
     if (!isFiniteInRange(metric.durationMs, 0, 3600000)) {
+      // one hour per rep is absurd on purpose. catches unit mixups (seconds vs ms).
       throw new InvalidMetricBatchError(
         'invalid_metric_value',
         'durationMs is outside the supported range.',
@@ -123,6 +130,7 @@ export const validateMetricBatch = (batch: MetricBatch): void => {
       );
     }
     if (!isFiniteInRange(metric.recordedOffsetMs, 0, 86400000)) {
+      // offset is from session start. a day is the ceiling so clocks cannot drift into next week.
       throw new InvalidMetricBatchError(
         'invalid_metric_value',
         'recordedOffsetMs is outside the supported range.',
@@ -154,6 +162,7 @@ export interface TempoAnalysis {
 }
 
 export type PerformanceChangeClassification = 'stable' | 'mild_decline' | 'notable_decline';
+// no 'improvement' on purpose. we only flag drops.
 
 export interface PerformanceChange {
   readonly classification: PerformanceChangeClassification;
@@ -180,7 +189,7 @@ export interface AnalysisInput {
   readonly metrics: readonly RepMetric[];
   readonly romTarget?: { readonly minDeg: number; readonly maxDeg: number };
   readonly tempoTarget?: { readonly minSeconds: number; readonly maxSeconds: number };
-}
+} // targets are optional. missing ones drop those components from overallScore.
 
 const average = (values: readonly number[]): number | null =>
   values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -199,29 +208,30 @@ const median = (values: readonly number[]): number | null => {
 const standardDeviation = (values: readonly number[]): number | null => {
   const mean = average(values);
   if (mean === null) return null;
-  return Math.sqrt(average(values.map((value) => (value - mean) ** 2)) ?? 0);
+  return Math.sqrt(average(values.map((value) => (value - mean) ** 2)) ?? 0); // population stdev, n not n-1.
 };
 
 const trackedMetrics = (metrics: readonly RepMetric[]): RepMetric[] =>
   metrics.filter(
     (metric) =>
       metric.trackingConfidence !== undefined &&
-      metric.trackingConfidence >= MIN_TRACKING_CONFIDENCE,
+      metric.trackingConfidence >= MIN_TRACKING_CONFIDENCE, // missing confidence is treated as untracked, not 0
   );
 
 const scoreForMetric = (
   values: readonly number[],
   weight: number,
 ): { value: number; weight: number } | null => {
+  // weight is the intended share. the analyzer renormalizes if some components are missing.
   const value = average(values);
   return value === null ? null : { value, weight };
 };
 
 export const analyzeExerciseSession = (input: AnalysisInput): ExerciseAnalysis => {
   const validTracked = trackedMetrics(input.metrics);
-  const countedReps = input.metrics.filter((metric) => metric.counted).length;
+  const countedReps = input.metrics.filter((metric) => metric.counted).length; // includes low-confidence counted reps
   const completionPercentage =
-    input.targetReps === 0 ? 0 : clamp((countedReps / input.targetReps) * 100, 0, 100);
+    input.targetReps === 0 ? 0 : clamp((countedReps / input.targetReps) * 100, 0, 100); // empty target is 0%, not 100.
   const romTarget = input.romTarget;
   const tempoTarget = input.tempoTarget;
   const romValues = validTracked.flatMap((metric) =>
@@ -246,7 +256,7 @@ export const analyzeExerciseSession = (input: AnalysisInput): ExerciseAnalysis =
           100;
   const accuracyValues = validTracked.flatMap((metric) =>
     metric.targetPositionReached === undefined ? [] : [metric.targetPositionReached ? 100 : 0],
-  );
+  ); // boolean hit becomes 100/0 so it can average with the other 0-100 scores.
   const controlValues = validTracked.flatMap((metric) =>
     metric.controlScore === undefined ? [] : [metric.controlScore],
   );
@@ -255,6 +265,8 @@ export const analyzeExerciseSession = (input: AnalysisInput): ExerciseAnalysis =
   );
   const componentScores = [
     scoreForMetric([completionPercentage], 0.2),
+    // skip rom/tempo weights when the caller did not send a target. do not invent one.
+    // overallScore does not use formScore. that field is for decline detection only.
     romTarget === undefined
       ? null
       : scoreForMetric(
@@ -269,6 +281,7 @@ export const analyzeExerciseSession = (input: AnalysisInput): ExerciseAnalysis =
       : scoreForMetric(targetTempoAdherence === null ? [] : [targetTempoAdherence], 0.1),
   ].filter((item): item is { value: number; weight: number } => item !== null);
   const weightTotal = componentScores.reduce((sum, item) => sum + item.weight, 0);
+  // renormalize so missing components do not silently drag the score toward zero.
   const overallScore =
     weightTotal === 0
       ? null
@@ -310,7 +323,7 @@ const performanceValue = (metric: RepMetric): number | null => {
 };
 
 const performanceChangeFor = (metrics: readonly RepMetric[]): PerformanceChange | null => {
-  if (metrics.length < 6) return null;
+  if (metrics.length < 6) return null; // need enough reps to split into thirds
   const values = metrics.flatMap((metric) => {
     const value = performanceValue(metric);
     return value === null ? [] : [value];
@@ -323,7 +336,7 @@ const performanceChangeFor = (metrics: readonly RepMetric[]): PerformanceChange 
   const delta = finalAverage - firstAverage;
   return {
     delta,
-    classification: delta <= -20 ? 'notable_decline' : delta <= -10 ? 'mild_decline' : 'stable',
+    classification: delta <= -20 ? 'notable_decline' : delta <= -10 ? 'mild_decline' : 'stable', // only decline is labeled. improvement still comes back as stable.
   };
 };
 
@@ -337,7 +350,8 @@ export const compareProgress = (
 } | null => {
   if (currentScore === null || previousScores.length === 0) return null;
   const baselineValues =
-    previousScores.length >= 3 ? previousScores.slice(0, 3) : previousScores.slice(0, 1);
+    previousScores.length >= 3 ? previousScores.slice(0, 3) : previousScores.slice(0, 1); // first three, not the latest three
+  // 1 or 2 prior scores still uses only the first. we do not average a pair.
   const baselineScore = average(baselineValues);
   if (baselineScore === null) return null;
   const scoreDelta = currentScore - baselineScore;

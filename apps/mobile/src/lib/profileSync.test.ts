@@ -1,6 +1,8 @@
 import { movementProfileRequest, settingsPatch } from '@/lib/profileSync';
 import type { MovementProfile } from '@/types';
 
+// onboarding labels vs reviewed backend ids. easy to drift.
+
 const profile: MovementProfile = {
   goals: ['Build strength', 'Improve balance'],
   regions: {
@@ -19,6 +21,7 @@ const profile: MovementProfile = {
 };
 
 describe('mobile profile synchronization', () => {
+  // focus -> available because the api capability enum has no focus.
   it('maps display labels to reviewed backend reference identifiers', () => {
     expect(movementProfileRequest(profile, 3)).toEqual({
       expectedVersion: 3,
@@ -39,6 +42,7 @@ describe('mobile profile synchronization', () => {
   });
 
   it('converts communication choices into a narrow settings patch', () => {
+    // visual feedback stays on; we don't ship a silent-ui toggle.
     expect(settingsPatch(profile)).toEqual({
       accessibilityPreferences: {
         reducedMotion: true,

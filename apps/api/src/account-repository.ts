@@ -5,6 +5,7 @@ export interface AccountRepository {
   deleteAccount(userId: string): Promise<void>;
 }
 
+// test stand-in. hosted delete is admin-only and retry-safe.
 export class MemoryAccountRepository implements AccountRepository {
   private readonly deletedUsers = new Set<string>();
 
@@ -13,6 +14,7 @@ export class MemoryAccountRepository implements AccountRepository {
   }
 }
 
+// supabase is live but we have no service role. do not attempt delete as the request jwt.
 export class UnavailableAccountRepository implements AccountRepository {
   async deleteAccount(_userId: string): Promise<void> {
     throw new ApiError({
@@ -36,6 +38,7 @@ export class SupabaseAccountRepository implements AccountRepository {
   constructor(private readonly serviceClient: SupabaseClient) {}
 
   async deleteAccount(userId: string): Promise<void> {
+    // admin api, not rls. 404 is treated as success so retries after a partial delete stay idempotent.
     const result = await this.serviceClient.auth.admin.deleteUser(userId);
     if (result.error === null) return;
     const status = result.error.status;

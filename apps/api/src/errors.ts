@@ -1,3 +1,4 @@
+// typed error envelopes. clients key off `code` + requestid, not the http reason phrase.
 import type { ErrorResponse } from '@peddie/contracts';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
@@ -7,6 +8,7 @@ export interface ErrorItem {
   readonly path?: readonly string[];
 }
 
+// thrown from handlers/repos so the envelope stays consistent. do not send raw error objects.
 export class ApiError extends Error {
   readonly statusCode: number;
   readonly code: string;
@@ -34,6 +36,7 @@ export class ApiError extends Error {
 const errorType = (code: string): string => `https://api.example/errors/${code}`;
 
 const asErrorResponse = (request: FastifyRequest, error: ApiError): ErrorResponse => {
+  // always include requestid so support can grep logs without leaking internals.
   const response: ErrorResponse = {
     type: errorType(error.code),
     title: error.title,
@@ -55,6 +58,7 @@ const asErrorResponse = (request: FastifyRequest, error: ApiError): ErrorRespons
   return response;
 };
 
+// unknown routes still use the typed envelope so clients don't parse html 404s.
 export const registerErrorHandling = (app: FastifyInstance): void => {
   app.setNotFoundHandler((request, _reply) => {
     throw new ApiError({
@@ -69,6 +73,7 @@ export const registerErrorHandling = (app: FastifyInstance): void => {
     const validation = (
       error as { validation?: readonly { instancePath?: string; message?: string }[] }
     ).validation;
+    // ajv failures become field errors. this is how we reject raw media/landmark extras.
     if (validation !== undefined) {
       const items = validation.map((item) => ({
         code: 'invalid_field',
@@ -99,6 +104,7 @@ export const registerErrorHandling = (app: FastifyInstance): void => {
             statusCode,
             code: statusCode < 500 ? 'request_error' : 'internal_error',
             title: statusCode < 500 ? 'Request error' : 'Internal error',
+            // 500 detail is generic on purpose. stack stays in logs only.
             detail:
               statusCode < 500 && error instanceof Error
                 ? error.message

@@ -1,3 +1,4 @@
+// env parsing only. fail fast here so a missing supabase pair never boots half-configured.
 export interface AppConfig {
   readonly port: number;
   readonly host: string;
@@ -31,6 +32,7 @@ const parsePort = (value: string | undefined): number => {
 };
 
 const parseCorsOrigins = (value: string | undefined): true | string[] => {
+  // empty means reflect any origin. set cors_origins in production or browsers get a free pass.
   if (value === undefined || value.trim() === '') {
     return true;
   }
@@ -94,9 +96,11 @@ export const loadConfig = (
   const hasSupabaseUrl = supabaseUrl !== undefined && supabaseUrl.length > 0;
   const hasSupabaseAnonKey = supabaseAnonKey !== undefined && supabaseAnonKey.length > 0;
 
+  // url without anon (or the reverse) would create a client that cannot talk to rls.
   if (hasSupabaseUrl !== hasSupabaseAnonKey) {
     throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be provided together.');
   }
+  // tests omit these; server.ts requires both so production never falls back to memory.
   if (options.requireSupabase && (!hasSupabaseUrl || !hasSupabaseAnonKey)) {
     throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY are required to start the API.');
   }
@@ -108,6 +112,7 @@ export const loadConfig = (
     port: parsePort(env.PORT),
     host: env.HOST?.trim() || '::',
     logLevel: parseLogLevel(env.LOG_LEVEL),
+    // only enable behind railway/nginx. otherwise clients can spoof x-forwarded-for rate-limit keys.
     trustProxy: parseBoolean('TRUST_PROXY', env.TRUST_PROXY, false),
     corsOrigins: parseCorsOrigins(env.CORS_ORIGINS),
     rateLimits: {
@@ -121,6 +126,7 @@ export const loadConfig = (
     ...(databaseUrl !== undefined && databaseUrl.length > 0 ? { databaseUrl } : {}),
     ...(hasSupabaseUrl ? { supabaseUrl } : {}),
     ...(hasSupabaseAnonKey ? { supabaseAnonKey } : {}),
+    // optional on purpose: deletion is the only caller. never ship this key to a client.
     ...(supabaseServiceRoleKey !== undefined && supabaseServiceRoleKey.length > 0
       ? { supabaseServiceRoleKey }
       : {}),

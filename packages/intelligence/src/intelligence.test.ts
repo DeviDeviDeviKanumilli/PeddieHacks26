@@ -30,6 +30,8 @@ import type {
 
 const root = dirname(fileURLToPath(import.meta.url));
 
+// tiny fixtures. keep them boring so the tests stay about the rules.
+
 const flags = (overrides: Partial<AccessibilityFlags> = {}): AccessibilityFlags => ({
   largerText: false,
   highContrast: false,
@@ -94,7 +96,9 @@ const prescription: WorkoutItem = {
 };
 
 describe('isolation', () => {
+  // these two tests are the package boundary. if they fail, someone wired it to product code.
   it('does not depend on product packages or apps', () => {
+    // if this starts depending on domain or contracts, we accidentally wired it.
     const pkg = JSON.parse(readFileSync(join(root, '../package.json'), 'utf8')) as {
       dependencies?: Record<string, string>;
     };
@@ -108,6 +112,7 @@ describe('isolation', () => {
   });
 
   it('is not imported by product clients or the API', () => {
+    // walk the product trees. finding this import means someone hooked it up.
     const workspace = join(root, '../../..');
     const scan = (dir: string): string[] => {
       const hits: string[] = [];
@@ -146,6 +151,7 @@ describe('compatibility and generation', () => {
 
 describe('privacy and metrics', () => {
   it('rejects landmark-shaped payloads', () => {
+    // nativeInference false must strip rom even if the client sent a number.
     expect(() => assertNoMedia({ landmarks: [] })).toThrow(/Forbidden field/u);
     expect(isAllowedPoseSample({ landmarks: [{ x: 1 }] })).toBe(false);
     expect(
@@ -167,6 +173,7 @@ describe('privacy and metrics', () => {
 
 describe('tracker and temporal model', () => {
   it('accepts a target-then-return cycle', () => {
+    // first two samples are approach + peak. only the return should count.
     const tracker = new RepetitionTracker(recipe);
     tracker.start(0);
     expect(
@@ -215,7 +222,7 @@ describe('tracker and temporal model', () => {
 
 describe('tools and orchestrator', () => {
   it('drops media arguments and unknown tools', () => {
-    resetToolIdempotency();
+    resetToolIdempotency(); // seen is module-level. skip this and later tests flake on duplicate_call.
     expect(
       validateToolCall('active', {
         tool: 'feedback.emit',

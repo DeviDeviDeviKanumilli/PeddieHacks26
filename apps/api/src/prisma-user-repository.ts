@@ -4,6 +4,8 @@ import type { Prisma, PrismaClient } from './generated/prisma/client.js';
 import { withUserPrismaContext } from './prisma-client.js';
 import type { UserRepository } from './user-repository.js';
 
+// owner profile/settings through postgres rls. same merge rules as the supabase adapter.
+
 const defaultSettings = (): Settings => ({
   accessibilityPreferences: {},
   feedbackPreferences: {},
@@ -76,6 +78,7 @@ export class PrismaUserRepository implements UserRepository {
 
   async getProfile(userId: string): Promise<UserProfile> {
     try {
+      // unlike memory, a missing hosted row is 404: onboarding should have created it.
       return await withUserPrismaContext(this.database, userId, async (database) => {
         const row = await database.profiles.findUnique({
           where: { user_id: userId },
@@ -178,6 +181,7 @@ export class PrismaUserRepository implements UserRepository {
           },
         });
         const currentSettings = mapSettings(current);
+        // nested merge, same as supabase, so clients can patch one preference key.
         const next: Settings = {
           ...currentSettings,
           ...(patch.accessibilityPreferences === undefined

@@ -11,6 +11,7 @@ export default function EquipmentScreen() {
   const selected = useAppStore((state) => state.profile.equipment);
   const setEquipment = useAppStore((state) => state.setEquipment);
   const toggle = (item: string) => {
+    // "none" is exclusive. a chair is assumed so seated work still matches.
     if (item === 'None') return setEquipment(['None']);
     const withoutNone = selected.filter((value) => value !== 'None');
     setEquipment(
@@ -22,6 +23,7 @@ export default function EquipmentScreen() {
   return (
     <Screen>
       <OnboardingHeader step={4} />
+      {/* extra gear (wall, band) only enters generation if it's on this list. */}
       <View style={styles.intro}>
         <Eyebrow>Your setup</Eyebrow>
         <Title compact>What equipment is actually available?</Title>
@@ -43,6 +45,7 @@ export default function EquipmentScreen() {
       <Button icon={ArrowRight} onPress={() => router.push('/onboarding/accessibility')}>
         Continue
       </Button>
+      {/* none is a valid complete choice — seated catalog still matches. */}
     </Screen>
   );
 }

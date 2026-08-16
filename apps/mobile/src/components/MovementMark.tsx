@@ -11,6 +11,7 @@ const icons: Record<Exercise['category'], LucideIcon> = {
   balance: Scale,
 };
 
+// decorative category glyph. hidden from a11y so cards don't announce it twice.
 export const MovementMark = ({
   category,
   size = 64,
@@ -35,10 +36,12 @@ export const MovementMark = ({
         },
       ]}
     >
+      {/* tone can differ from category (collections). size drives corner radius. */}
       <Icon color={movementMarkColors[tone]} size={Math.round(size * 0.48)} strokeWidth={2} />
     </View>
   );
 };
+// keep this decorative — parent cards already speak the exercise name.
 
 const styles = StyleSheet.create({
   mark: { alignItems: 'center', justifyContent: 'center' },

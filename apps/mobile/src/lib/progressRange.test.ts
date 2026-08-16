@@ -7,6 +7,8 @@ import {
 } from '@/lib/progressRange';
 import type { WorkoutHistory } from '@/types';
 
+// utc day windows so guest history and live activity charts share bounds.
+
 const now = new Date('2026-08-15T18:00:00.000Z');
 const history: WorkoutHistory[] = [
   {
@@ -31,6 +33,7 @@ const history: WorkoutHistory[] = [
 
 describe('progress ranges', () => {
   it('creates inclusive date windows', () => {
+    // 7d is today plus the previous six utc days, not a rolling 168 hours.
     expect(progressRangeBounds('7d', now)).toEqual({
       startDate: '2026-08-09',
       endDate: '2026-08-15',
@@ -39,6 +42,7 @@ describe('progress ranges', () => {
   });
 
   it('filters, fills, and summarizes only the selected range', () => {
+    // fill empty days or the chart axis compresses.
     expect(historyInProgressRange(history, '28d', now).map(({ id }) => id)).toEqual(['recent']);
 
     const activity = localProgressActivity(history, '28d', now);

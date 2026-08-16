@@ -5,6 +5,7 @@ import type { AuthVerifier } from './auth.js';
 import { MemoryCatalogRepository } from './catalog-repository.js';
 import { loadConfig } from './config.js';
 
+// inject a fake verifier so these tests never call supabase auth.
 const testAuthVerifier: AuthVerifier = {
   async verify(accessToken) {
     return accessToken === 'demo-token' ? '20000000-0000-4000-8000-000000000001' : null;
@@ -20,6 +21,7 @@ describe('API health', () => {
   });
 
   it('reports that the API is healthy', async () => {
+    // liveness only. a down database must still return 200 here.
     app = await buildApp({ logger: false });
     const response = await app.inject({ method: 'GET', url: '/healthz' });
 
@@ -28,6 +30,7 @@ describe('API health', () => {
   });
 
   it('returns degraded readiness when a dependency check fails', async () => {
+    // inject a failing probe: /readyz must 503 without taking the process down.
     app = await buildApp({
       logger: false,
       readiness: {
@@ -52,6 +55,7 @@ describe('API health', () => {
   });
 
   it('serves public reference data and paginated exercises', async () => {
+    // no auth on catalog. native clients hit this before sign-in.
     app = await buildApp({ logger: false });
     const references = await app.inject({ method: 'GET', url: '/v1/reference-data' });
     const exercises = await app.inject({ method: 'GET', url: '/v1/exercises?limit=1' });
@@ -69,6 +73,7 @@ describe('API health', () => {
     const response = await app.inject({ method: 'GET', url: '/v1/exercises/not-an-exercise' });
 
     expect(response.statusCode).toBe(404);
+    // clients key off code + requestid, not the http reason phrase.
     expect(response.json()).toMatchObject({
       code: 'exercise_not_found',
       status: 404,
@@ -99,6 +104,7 @@ describe('API health', () => {
   });
 
   it('protects compatibility and accepts a valid bearer token', async () => {
+    // catalog is public; compatibility is not, because it reads the movement profile.
     app = await buildApp({ logger: false, authVerifier: testAuthVerifier });
     const exerciseId = '00000000-0000-4000-8000-000000000001';
     const unauthorized = await app.inject({
@@ -119,6 +125,7 @@ describe('API health', () => {
   it('forwards the verified bearer token to authenticated repositories', async () => {
     const profileStore = new MemoryCatalogRepository();
     let observedToken: string | undefined;
+    // spy: hosted rls needs this jwt on the request-scoped supabase client.
     const profiles = {
       getMovementProfile: async (userId: string, accessToken?: string) => {
         observedToken = accessToken;
@@ -147,6 +154,7 @@ describe('API health', () => {
   });
 
   it('returns the typed API envelope when a route-specific rate limit is exceeded', async () => {
+    // catalog bucket is separate from the general limiter on purpose.
     app = await buildApp({
       logger: false,
       config: loadConfig({ RATE_LIMIT_CATALOG: '1', RATE_LIMIT_GENERAL: '100' }),

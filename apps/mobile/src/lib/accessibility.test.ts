@@ -1,5 +1,7 @@
 import { notifyHaptic, selectionHaptic, speakFeedback } from '@/lib/accessibility';
 
+// feedback is opt-in. default onboarding stays quiet.
+
 jest.mock('expo-haptics', () => ({
   selectionAsync: jest.fn(async () => undefined),
   notificationAsync: jest.fn(async () => undefined),
@@ -34,6 +36,7 @@ const Haptics = jest.requireMock('expo-haptics') as {
 const Speech = jest.requireMock('expo-speech') as { speak: jest.Mock; stop: jest.Mock };
 
 describe('accessibility feedback helpers', () => {
+  // store mock is a mutable array so we can flip prefs per test.
   beforeEach(() => {
     accessibility.splice(0, accessibility.length);
     Haptics.selectionAsync.mockClear();
@@ -43,6 +46,7 @@ describe('accessibility feedback helpers', () => {
   });
 
   it('stays silent when haptic and spoken preferences are off', async () => {
+    // never fire device apis unless the profile says so.
     await selectionHaptic();
     await notifyHaptic('error');
     speakFeedback('Welcome back.');

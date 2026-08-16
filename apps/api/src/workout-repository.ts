@@ -15,6 +15,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { ApiError } from './errors.js';
 import type { SupabaseClientFactory } from './supabase-client.js';
 
+// persistence only. generation and compatibility already ran in the route/domain layer.
+
 export interface ManualWorkoutItemDraft {
   readonly exerciseId: string;
   readonly exerciseSlug: string;
@@ -72,6 +74,7 @@ export interface WorkoutRepository {
   ): Promise<Workout>;
 }
 
+// same payload + clientrequestid must replay. different payload with the same id is a 409.
 export const hashRequest = (value: unknown): string =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
@@ -163,6 +166,7 @@ interface StoredWorkout {
   readonly workout: Workout;
 }
 
+// test/guest store. owner checks are explicit because there is no rls here.
 export class MemoryWorkoutRepository implements WorkoutRepository {
   private readonly workouts = new Map<string, StoredWorkout>();
   private readonly idempotency = new Map<string, string>();
@@ -181,6 +185,7 @@ export class MemoryWorkoutRepository implements WorkoutRepository {
     if (existingId !== undefined) {
       const existing = this.workouts.get(existingId);
       if (existing === undefined) throw new Error('Stored workout index is inconsistent.');
+      // same key + different hash is a client bug, not a retry.
       if (existing.requestHash !== input.requestHash) {
         throw conflict(
           'The client request ID was already used with different content.',
@@ -313,6 +318,7 @@ export class MemoryWorkoutRepository implements WorkoutRepository {
         detail: 'The requested workout is not available.',
       });
     }
+    // optimistic lock: two patches with the same expectedversion must not both succeed.
     if (row.workout.version !== request.expectedVersion)
       throw conflict('The workout changed since it was loaded.');
     const workout: Workout = {
@@ -406,6 +412,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
   ) {}
 
   private clientFor(accessToken?: string): SupabaseClient {
+    // owner rows are rls-gated. skip the jwt and list/get come back empty, not 403.
     return this.clientFactory?.(accessToken) ?? this.client;
   }
 

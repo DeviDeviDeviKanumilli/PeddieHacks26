@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
+  expo-dev-launcher@57.0.12: bbcd995c2de4928866e4b665e406d71aaedcd79c517d4e882e93ba23c5005a33
   expo-modules-jsi@57.0.4: 9487cc4ef8eab2ab6ee171b069286c1805635c375abc7a725c52043b5bd3a1b1
 
 importers:

@@ -6,4 +6,5 @@ allowBuilds:
   esbuild: true
   prisma: true
 patchedDependencies:
+  expo-dev-launcher@57.0.12: patches/expo-dev-launcher@57.0.12.patch
   expo-modules-jsi@57.0.4: patches/expo-modules-jsi@57.0.4.patch

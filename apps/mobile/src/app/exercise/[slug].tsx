@@ -15,7 +15,15 @@ import { colors, radii, spacing, typography } from '@/theme/tokens';
 type Tab = 'overview' | 'how-to' | 'muscles';
 
 export default function ExerciseDetailScreen() {
-  const { slug, tab: routeTab } = useLocalSearchParams<{ slug: string; tab?: string }>();
+  const {
+    slug,
+    tab: routeTab,
+    from,
+  } = useLocalSearchParams<{
+    slug: string;
+    tab?: string;
+    from?: string;
+  }>();
   const [tab, setTab] = useState<Tab>(
     routeTab === 'muscles' || routeTab === 'how-to' ? routeTab : 'overview',
   );
@@ -24,7 +32,10 @@ export default function ExerciseDetailScreen() {
       setTab(routeTab);
     }
   }, [routeTab]);
+  const workout = useAppStore((state) => state.recommendedWorkout);
   const catalog = useAppStore((state) => state.catalog);
+  const leave = () =>
+    router.replace(from === 'workout' ? `/workout/${workout.id}` : '/(tabs)/explore');
   const fallback = catalog.find((item) => item.slug === slug);
   const mode = useAppStore((state) => state.mode);
   const liveDetail = useQuery({
@@ -38,7 +49,7 @@ export default function ExerciseDetailScreen() {
       <Screen>
         <Title compact>Exercise not found</Title>
         <Body muted>This movement may no longer be available.</Body>
-        <Button onPress={() => router.back()}>Go back</Button>
+        <Button onPress={leave}>Go back</Button>
       </Screen>
     );
   return (
@@ -47,7 +58,7 @@ export default function ExerciseDetailScreen() {
         <Pressable
           accessibilityLabel="Go back"
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={leave}
           style={styles.back}
         >
           <ArrowLeft color={colors.ink} size={22} />

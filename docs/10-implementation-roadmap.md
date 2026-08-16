@@ -167,6 +167,18 @@ tones; exercise detail uses a small family thumbnail beside the name; Progress h
 range dropdown and activity-first layout; and manual sessions show a compact **Tracking off**
 badge with count guidance.
 
+Session-setup polish is also in the repository: a paged remaining-exercise carousel with
+dots, content-sized cards, a custom form-feedback toggle, a start preview for the first
+remaining movement, `updateWorkoutItem` for sets/reps/rest, `sessionFlow` helpers, and
+`router.replace` exits from review and setup. Completing one planned exercise continues
+to the next setup. Guest **None** equipment implies a stable chair and can still yield a
+four-exercise plan. The Expo tools FAB is hidden in development; shake still opens the
+menu.
+
+The Workout tab still uses the local `buildGuestWorkout` planner in live mode. The API
+generation route is implemented; mobile screens do not call it yet. The committed Maestro
+guest flow still describes earlier Home/setup copy and needs a refresh.
+
 The Android pose module and session-metric wiring are in the repository. Signed
 preview/store builds, a physical Android camera pass, hosted credentials, hosted
 migration/advisor execution, and final network inspection remain environment-gated.
@@ -194,6 +206,9 @@ On-device pose status, in the order imposed by the current Android test phone:
 - Training a new pose model. Mobile integration uses an off-the-shelf on-device model
   plus calibrated recipes; that work is part of Phase 10, not a separate training
   project.
+- Wiring the Workout tab to `POST /v1/workouts/generate` instead of the local planner.
+- Refreshing the Maestro guest flow to the current setup carousel and Home copy.
+- A notifications inbox behind the header bell.
 - Clinician workflows.
 - Admin catalog UI.
 - Redis/distributed rate limiting.

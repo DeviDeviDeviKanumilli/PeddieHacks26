@@ -104,6 +104,10 @@ Create migrations through the Supabase CLI. The expected order is:
 
 `supabase/seed.sql` contains only deterministic reference data, the 24 exercise catalog records, tracking rules, and local demo fixtures. It must not contain real user data, secrets, or production credentials.
 
+Guest workout history, recommended-plan edits, and session query state live in the
+mobile SQLite store. They are not extra Postgres tables. Hosted session, metric, and
+daily-progress rows are created only when live sync runs against a UUID workout.
+
 Implementation status: the nine CLI-created migrations and deterministic seed are in
 place. A disposable PostgreSQL 17 execution applies every migration and seed row, and
 the catalog, RLS, profile-RPC, and session-lifecycle SQL tests pass. The session RPCs

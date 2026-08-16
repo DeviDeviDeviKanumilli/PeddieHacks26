@@ -80,7 +80,8 @@ labels present on the exercise. The component supports two data modes:
    supporting, stabilizing). Inactive segments stay light grey with white gutters.
 
 The same component is used for onboarding/profile editing, exercise details, the Workout
-tab recommendation preview, combined workout coverage, and progress. It must not be
+tab recommendation preview, combined workout coverage, and progress. Workout-setup cards
+use `MovementMark` plus the exercise name rather than a large anatomy canvas. It must not be
 replaced by screenshots or a single flattened anatomy image.
 
 The visual map always has a text equivalent. Profile editing retains labeled 52-point

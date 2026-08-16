@@ -3,6 +3,7 @@ import { FastForward, TimerReset } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
+import { compactSearchParams } from '@/lib/sessionFlow';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 
@@ -14,7 +15,7 @@ export default function RestScreen() {
   const currentSet = Number(params.set ?? 1);
   const next = () =>
     router.replace(
-      `/session/active?${new URLSearchParams({ ...params, set: String(currentSet + 1) }).toString()}`,
+      `/session/active?${compactSearchParams({ ...params, set: String(currentSet + 1) })}`,
     );
   useEffect(() => {
     if (remaining <= 0) {

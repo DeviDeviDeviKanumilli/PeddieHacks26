@@ -48,7 +48,7 @@ export default function AnalysisScreen() {
       <Pressable
         accessibilityLabel="Go back"
         accessibilityRole="button"
-        onPress={() => router.back()}
+        onPress={() => router.replace('/(tabs)/workout')}
         style={styles.back}
       >
         <ArrowLeft color={colors.ink} size={22} />

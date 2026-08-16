@@ -8,6 +8,7 @@ import { Button, Card, Screen } from '@/components/ui';
 import { useAppIsActive } from '@/hooks/useAppIsActive';
 import { speakFeedback, stopSpokenFeedback } from '@/lib/accessibility';
 import { isPoseTrackingAvailable, type PoseAnglesEvent, SessionCamera } from '@/lib/poseCamera';
+import { compactSearchParams, parseNonNegativeInt } from '@/lib/sessionFlow';
 import { MoveState, RangeOfMotionTracker } from '@/lib/tracking/analyzer';
 import { usePoseSession } from '@/lib/tracking/poseSession';
 import { createSetTracker, getCalibratedRecipe, getTrackingRecipe } from '@/lib/tracking/recipes';
@@ -36,6 +37,8 @@ export default function ActiveSessionScreen() {
     set: string;
     elapsedTotal?: string;
     completedTotal?: string;
+    workout?: string;
+    itemIndex?: string;
     workoutSessionId?: string;
     workoutSessionVersion?: string;
     exerciseSessionId?: string;
@@ -48,7 +51,10 @@ export default function ActiveSessionScreen() {
   );
   const appIsActive = useAppIsActive();
   const catalog = useAppStore((state) => state.catalog);
+  const workout = useAppStore((state) => state.recommendedWorkout);
   const exercise = catalog.find((item) => item.slug === params.exercise) ?? catalog[0];
+  const itemIndex = parseNonNegativeInt(params.itemIndex);
+  const plannedCount = params.workout ? workout.items.length : 1;
   const targetReps = Number(params.reps ?? exercise?.reps ?? 8);
   const totalSets = Number(params.sets ?? exercise?.sets ?? 2);
   const currentSet = Number(params.set ?? 1);
@@ -164,11 +170,11 @@ export default function ActiveSessionScreen() {
   }, [demoTracking, paused, targetReps]);
   useEffect(() => {
     if (reps < targetReps) return;
-    const query = new URLSearchParams({
+    const query = compactSearchParams({
       ...params,
       elapsedTotal: String(priorElapsed + elapsed),
       completedTotal: String(priorCompleted + reps),
-    }).toString();
+    });
     const timer = setTimeout(() => {
       if (currentSet < totalSets) router.replace(`/session/rest?${query}`);
       else router.replace(`/session/complete?${query}`);
@@ -198,11 +204,11 @@ export default function ActiveSessionScreen() {
   };
   const end = () =>
     router.replace(
-      `/session/complete?${new URLSearchParams({
+      `/session/complete?${compactSearchParams({
         ...params,
         elapsedTotal: String(priorElapsed + elapsed),
         completedTotal: String(priorCompleted + reps),
-      }).toString()}`,
+      })}`,
     );
   return (
     <Screen padded={false} scroll={false} style={styles.screen}>
@@ -210,7 +216,9 @@ export default function ActiveSessionScreen() {
         <View>
           <Text style={styles.exercise}>{exercise.name}</Text>
           <Text style={styles.set}>
-            Set {currentSet} of {totalSets}
+            {plannedCount > 1
+              ? `Exercise ${itemIndex + 1} of ${plannedCount} · Set ${currentSet} of ${totalSets}`
+              : `Set ${currentSet} of ${totalSets}`}
           </Text>
         </View>
         <Text style={styles.timer}>

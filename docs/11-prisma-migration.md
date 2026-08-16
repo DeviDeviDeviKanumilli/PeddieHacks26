@@ -83,3 +83,7 @@ SQL migrations.
 
 The split can be narrowed later, but only after equivalent transaction, RLS, locking,
 and concurrency tests exist for each RPC replacement.
+
+This boundary is unchanged by the 2026-08-16 mobile session-setup work. Guest plans and
+setup edits stay on-device; Prisma still owns hosted table reads, and session lifecycle
+RPCs still own live create/complete/delete.

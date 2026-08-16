@@ -10,6 +10,7 @@ import type {
   RegionState,
   Workout,
   WorkoutHistory,
+  WorkoutItem,
 } from '@/types';
 
 const defaultProfile: MovementProfile = {
@@ -42,6 +43,10 @@ type AppStore = {
   regenerateWorkout: () => void;
   setRecommendedWorkout: (workout: Workout) => void;
   addWorkoutExercise: (exercise: Exercise) => boolean;
+  updateWorkoutItem: (
+    itemId: string,
+    patch: Partial<Pick<WorkoutItem, 'sets' | 'reps' | 'restSeconds'>>,
+  ) => void;
   completeWorkout: (summary: Omit<WorkoutHistory, 'id' | 'completedAt'>) => void;
 };
 
@@ -129,6 +134,28 @@ export const useAppStore = create<AppStore>()(
         });
         return added;
       },
+      updateWorkoutItem: (itemId, patch) =>
+        set((state) => ({
+          recommendedWorkout: {
+            ...state.recommendedWorkout,
+            items: state.recommendedWorkout.items.map((item) =>
+              item.id === itemId
+                ? {
+                    ...item,
+                    ...(patch.sets === undefined
+                      ? {}
+                      : { sets: Math.min(5, Math.max(1, patch.sets)) }),
+                    ...(patch.reps === undefined
+                      ? {}
+                      : { reps: Math.min(50, Math.max(1, patch.reps)) }),
+                    ...(patch.restSeconds === undefined
+                      ? {}
+                      : { restSeconds: Math.min(90, Math.max(30, patch.restSeconds)) }),
+                  }
+                : item,
+            ),
+          },
+        })),
       completeWorkout: (summary) =>
         set((state) => ({
           history: [
@@ -143,6 +170,7 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'adaptfit-mobile-v1',
+      version: 2,
       storage: createJSONStorage(() => Storage),
       partialize: (state) => ({
         mode: state.mode,
@@ -151,6 +179,17 @@ export const useAppStore = create<AppStore>()(
         recommendedWorkout: state.recommendedWorkout,
         history: state.history,
       }),
+      migrate: (persisted, version) => {
+        const state = persisted as Pick<
+          AppStore,
+          'mode' | 'accountEmail' | 'profile' | 'recommendedWorkout' | 'history'
+        >;
+        if (version >= 2) return state;
+        return {
+          ...state,
+          recommendedWorkout: buildGuestWorkout(state.profile ?? defaultProfile, exercises),
+        };
+      },
     },
   ),
 );

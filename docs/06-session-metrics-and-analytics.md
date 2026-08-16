@@ -98,6 +98,28 @@ when an authenticated session is synchronized. On-device pose sessions may also 
 allowlisted range and confidence. The client does not manufacture form, ROM, or fatigue
 measurements for a manual or guest-simulated session.
 
+## Mobile multi-exercise session flow
+
+A planned workout is a sequence of items, not a single exercise. Helpers in
+`apps/mobile/src/lib/sessionFlow.ts` parse `itemIndex`, resolve the current and next items,
+and build compact route queries.
+
+```text
+workout review
+  -> session setup (remaining items)
+  -> optional permission / camera setup
+  -> active -> rest (between sets) -> complete
+  -> next setup, or analysis / home when no item remains
+```
+
+Completion continues to the next setup when another item exists. Guest history is written
+when the last planned item finishes or the user taps End workout. Live completion uploads
+metrics for the finished exercise, then either resumes the next child or skips remaining
+children and completes the workout session. Analysis back returns to the Workout tab.
+
+These helpers do not change API state machines. Invalid server transitions still return
+`409 invalidStateTransition`.
+
 The pure domain implementation now enforces the 100-rep/64 KB batch limits, rejects
 duplicate reps and unknown feedback codes, filters form metrics below 0.60 tracking
 confidence, renormalizes the documented score weights when metrics are missing, and

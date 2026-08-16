@@ -1,8 +1,17 @@
-import { router } from 'expo-router';
+import { type Href, router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { AccessiblePressable } from '@/components/ui';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
+
+const previousStep: Record<number, Href> = {
+  1: '/onboarding/welcome',
+  2: '/onboarding/goals',
+  3: '/onboarding/movement',
+  4: '/onboarding/preferences',
+  5: '/onboarding/equipment',
+  6: '/onboarding/accessibility',
+};
 
 export const OnboardingHeader = ({ step, total = 6 }: { step: number; total?: number }) => (
   <View style={styles.wrap}>
@@ -10,7 +19,7 @@ export const OnboardingHeader = ({ step, total = 6 }: { step: number; total?: nu
       accessibilityHint="Returns to the previous step"
       accessibilityLabel="Go back"
       accessibilityRole="button"
-      onPress={() => router.back()}
+      onPress={() => router.replace(previousStep[step] ?? '/onboarding/welcome')}
       style={styles.back}
     >
       <ArrowLeft accessibilityElementsHidden color={colors.ink} size={21} />

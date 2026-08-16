@@ -25,7 +25,7 @@ export default function CollectionScreen() {
       <Pressable
         accessibilityLabel="Back to Explore"
         accessibilityRole="button"
-        onPress={() => router.back()}
+        onPress={() => router.replace('/(tabs)/explore')}
         style={({ pressed }) => [styles.back, pressed && styles.pressed]}
       >
         <ChevronLeft color={colors.ink} size={22} />

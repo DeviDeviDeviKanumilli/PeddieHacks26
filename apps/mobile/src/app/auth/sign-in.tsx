@@ -86,7 +86,7 @@ export default function SignInScreen() {
             accessibilityHint="Returns to the previous screen"
             accessibilityLabel="Go back"
             accessibilityRole="button"
-            onPress={() => router.back()}
+            onPress={() => router.replace('/onboarding/welcome')}
             style={styles.back}
           >
             <ArrowLeft accessibilityElementsHidden color={colors.ink} size={22} />

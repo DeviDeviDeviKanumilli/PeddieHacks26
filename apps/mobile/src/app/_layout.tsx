@@ -17,6 +17,7 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { hideExpoDevMenuFab } from '@/lib/devMenu';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAppStore } from '@/state/useAppStore';
 import { colors } from '@/theme/tokens';
@@ -43,6 +44,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) void SplashScreen.hideAsync();
   }, [loaded]);
+
+  useEffect(() => {
+    hideExpoDevMenuFab();
+  }, []);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -78,6 +83,7 @@ export default function RootLayout() {
             screenOptions={{
               animation: reducedMotion ? 'none' : 'slide_from_right',
               contentStyle: { backgroundColor: colors.canvas },
+              gestureEnabled: false,
               headerShown: false,
             }}
           />

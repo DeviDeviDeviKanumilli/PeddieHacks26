@@ -80,6 +80,23 @@ server/domain compatibility result.
 
 If there are not enough compatible exercises, return `422 insufficientCompatibleExercises` with safe configuration suggestions. Never fill the workout with an incompatible exercise.
 
+## Mobile recommended planner
+
+The phone’s current recommended plan is not `generation-v1`. `apps/mobile/src/lib/guestWorkout.ts`
+filters the local catalog, scores by goals and focus regions, and takes up to four
+exercises. That is why a guest plan can include more than the Explore **For me** shortlist
+of two.
+
+Guest equipment **None** (or an empty equipment set) is treated as a stable chair. Band,
+wall, mat, and dumbbell work stay out unless the user selected that gear. Selecting
+**None** on the equipment screen replaces any other chips. Onboarding copy states that a
+chair is assumed.
+
+This local planner is a guest-first approximation. It does not implement duration bands,
+caution acknowledgements, OR-equipment groups from the catalog schema, or the API
+`insufficientCompatibleExercises` error. Live mode still uses it for the Workout tab
+until the screens call `POST /v1/workouts/generate`.
+
 ## Alternatives
 
 Alternatives must pass hard compatibility filters, preserve the primary purpose, stay within one difficulty level, use available equipment, and prefer the same position and tracking support. Each alternative returns a stable explanation code and message.

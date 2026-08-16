@@ -40,6 +40,8 @@ movement profile
 - The mobile client remains usable through a seeded guest adapter without hosted services.
   When configured, live mode uses Supabase Auth and the bearer-aware Fastify API client.
 - Every camera-assisted screen has an equally clear path that continues without tracking.
+- A multi-exercise plan continues to the next remaining setup after each completion
+  instead of treating the first finished movement as the whole workout.
 
 ## Current mobile product shape
 
@@ -55,6 +57,19 @@ range-scoped totals and the activity grid before muscle coverage and recent work
 no-camera session, the app keeps the movement map and manual rep control visible and labels the
 state with an icon and **Tracking off** text.
 
+Workout setup is a paged carousel of remaining exercises. Each card sizes to its contents;
+page count stays in the header; dots under the card change pages. A start preview between the
+form-feedback control and Start workout names the first remaining movement, its opening cue,
+remaining time, and what follows. Form feedback is a custom on/off toggle, not a platform
+`Switch`. Starting the workout always begins that first remaining item, even if the user
+peeked at a later card. Completing a planned exercise returns to setup for the next item
+instead of finishing the whole workout. Review back returns to the Workout tab; setup back
+returns to workout review. Those exits use `router.replace`.
+
+Guest equipment **None** means a stable chair is assumed. The local recommended planner can
+return up to four compatible exercises; it is not limited to a 1–2 exercise shortlist. The
+Explore **For me** list still shows a short recommendation slice plus collections.
+
 ## Out of scope
 
 - A replacement desktop-first website or expansion of the legacy `apps/web` prototype.
@@ -62,7 +77,8 @@ state with an icon and **Tracking off** text.
   model plus per-exercise calibration; the backend does not perform pose estimation.
 - Raw video, images, audio, or pose-landmark storage.
 - Diagnosis, treatment, rehabilitation claims, or clinician workflows.
-- Admin UI, social features, notifications, subscriptions, billing, and advertising.
+- Admin UI, social features, a working notifications inbox, subscriptions, billing, and advertising.
+  The mobile brand header includes a notifications control; it does not open a notifications product.
 - LLM-generated eligibility decisions.
 - External exercise APIs.
 - Supabase Storage, Realtime, Redis, queues, or background workers in v1.
@@ -90,10 +106,11 @@ Every exercise needs source metadata, requirements, equipment behavior, safety c
 ## Constraints
 
 - Duration requests: 5–45 minutes.
-- Generated workout size: 3–6 exercises.
+- API `generation-v1` workout size: 3–6 exercises.
+- Mobile recommended planner (`buildGuestWorkout`): up to 4 compatible exercises.
 - Sets: 1–5.
 - Reps: 1–50.
-- Rest: 0–300 seconds.
+- Rest: API 0–300 seconds; mobile setup chips and store clamps use 30, 45, 60, or 90 seconds.
 - Metrics batch: at most 100 reps and 64 KB.
 - Progress query range: at most 366 days.
 - All timestamps are UTC `timestamptz` values.

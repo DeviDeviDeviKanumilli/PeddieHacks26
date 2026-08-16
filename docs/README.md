@@ -4,7 +4,7 @@ This folder is the system source of truth for AdaptFit, a React Native iOS and A
 application with a Fastify API, domain rules, Supabase data model, privacy posture, and
 mobile deployment plan.
 
-Last updated: 2026-08-15.
+Last updated: 2026-08-16.
 
 ## Reading order
 
@@ -61,6 +61,13 @@ The mobile client also includes original flat illustration assets plus a reusabl
 data-driven front/back anatomy component for movement selection, exercise muscle emphasis,
 planned-workout coverage, and completed-workout history.
 
+Recommended plans on the phone are built locally by `buildGuestWorkout` (up to four
+compatible exercises). Guest equipment **None** is treated as a stable chair, not as
+“no furniture.” Multi-exercise sessions continue from completion back to setup for the
+next remaining item. Workout setup uses a paged carousel, a custom form-feedback toggle,
+and a start preview that always names the first remaining movement. Back exits use
+`router.replace` so they still work when the tab stack is not in history.
+
 ### Current mobile presentation
 
 The shipped mobile surface is intentionally compact and follows the reference hierarchy:
@@ -81,6 +88,10 @@ The shipped mobile surface is intentionally compact and follows the reference hi
 - A no-camera session keeps the anatomy view and rep controls visible, with a compact
   icon-plus-text **Tracking off** badge and nearby manual-count guidance rather than a
   full-screen warning.
+- Workout setup pages remaining exercises in a carousel with a narrow peek and dots (not
+  arrows). Form feedback is a custom on/off toggle aligned with the camera icon. Start
+  workout begins the first remaining exercise, not the visible carousel page. After each
+  movement, the client returns to setup for the next item instead of ending the workout.
 
 The backend workspace, Supabase schema, and Prisma data-access layer are also
 implemented. `apps/api` is a Fastify service with repository adapters, authenticated routes, OpenAPI output,

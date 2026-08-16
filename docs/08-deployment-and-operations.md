@@ -51,6 +51,9 @@ provided at build time.
 - Camera use must remain optional. The client must release the native camera session when
   leaving the flow or entering the background and must not upload raw frames,
   recordings, audio, or pose landmarks.
+- The Expo tools floating button is hidden in development (`hideExpoDevMenuFab` plus iOS
+  `EXDevMenuShowFloatingActionButton: false`) so it does not cover setup or session
+  controls. Shake still opens the developer menu.
 - The mobile bundle contains reviewed flat illustration families for welcome/detail contexts
   and renders compact list movement marks from native code. The API does not need to host or
   transform thumbnails for the Explore and collection rows.
@@ -126,7 +129,7 @@ Example values belong in `apps/mobile/.env.example` without real credentials.
 7. Run `/healthz` and `/readyz` smoke checks from the mobile-configured API origin.
 8. Run complete guest-mode and live-mode mobile acceptance on iOS and Android, including
    the Home/Explore hierarchy, collection navigation, visible list marks, progress range
-   selection, no-camera path, camera denial, native camera cleanup, and raw-media network inspection.
+   selection, workout-setup carousel, multi-exercise continuation, no-camera path, camera denial, native camera cleanup, and raw-media network inspection.
 9. Verify `DELETE /v1/users/me` removes the Auth identity and cascaded application
    rows, then verify the old token receives `401` and the client clears local state.
 

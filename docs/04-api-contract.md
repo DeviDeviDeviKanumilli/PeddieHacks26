@@ -125,6 +125,10 @@ PATCH /v1/workouts/:workoutId/items/:itemId
 
 `GenerateWorkoutRequest` contains `clientRequestId`, focus goals/body regions, duration from 5–45 minutes, optional equipment override, and optional intensity override.
 
+The mobile client exposes `mobileApi.generateWorkout` for that route. Current Workout,
+Explore, and session screens do not call it; they persist a local recommended plan from
+`buildGuestWorkout`. Hosted smoke and the legacy web prototype do exercise generation.
+
 `CompatibilityResult` contains status, score, engine/profile versions, stable reason/conflict codes, related IDs, explanations, and alternatives.
 
 Deleting a workout archives it. Manual workouts may contain one exercise for standalone exercise sessions.
@@ -152,6 +156,13 @@ GET    /v1/exercise-sessions/:exerciseSessionId/analysis
 ```
 
 Creates are idempotent using `clientRequestId`. Metric ingestion uses `batchId` and a request hash. Reusing an ID with different content returns `409 idempotency_conflict`.
+
+Mobile live sync in `apps/mobile/src/lib/sessionSync.ts` uses these routes when the
+workout id is a UUID or a session is already open: create workout session, list/patch
+exercise sessions, ingest metrics, complete exercise, and complete workout. Continuing a
+multi-exercise plan calls `resumeLiveExercise` for the next pending child. Ending early
+skips remaining children, then completes the workout session. Count-only batches omit
+form, ROM, and fatigue fields. On-device pose may add allowlisted range and confidence.
 
 Metrics accept no raw video, image, landmark, coordinate, or arbitrary feedback fields. A batch contains at most 100 reps and 64 KB.
 

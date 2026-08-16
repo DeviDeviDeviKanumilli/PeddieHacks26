@@ -34,9 +34,16 @@ apps/
       lib/
         api.ts
         supabase.ts
+        guestWorkout.ts
+        sessionFlow.ts
+        sessionSync.ts
+        tracking/
       app/
       state/
-    app.config.ts
+        useAppStore.ts
+    modules/
+      adaptfit-pose/
+    app.json
     eas.json
 
   web/ # legacy reference prototype; not the product target
@@ -117,6 +124,15 @@ media is used only where reviewed assets exist; exercise instructions, safety cu
 adaptations, muscles, and requirements come from the public API. Live loading and failures are isolated from guest storage and
 surface a recoverable boundary instead of silently showing seeded data.
 
+The Workout tab recommended plan is built on-device by `buildGuestWorkout` in both guest
+and live modes. `mobileApi.generateWorkout` exists on the client, but current screens do
+not call `POST /v1/workouts/generate`. Live session sync (`startLiveSession`,
+`resumeLiveExercise`, `completeLiveSession`, `finishLiveWorkout`) runs only when the
+workout id is a UUID or a `workoutSessionId` is already present. The local recommended
+plan uses `guest-workout-1`, so those starts stay on-device unless a hosted workout id is
+supplied. The API generation and session routes remain implemented for hosted smoke and
+the legacy web prototype.
+
 ## Live request flow
 
 ```text
@@ -182,8 +198,11 @@ Pin versions and commit the pnpm lockfile.
 - `apps/mobile/app`: route-level onboarding, discovery, compatibility, camera,
   session, progress, and analysis UI.
 - `apps/mobile/src/state`: guest/live mode selection, device persistence, camera lifecycle,
-  and UI session orchestration. Server business rules still belong in `packages/domain`.
-- `apps/mobile/src/lib`: Supabase Auth configuration and the typed bearer-aware API client.
+  and UI session orchestration. `updateWorkoutItem` patches sets, reps, and rest on the
+  local recommended plan. Server business rules still belong in `packages/domain`.
+- `apps/mobile/src/lib`: Supabase Auth configuration, the typed bearer-aware API client,
+  the local recommended planner (`guestWorkout.ts`), session query helpers
+  (`sessionFlow.ts`), live session lifecycle (`sessionSync.ts`), and on-device tracking.
 - `routes/users.ts`: profile, settings, and account deletion endpoints.
 - `routes/profile.ts`: body-region, capability, equipment, and goal preferences.
 - `routes/catalog.ts`: public taxonomies, exercise catalog, and compatibility preview.

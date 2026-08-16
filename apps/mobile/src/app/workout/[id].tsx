@@ -2,7 +2,8 @@ import { router } from 'expo-router';
 import { ArrowLeft, ChevronDown, Play, Plus, RefreshCw } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AnatomyMap } from '@/components/AnatomyMap';
-import { Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
+import { AccessiblePressable, Body, Button, Card, Eyebrow, Screen, Title } from '@/components/ui';
+import { compactSearchParams } from '@/lib/sessionFlow';
 import { useAppStore } from '@/state/useAppStore';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -11,14 +12,14 @@ export default function WorkoutReviewScreen() {
   const catalog = useAppStore((state) => state.catalog);
   return (
     <Screen>
-      <Pressable
+      <AccessiblePressable
         accessibilityLabel="Go back"
         accessibilityRole="button"
-        onPress={() => router.back()}
+        onPress={() => router.replace('/(tabs)/workout')}
         style={styles.back}
       >
         <ArrowLeft color={colors.ink} size={22} />
-      </Pressable>
+      </AccessiblePressable>
       <View style={styles.intro}>
         <Eyebrow>Recommended workout</Eyebrow>
         <Title compact>{workout.title}</Title>
@@ -41,7 +42,7 @@ export default function WorkoutReviewScreen() {
               <Card style={styles.exercise}>
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => router.push(`/exercise/${exercise.slug}`)}
+                  onPress={() => router.push(`/exercise/${exercise.slug}?from=workout`)}
                   style={styles.exerciseTop}
                 >
                   <View style={styles.exerciseCopy}>
@@ -82,7 +83,17 @@ export default function WorkoutReviewScreen() {
       <Button
         disabled={workout.items.length === 0}
         icon={Play}
-        onPress={() => router.push(`/session/setup?workout=${workout.id}`)}
+        onPress={() => {
+          const first = workout.items[0];
+          if (!first) return;
+          router.push(
+            `/session/setup?${compactSearchParams({
+              workout: workout.id,
+              itemIndex: '0',
+              exercise: first.exerciseSlug,
+            })}`,
+          );
+        }}
       >
         {workout.items.length === 0 ? 'Adjust profile first' : 'Start workout'}
       </Button>

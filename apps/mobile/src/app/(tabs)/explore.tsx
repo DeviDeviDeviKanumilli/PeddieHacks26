@@ -113,7 +113,7 @@ export default function ExploreScreen() {
     } else {
       addWorkoutExercise(exercise);
     }
-    router.back();
+    router.replace(`/workout/${workout.id}`);
   };
 
   const selectTab = (forMe: boolean) => {
@@ -127,10 +127,7 @@ export default function ExploreScreen() {
         <Pressable
           accessibilityLabel="Go back"
           accessibilityRole="button"
-          onPress={() => {
-            if (router.canGoBack()) router.back();
-            else router.push(`/workout/${workout.id}`);
-          }}
+          onPress={() => router.replace(`/workout/${workout.id}`)}
           style={styles.back}
         >
           <ArrowLeft color={colors.ink} size={22} />

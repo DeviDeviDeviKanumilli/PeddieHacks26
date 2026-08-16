@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Check, ChevronRight, Repeat2, Sparkles } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Eyebrow, Metric, Screen, Title } from '@/components/ui';
 import { combineMuscleLoad } from '@/lib/anatomy';
-import { completeLiveSession, type LiveSessionContext } from '@/lib/sessionSync';
+import { compactSearchParams, nextWorkoutItem, parseNonNegativeInt } from '@/lib/sessionFlow';
+import { completeLiveSession, finishLiveWorkout, type LiveSessionContext } from '@/lib/sessionSync';
 import { usePoseSession } from '@/lib/tracking/poseSession';
 import { poseRepToMetric, summarizePoseSession } from '@/lib/tracking/sessionMetrics';
 import { useAppStore } from '@/state/useAppStore';
@@ -13,6 +14,7 @@ import { colors, spacing, typography } from '@/theme/tokens';
 export default function CompleteScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
   const catalog = useAppStore((state) => state.catalog);
+  const workout = useAppStore((state) => state.recommendedWorkout);
   const exercise = catalog.find((item) => item.slug === params.exercise);
   const completeWorkout = useAppStore((state) => state.completeWorkout);
   const mode = useAppStore((state) => state.mode);
@@ -27,18 +29,60 @@ export default function CompleteScreen() {
   const targetReps = repsPerSet * Number(params.sets ?? sets);
   const completedReps = Number(params.completedTotal ?? repsPerSet * sets);
   const elapsed = Math.max(Number(params.elapsedTotal ?? 0), completedReps * 3);
-  useEffect(() => {
+  const itemIndex = parseNonNegativeInt(params.itemIndex);
+  const inPlan = Boolean(params.workout);
+  const next = inPlan ? nextWorkoutItem(workout, itemIndex) : undefined;
+  const nextExercise = next
+    ? catalog.find((item) => item.slug === next.item.exerciseSlug)
+    : undefined;
+  const accReps = parseNonNegativeInt(params.sessionReps) + completedReps;
+  const accElapsed = parseNonNegativeInt(params.sessionElapsed) + elapsed;
+  const accExercises = parseNonNegativeInt(params.sessionExercises) + 1;
+  const plannedCount = inPlan ? workout.items.length : 1;
+  const liveContext: LiveSessionContext | null =
+    params.workoutSessionId && params.exerciseSessionId
+      ? {
+          workoutSessionId: params.workoutSessionId,
+          workoutSessionVersion: Number(params.workoutSessionVersion),
+          exerciseSessionId: params.exerciseSessionId,
+          exerciseSessionVersion: Number(params.exerciseSessionVersion),
+          remainingSessions: params.remainingSessions ?? '',
+        }
+      : null;
+  const saveGuestSummary = useCallback(() => {
     if (saved.current || !exercise) return;
     saved.current = true;
+    const completedItems = inPlan ? workout.items.slice(0, accExercises) : [];
     completeWorkout({
-      title: exercise.name,
-      durationSeconds: elapsed,
-      exercises: 1,
-      reps: completedReps,
+      title: inPlan ? workout.title : exercise.name,
+      durationSeconds: accElapsed,
+      exercises: accExercises,
+      reps: accReps,
       averageScore: null,
-      muscleLoad: combineMuscleLoad([exercise.muscleActivations]),
+      muscleLoad: combineMuscleLoad(
+        (completedItems.length > 0 ? completedItems : [{ exerciseSlug: exercise.slug }]).flatMap(
+          (item) => {
+            const match = catalog.find((candidate) => candidate.slug === item.exerciseSlug);
+            return match ? [match.muscleActivations] : [];
+          },
+        ),
+      ),
     });
-  }, [completeWorkout, completedReps, elapsed, exercise]);
+  }, [
+    accElapsed,
+    accExercises,
+    accReps,
+    catalog,
+    completeWorkout,
+    exercise,
+    inPlan,
+    workout.items,
+    workout.title,
+  ]);
+  useEffect(() => {
+    if (!exercise || next) return;
+    saveGuestSummary();
+  }, [exercise, next, saveGuestSummary]);
   useEffect(() => {
     if (
       syncStarted.current ||
@@ -61,29 +105,58 @@ export default function CompleteScreen() {
       completedReps,
       repsPerSet,
       elapsedSeconds: elapsed,
+      finishWorkout: !next,
       ...(poseReps.length > 0 ? { metrics: poseReps.map(poseRepToMetric) } : {}),
     })
       .then(() => setSyncState('synced'))
       .catch(() => setSyncState('error'));
-  }, [completedReps, elapsed, mode, params, poseReps, repsPerSet]);
+  }, [completedReps, elapsed, mode, next, params, poseReps, repsPerSet]);
   if (!exercise) return null;
-  const query = new URLSearchParams({
+  const query = compactSearchParams({
     ...params,
     completedReps: String(completedReps),
     targetReps: String(targetReps),
     elapsed: String(elapsed),
-  }).toString();
+  });
+  const continueToNext = () => {
+    if (!next) return;
+    router.replace(
+      `/session/setup?${compactSearchParams({
+        workout: params.workout,
+        exercise: next.item.exerciseSlug,
+        itemIndex: String(next.index),
+        sessionReps: String(accReps),
+        sessionElapsed: String(accElapsed),
+        sessionExercises: String(accExercises),
+        tracking: params.tracking,
+        workoutSessionId: params.workoutSessionId,
+        workoutSessionVersion: params.workoutSessionVersion,
+      })}`,
+    );
+  };
+  const endWorkout = () => {
+    saveGuestSummary();
+    if (mode === 'live' && liveContext && next) {
+      void finishLiveWorkout(liveContext);
+    }
+    router.replace('/(tabs)');
+  };
   return (
     <Screen>
       <View style={styles.hero}>
         <View style={styles.check}>
           <Check color={colors.surface} size={42} />
         </View>
-        <Eyebrow>Exercise complete</Eyebrow>
+        <Eyebrow>
+          {plannedCount > 1
+            ? `Exercise ${itemIndex + 1} of ${plannedCount} complete`
+            : 'Exercise complete'}
+        </Eyebrow>
         <Title compact>You showed up for your movement.</Title>
         <Body muted>
-          {exercise.name} is complete. The useful part is what the session tells you—not a perfect
-          score.
+          {nextExercise
+            ? `${exercise.name} is complete. Next is ${nextExercise.name}.`
+            : `${exercise.name} is complete. The useful part is what the session tells you—not a perfect score.`}
         </Body>
       </View>
       <Card tone="lavender">
@@ -146,11 +219,22 @@ export default function CompleteScreen() {
           </View>
         </Card>
       )}
-      <Button icon={ChevronRight} onPress={() => router.push(`/session/analysis?${query}`)}>
-        View detailed analysis
-      </Button>
-      <Button onPress={() => router.replace('/(tabs)')} variant="quiet">
-        Return home
+      {next ? (
+        <Button icon={ChevronRight} onPress={continueToNext}>
+          Continue to {nextExercise?.name ?? 'next exercise'}
+        </Button>
+      ) : null}
+      {next ? (
+        <Button onPress={() => router.push(`/session/analysis?${query}`)} variant="secondary">
+          View detailed analysis
+        </Button>
+      ) : (
+        <Button icon={ChevronRight} onPress={() => router.push(`/session/analysis?${query}`)}>
+          View detailed analysis
+        </Button>
+      )}
+      <Button onPress={endWorkout} variant="quiet">
+        {next ? 'End workout' : 'Return home'}
       </Button>
     </Screen>
   );

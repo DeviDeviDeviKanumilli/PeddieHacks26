@@ -24,12 +24,21 @@ describe('buildGuestWorkout', () => {
     );
   });
 
-  it('does not recommend required equipment that the user did not select', () => {
+  it('does not recommend band or wall work when the user only selected none', () => {
     const workout = buildGuestWorkout(profile({ equipment: ['None'] }), exercises);
+    const slugs = workout.items.map(({ exerciseSlug }) => exerciseSlug);
 
-    expect(workout.items.map(({ exerciseSlug }) => exerciseSlug)).not.toEqual(
-      expect.arrayContaining(['seated-resistance-band-row', 'sit-to-stand', 'wall-push-up']),
+    expect(slugs).not.toEqual(
+      expect.arrayContaining(['seated-resistance-band-row', 'wall-push-up']),
     );
+  });
+
+  it('still fills a four-exercise plan when only none is selected, using a chair as everyday furniture', () => {
+    const workout = buildGuestWorkout(profile({ equipment: ['None'] }), exercises);
+    const slugs = workout.items.map(({ exerciseSlug }) => exerciseSlug);
+
+    expect(slugs).toHaveLength(4);
+    expect(slugs).toEqual(expect.arrayContaining(['seated-biceps-curl', 'seated-knee-extension']));
   });
 });
 

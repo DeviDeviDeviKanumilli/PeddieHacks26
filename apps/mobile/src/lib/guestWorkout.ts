@@ -94,13 +94,17 @@ export const planFitReasons = (
 
 const equipmentAvailable = (exercise: Exercise, selected: ReadonlySet<string>): boolean => {
   const needs = exercise.equipment.join(' ').toLowerCase();
-  if (needs.includes('resistance band') && !needs.includes('dumbbell'))
-    return selected.has('Resistance band');
+  const hasChair = selected.has('Stable chair') || selected.has('None') || selected.size === 0;
+  const hasBand = selected.has('Resistance band');
+  const hasDumbbells = selected.has('Dumbbells');
+  if (needs.includes('resistance band') && needs.includes('dumbbell')) {
+    return hasBand || hasDumbbells || selected.has('None') || selected.size === 0;
+  }
+  if (needs.includes('resistance band')) return hasBand;
   if (needs.includes('wall')) return selected.has('Wall');
-  if (needs.includes('stable chair')) return selected.has('Stable chair');
   if (needs.includes('exercise mat')) return selected.has('Exercise mat');
-  if (needs.includes('dumbbell') && !needs.includes('resistance band'))
-    return selected.has('Dumbbells');
+  if (needs.includes('dumbbell')) return hasDumbbells;
+  if (needs.includes('stable chair')) return hasChair;
   return true;
 };
 

@@ -27,6 +27,24 @@ export const buildCountedRepMetrics = (
   }));
 };
 
+const remainingFromChildren = (
+  children: { id: string; version: number }[],
+  selectedId: string,
+): string =>
+  children
+    .filter((session) => session.id !== selectedId)
+    .map((session) => `${session.id}:${session.version}`)
+    .join(',');
+
+const parseRemainingSessions = (encoded: string) =>
+  encoded
+    .split(',')
+    .filter(Boolean)
+    .map((value) => {
+      const [id, version] = value.split(':');
+      return { id, version: Number(version) };
+    });
+
 export const startLiveSession = async (
   workoutId: string,
   exerciseId: string,
@@ -45,11 +63,60 @@ export const startLiveSession = async (
     workoutSessionVersion: workoutSession.version,
     exerciseSessionId: active.id,
     exerciseSessionVersion: active.version,
-    remainingSessions: children
-      .filter((session) => session.id !== selected.id)
-      .map((session) => `${session.id}:${session.version}`)
-      .join(','),
+    remainingSessions: remainingFromChildren(children, selected.id),
   };
+};
+
+export const resumeLiveExercise = async (
+  workoutSessionId: string,
+  workoutSessionVersion: number,
+  exerciseId: string,
+): Promise<LiveSessionContext> => {
+  const children = await mobileApi.listExerciseSessions(workoutSessionId);
+  const selected =
+    children.find((session) => session.exerciseId === exerciseId && session.state === 'pending') ??
+    children.find(
+      (session) =>
+        session.exerciseId === exerciseId &&
+        session.state !== 'completed' &&
+        session.state !== 'skipped' &&
+        session.state !== 'cancelled',
+    );
+  if (!selected) throw new Error('The selected exercise is not part of this workout.');
+  const active =
+    selected.state === 'active'
+      ? selected
+      : await mobileApi.patchExerciseSession(selected.id, {
+          expectedVersion: selected.version,
+          state: 'active',
+        });
+  return {
+    workoutSessionId,
+    workoutSessionVersion,
+    exerciseSessionId: active.id,
+    exerciseSessionVersion: active.version,
+    remainingSessions: remainingFromChildren(
+      children.filter(
+        (session) =>
+          session.state === 'pending' ||
+          session.state === 'active' ||
+          session.state === 'paused' ||
+          session.state === 'resting',
+      ),
+      selected.id,
+    ),
+  };
+};
+
+export const finishLiveWorkout = async (context: LiveSessionContext): Promise<void> => {
+  for (const session of parseRemainingSessions(context.remainingSessions)) {
+    if (!session.id || !Number.isInteger(session.version)) continue;
+    await mobileApi.patchExerciseSession(session.id, {
+      expectedVersion: session.version,
+      state: 'skipped',
+    });
+  }
+  await mobileApi.completeWorkoutSession(context.workoutSessionId, context.workoutSessionVersion);
 };
 
 export const completeLiveSession = async (input: {
@@ -58,6 +125,7 @@ export const completeLiveSession = async (input: {
   repsPerSet: number;
   elapsedSeconds: number;
   metrics?: RepMetric[];
+  finishWorkout?: boolean;
 }): Promise<void> => {
   const metrics =
     input.metrics !== undefined && input.metrics.length > 0
@@ -73,22 +141,6 @@ export const completeLiveSession = async (input: {
     input.context.exerciseSessionId,
     input.context.exerciseSessionVersion,
   );
-  const remaining = input.context.remainingSessions
-    .split(',')
-    .filter(Boolean)
-    .map((value) => {
-      const [id, version] = value.split(':');
-      return { id, version: Number(version) };
-    });
-  for (const session of remaining) {
-    if (!session.id || !Number.isInteger(session.version)) continue;
-    await mobileApi.patchExerciseSession(session.id, {
-      expectedVersion: session.version,
-      state: 'skipped',
-    });
-  }
-  await mobileApi.completeWorkoutSession(
-    input.context.workoutSessionId,
-    input.context.workoutSessionVersion,
-  );
+  if (input.finishWorkout === false) return;
+  await finishLiveWorkout(input.context);
 };

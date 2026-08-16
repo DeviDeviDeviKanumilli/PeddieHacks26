@@ -12,6 +12,7 @@
       "bundleIdentifier": "com.peddiehacks26.adaptfit",
       "supportsTablet": true,
       "infoPlist": {
+        "EXDevMenuShowFloatingActionButton": false,
         "NSCameraUsageDescription": "AdaptFit uses the camera only on your device to provide optional movement feedback."
       }
     },

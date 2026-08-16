@@ -26,7 +26,8 @@ export default function EquipmentScreen() {
         <Eyebrow>Your setup</Eyebrow>
         <Title compact>What equipment is actually available?</Title>
         <Body muted>
-          Recommendations will work with this list. Optional equipment will never block a movement.
+          Recommendations will work with this list. A stable chair is assumed when you choose none.
+          Extra gear like a wall or band is only used when you select it.
         </Body>
       </View>
       <View style={styles.choices}>

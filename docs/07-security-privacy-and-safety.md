@@ -70,6 +70,10 @@ mobile session keeps the exercise anatomy and manual rep control available and e
 compact icon-plus-text **Tracking off** status. That label must remain accessible to screen
 readers and must not imply that form, ROM, or fatigue data was measured.
 
+Hiding the Expo developer-tools floating button in development is a UI choice so the FAB
+does not cover product controls. Shake still opens the developer menu. That change is not
+a privacy control and does not affect the camera or metrics boundary.
+
 ## Deletion and retention
 
 - Retain derived metrics until the user deletes a session or account.

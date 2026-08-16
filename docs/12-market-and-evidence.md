@@ -1,7 +1,8 @@
 # Market and Evidence Brief
 
-Last reviewed: 2026-08-15. Statistics are labeled by source-data year so older
-surveillance is not presented as a current 2026 measurement.
+Last reviewed: 2026-08-16. Statistics are labeled by source-data year so older
+surveillance is not presented as a current 2026 measurement. The product facts in this
+brief are unchanged: constraint-first discovery, optional camera, and no clinical claims.
 
 ## Population and need
 

@@ -15,9 +15,11 @@ The application uses five bottom tabs outside focused workout flows:
 4. Progress
 5. Profile
 
-Onboarding, exercise details, workout review, swaps, camera setup, active exercise, rest,
-completion, and analysis use native stack or modal navigation. The tab bar is hidden
-during active workouts.
+Onboarding, exercise details, workout review, swaps, session setup, camera permission,
+camera setup, active exercise, rest, completion, and analysis use native stack navigation.
+The tab bar is hidden during those focused routes. Root and onboarding stacks disable
+swipe-back (`gestureEnabled: false`) because `GO_BACK` fails when the tab stack is not in
+history, including after a Metro reload.
 
 ## Mobile architecture
 
@@ -32,6 +34,9 @@ during active workouts.
 - Never include a service-role key, database URL, or server credential in the app.
 - Keep public request and response validation in `packages/contracts`; keep compatibility,
   recommendation, generation, and analytics rules in `packages/domain`.
+- Keep session query helpers in `apps/mobile/src/lib/sessionFlow.ts` and local
+  recommended-plan edits in `useAppStore.updateWorkoutItem`. Do not put generation-v1
+  scoring in route handlers.
 
 The mobile client must support onboarding, movement-profile editing, exercise discovery,
 compatibility explanations, reviewed exercise details, workout generation and editing,
@@ -173,11 +178,14 @@ The application now lives in `apps/mobile` and includes:
 - A SQLite-persisted guest adapter that remains usable without hosted configuration.
 - Supabase email/password authentication using only the publishable key, persisted native
   sessions, AppState-aware token refresh, and bearer-token API requests.
-- Profile and accessibility-settings synchronization, deterministic live workout
-  generation, full public catalog hydration, reviewed exercise sources, and live progress.
+- Profile and accessibility-settings synchronization, full public catalog hydration,
+  reviewed exercise sources, and live progress. The Workout tab recommended plan is still
+  built locally by `buildGuestWorkout` in guest and live modes. The generate-workout API
+  client method exists; screens do not call it yet.
 - Camera permission disclosure, camera setup, equally prominent no-camera continuation,
   compact in-session tracking-off status, nearby manual rep guidance, pause, timed rest, early
-  completion, and metrics-first analysis.
+  completion, and metrics-first analysis. See
+  [session setup and multi-exercise flow](#session-setup-and-multi-exercise-flow).
 - Authenticated session lifecycle calls that submit counted-rep derived records, and
   on-device pose range/confidence when the native module produced them. Simulated guest
   form values are never persisted to the backend.
@@ -188,8 +196,9 @@ The application now lives in `apps/mobile` and includes:
   stability scores. Expo Go cannot load this module; use
   `pnpm dev:mobile:android:device` / `expo run:android` to install a development build.
   iOS still uses the `expo-camera` preview until the same native path ships there.
-- Account deletion, EAS development/preview/production profiles, Jest and React Native
-  Testing Library coverage, and a committed Maestro guest acceptance flow.
+- Account deletion, EAS development/preview/production profiles, and Jest / React Native
+  Testing Library coverage. A Maestro guest flow is committed but still uses earlier
+  Home/setup copy.
 - Original flat geometric people illustrations for the welcome and reusable movement-family
   cards, plus a code-native front/back anatomy map whose regions are selectable and whose
   highlights are driven by exercise muscle attributes rather than per-exercise body images.
@@ -198,6 +207,54 @@ The current client presentation contract is deliberately split: reviewed raster 
 communicate posture or equipment on welcome/detail surfaces, while compact discovery and
 collection rows use native vector marks. No route should render a blank thumbnail while waiting
 for an optional bitmap asset.
+
+## Session setup and multi-exercise flow
+
+Workout setup (`apps/mobile/src/app/session/setup.tsx`) reviews remaining planned items
+before the first or next movement starts.
+
+- Remaining items are a horizontal carousel with a narrow peek of the next card. Dots
+  under the card change pages; there are no previous/next arrows.
+- Each exercise card sizes to its contents (name, sets, reps, rest chips). Page count
+  (`1 of N`) stays in the header with a progress bar when more than one item remains.
+- Sets and reps use plus/minus steppers (1–5 and 1–50). Rest uses 30/45/60/90 second
+  chips. Planned items persist through store `updateWorkoutItem`; a solo exercise keeps
+  local state.
+- Form feedback is a custom on/off toggle in the same row as the camera icon and label.
+  It is an accessible switch (`accessibilityRole="switch"`), not React Native `Switch`,
+  so height and alignment match the camera row.
+- A start preview between that toggle and the primary button names the first remaining
+  movement, its first instruction cue, remaining estimated time, and the names that
+  follow. Leftover height is used for that context, not empty canvas.
+- **Start workout** / **Continue workout** always begins the first remaining item
+  (`pages[0]` / current `itemIndex`), not the card the user is looking at.
+- After complete, a planned workout with another item routes back to setup for that
+  next item. **End workout** writes guest history and, in live UUID sessions, skips
+  remaining children then completes the workout session.
+- Review back uses `router.replace('/(tabs)/workout')`. Setup back uses
+  `router.replace` to the workout review when a plan id is present, otherwise the
+  Workout tab. Analysis back also replaces to the Workout tab. Do not use
+  `router.back()` / `GO_BACK` for those exits.
+
+Shared helpers live in `apps/mobile/src/lib/sessionFlow.ts` (`parseNonNegativeInt`,
+`compactSearchParams`, `currentWorkoutItem`, `nextWorkoutItem`) and are covered by
+`sessionFlow.test.ts`. Live create/resume/complete/skip helpers live in
+`sessionSync.ts` and run only when the workout id is a UUID or a `workoutSessionId`
+already exists. The local recommended plan id is `guest-workout-1`.
+
+Guest equipment **None** implies a stable chair. `buildGuestWorkout` can return up to
+four compatible chair-based exercises and excludes band/wall-only work unless that
+gear was selected. Persisted guest plans migrate to this planner at store version 2.
+
+Onboarding is welcome plus six stepped screens (goals, movement, preferences,
+equipment, accessibility, summary). Onboarding back also uses `router.replace` to the
+previous step.
+
+The Home brand header includes a notifications control. It does not open a
+notifications product; that remains out of scope.
+
+The committed Maestro guest flow under `apps/mobile/.maestro` still asserts earlier
+Home/setup copy and is not yet a reliable check of the carousel setup.
 
 Run the client and focused checks with:
 
@@ -212,7 +269,8 @@ pnpm --filter @peddie/mobile build
 
 `pnpm dev:mobile` starts Metro. `pnpm dev:mobile:ios` compiles a development client
 (`expo run:ios`) and installs it on a simulator; Expo Go cannot load `expo-dev-client`
-or the pose module. `pnpm dev:mobile:android` is also a native run. Use
+or the pose module. The Expo tools floating button is hidden in development so it does
+not cover product controls; shake still opens the developer menu. `pnpm dev:mobile:android` is also a native run. Use
 `pnpm dev:mobile:android:device` on a connected Android phone. The pose model is
 downloaded into module assets at compile time, not at runtime. iOS pose remains a stub
 (`isAvailable() === false`) until the Android camera pass lands. Xcode 26.3 needs the

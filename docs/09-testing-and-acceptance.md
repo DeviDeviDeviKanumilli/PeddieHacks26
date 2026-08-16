@@ -12,6 +12,8 @@
 - Analytics formulas and insufficient-data behavior.
 - Session transition matrices.
 - Optimistic concurrency.
+- Mobile session-flow item indexes and next-item advancement.
+- Guest planner equipment **None** still fills a chair-based multi-exercise plan.
 
 ## Database and RLS tests
 
@@ -63,6 +65,14 @@
   coordinate payload. Only allowlisted derived metrics may reach the API client.
 - Guided-session timers, pause, resume, rest, restart, early completion, and history
   updates are deterministic under fake timers.
+- Session setup pages remaining exercises, sizes cards to contents, uses dots rather than
+  arrows, and starts the first remaining item rather than the visible carousel page.
+- Form feedback is a custom accessible switch control, not a platform `Switch`.
+- Completing a planned exercise continues to the next setup; End workout finishes the
+  remaining plan. Review back goes to the Workout tab; setup back goes to workout review
+  via `router.replace`.
+- Guest equipment **None** still produces a multi-exercise chair-based plan and excludes
+  band/wall-only work. `updateWorkoutItem` clamps sets 1–5, reps 1–50, and rest 30–90.
 - Layouts remain usable on supported phone and tablet sizes, Dynamic Type, reduced
   motion, and high contrast, with at least 44-point iOS and 48dp Android targets.
 
@@ -85,8 +95,9 @@
    guided session with pause, resume, rest, and early-completion controls.
 4. Repeat with camera permission when available and verify the preview stays on-device
    and the native camera session stops after the assisted flow ends.
-5. Review the completion view, Progress dashboard, each range option, history, and detailed
-   analysis, then reload and verify intended demo state persistence.
+5. Review the completion view, continue through remaining planned exercises when the
+   workout has more than one item, then check Progress, each range option, history, and
+   detailed analysis. Reload and verify intended demo state persistence.
 6. Inspect mobile network requests and confirm that no raw media, frames, audio, pose
    landmarks, or coordinates leave the device.
 
@@ -98,6 +109,8 @@
 4. Swap one exercise for a compatible alternative.
 5. Start the workout and upload duplicate-safe derived metrics only.
 6. Complete an exercise and verify completion, ROM, accuracy, control, stability, tempo, and progress output.
+   On the mobile client, a multi-item plan should offer the next setup rather than ending
+   the workout. Hosted smoke may still complete a generated API workout in one loop.
 7. Complete the workout and verify history, totals, activity, and body coverage.
 8. Confirm a second user cannot access demo data.
 9. Delete a session and verify progress recomputation.
@@ -107,18 +120,23 @@
 
 ## CI gates
 
+GitHub Actions (`.github/workflows/ci.yml`) runs:
+
 ```text
 pnpm install --frozen-lockfile
 pnpm format
 pnpm typecheck
+pnpm --filter @peddie/mobile config:check
 pnpm test
-pnpm test:integration
 pnpm openapi:check
 pnpm build
 ALLOW_DATABASE_BOOTSTRAP=true SUPABASE_DB_URL=<disposable-url> pnpm db:test:prepare
 pnpm test:db
 pnpm test:prisma
 ```
+
+`pnpm test` is recursive and includes the API Fastify-injection suite. `pnpm test:integration`
+remains the focused local alias for that API suite. Hosted smoke is not a CI job.
 
 The root `format`, `typecheck`, `test`, and `build` commands must include `apps/mobile`
 through the pnpm workspace. For focused client iteration, use:
@@ -148,7 +166,9 @@ are unavailable. The hosted live-mode scenario and database tests are environmen
   compatibility adaptation, contract mapping, profile synchronization, count-only
   fallback metric construction, and allowlisted pose session summaries
 - A committed Maestro guest onboarding and no-camera workout flow under
-  `apps/mobile/.maestro`
+  `apps/mobile/.maestro`. The YAML still uses earlier Home/setup copy (`Review workout`,
+  `Continue without`, `Continue to workout`) and needs a refresh against the current
+  carousel setup before it is a reliable release gate.
 - `pnpm test:prisma` (RLS-scoped Prisma catalog smoke check when a database URL is set)
 - Mandatory GitHub Actions PostgreSQL 17 execution of all migrations and `supabase/seed.sql`
 - `supabase/tests/rls.sql` owner-isolation and anonymous-catalog checks
@@ -158,7 +178,8 @@ are unavailable. The hosted live-mode scenario and database tests are environmen
 - Domain tests for session transition matrices, metric limits, confidence filtering, analysis formulas, and progress baselines
 - Focused mobile tests for anatomy mappings, movement-mark rendering, collection predicates,
   progress-range bounds, exercise-card accessibility, count-only fallback metric
-  construction, and on-device pose summary mapping that omits landmarks
+  construction, on-device pose summary mapping that omits landmarks, session-flow item
+  advancement, and guest plans that treat **None** as a chair and still fill four exercises
 
 GitHub Actions creates a clean PostgreSQL service and runs `pnpm db:test:prepare`
 before the database and Prisma suites. The bootstrap script refuses to operate unless
